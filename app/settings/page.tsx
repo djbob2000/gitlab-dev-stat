@@ -13,6 +13,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTrackedDevelopers } from '@/lib/hooks/use-tracked-developers';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 interface GitLabDeveloper {
   id: number;
@@ -56,11 +59,21 @@ export default function DevelopersPage() {
 
   return (
     <div className="container mx-auto py-10 space-y-4">
-      <div className="flex flex-col space-y-4">
-        <h1 className="text-3xl font-bold tracking-tight">GitLab Project Developers</h1>
-        <p className="text-sm text-muted-foreground">
-          Select developers to track their activity in the analytics dashboard.
-        </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/">
+              <ArrowLeft className="h-5 w-5" />
+              <span className="sr-only">Back to dashboard</span>
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">GitLab Project Developers</h1>
+            <p className="text-sm text-muted-foreground">
+              Select developers to track their activity in the analytics dashboard.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center gap-4 py-4">

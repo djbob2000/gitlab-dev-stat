@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 const STORAGE_KEY = 'tracked-developers';
 
 export interface TrackedDeveloper {
+  userId: number;
   username: string;
   selected: boolean;
 }
