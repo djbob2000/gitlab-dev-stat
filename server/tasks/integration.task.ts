@@ -1,5 +1,4 @@
 import { toast } from 'sonner';
-import { QueryClient } from '@tanstack/react-query';
 import { formatDuration } from './time-calculation.task';
 import { z } from 'zod';
 
@@ -44,23 +43,6 @@ export const handleAPIError = (error: unknown): never => {
   }
   throw error;
 };
-
-// Query client configuration
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
-      retry: 2,
-      refetchOnWindowFocus: false,
-      onError: handleAPIError,
-    },
-    mutations: {
-      retry: 1,
-      onError: handleAPIError,
-    },
-  },
-});
 
 // Date/Time formatting
 export const formatDate = (date: string | Date): string => {
@@ -147,38 +129,9 @@ export const timeFormatters = {
   relative: formatRelativeTime,
 };
 
-// Cache helpers
-export const invalidateQueries = async (queryKeys: string[]) => {
-  await Promise.all(
-    queryKeys.map(key => queryClient.invalidateQueries({ queryKey: [key] }))
-  );
-};
-
-export const prefetchQueries = async <T>(
-  queryKey: string,
-  fetcher: () => Promise<T>
-) => {
-  await queryClient.prefetchQuery({
-    queryKey: [queryKey],
-    queryFn: fetcher,
-  });
-};
-
-// Optimistic updates helper
-export const optimisticUpdate = <T>(
-  queryKey: string,
-  updateFn: (oldData: T) => T
-) => {
-  queryClient.setQueryData([queryKey], (oldData: T) => updateFn(oldData));
-};
-
 // Export all formatters and helpers
 export const integration = {
   formatters: timeFormatters,
-  queryClient,
   handleError: handleAPIError,
   fetchAPI,
-  invalidateQueries,
-  prefetchQueries,
-  optimisticUpdate,
 }; 

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
   Table,
   TableBody,
@@ -29,25 +28,34 @@ async function fetchProjectDevelopers(): Promise<GitLabDeveloper[]> {
 }
 
 export default function DevelopersPage() {
-  const { developers, updateDevelopers, toggleDeveloper } = useTrackedDevelopers();
+  const { developers, updateDevelopers, toggleDeveloper, isInitialized } = useTrackedDevelopers();
   const [search, setSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasFetched, setHasFetched] = useState(false);
 
-  const { data: projectDevelopers = [], isLoading } = useQuery({
-    queryKey: ['gitlab-developers'],
-    queryFn: fetchProjectDevelopers,
-  });
-
-  // Initialize tracked developers when project developers are loaded
   useEffect(() => {
-    if (projectDevelopers.length > 0 && developers.length === 0) {
-      updateDevelopers(
-        projectDevelopers.map(dev => ({
+    const initializeDevelopers = async () => {
+      try {
+        const data = await fetchProjectDevelopers();
+        const updatedDevelopers = data.map(dev => ({
+          userId: dev.id,
           username: dev.username,
-          selected: false,
-        }))
-      );
+          selected: developers.some(d => d.userId === dev.id && d.selected)
+        }));
+        
+        updateDevelopers(updatedDevelopers);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (isInitialized && !hasFetched) {
+      setHasFetched(true);
+      initializeDevelopers();
     }
-  }, [projectDevelopers, developers.length, updateDevelopers]);
+  }, [isInitialized, hasFetched, developers, updateDevelopers]);
 
   // Filter developers based on search
   const filteredDevelopers = developers.filter(dev =>

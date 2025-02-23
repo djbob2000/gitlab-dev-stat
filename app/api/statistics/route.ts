@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
-import { calculateBulkIssuesTimeStats, formatDuration } from '@/src/tasks/time-calculation.task';
-import type { DeveloperStatistics } from '@/lib/types';
+import { calculateBulkIssuesTimeStats } from '@/src/tasks/time-calculation.task';
+import type { IssueStatistics } from '@/lib/types';
 
 // Environment variables validation
-const requiredEnvVars = ['GITLAB_TOKEN', 'GITLAB_PROJECT_ID', 'GITLAB_BASE_URL'];
+const requiredEnvVars = [
+  'GITLAB_TOKEN',
+  'GITLAB_PROJECT_ID',
+  'GITLAB_BASE_URL',
+  'GITLAB_PROJECT_PATH'
+];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
@@ -16,6 +21,7 @@ if (missingEnvVars.length > 0) {
 const gitlabClient = createGitLabClient({
   baseUrl: process.env.GITLAB_BASE_URL!,
   token: process.env.GITLAB_TOKEN!,
+  projectPath: process.env.GITLAB_PROJECT_PATH!,
 });
 
 // Validation schema for GET request
@@ -49,46 +55,40 @@ export async function GET(request: Request) {
       validatedData.usernames
     );
 
-    // Calculate time statistics
+    console.log('Fetched issues:', issues);
+
+    // Calculate time statistics for all issues
     const timeStats = calculateBulkIssuesTimeStats(issues);
+    console.log('Calculated time stats:', timeStats);
 
-    // Group statistics by developer
-    const developerStats: DeveloperStatistics[] = validatedData.usernames.map(username => {
-      const developerIssues = issues.filter(
-        issue => issue.assignee?.username === username
-      );
+    // Create a map of issue ID to time stats for quick lookup
+    const timeStatsMap = new Map(
+      issues.map((issue, index) => [issue.id, timeStats[index]])
+    );
 
-      const issueStats = developerIssues.map((issue, index) => ({
+    // Create flat list of issues with statistics
+    const issueStats = issues.map(issue => {
+      const stats = timeStatsMap.get(issue.id);
+      const timeInProgress = stats ? stats.totalDuration : 0;
+      const totalTimeFromStart = issue.totalTimeFromStart;
+
+      return {
         id: issue.id,
         iid: issue.iid,
         title: issue.title || `Issue #${issue.iid}`,
-        timeInProgress: timeStats[index].totalDuration,
-        formattedTimeInProgress: formatDuration(timeStats[index].totalDuration),
-        url: `${process.env.GITLAB_BASE_URL}/issues/${issue.iid}`,
-      }));
-
-      const totalTimeInProgress = issueStats.reduce(
-        (total, issue) => total + issue.timeInProgress,
-        0
-      );
-
-      const avgTimePerIssue = issueStats.length > 0 
-        ? totalTimeInProgress / issueStats.length 
-        : 0;
-
-      return {
-        username,
-        totalTimeInProgress,
-        formattedTimeInProgress: formatDuration(totalTimeInProgress),
-        issuesCount: issueStats.length,
-        issues: issueStats,
-        avgTimePerIssue,
-        formattedAvgTime: formatDuration(avgTimePerIssue),
+        timeInProgress,
+        totalTimeFromStart,
+        url: `${process.env.GITLAB_BASE_URL}/${process.env.GITLAB_PROJECT_PATH}/-/issues/${issue.iid}`,
+        labels: issue.labels || [],
+        username: issue.assignee?.username || '-',
       };
     });
 
-    return NextResponse.json(developerStats);
+    console.log('Final issue stats:', issueStats);
+
+    return NextResponse.json(issueStats);
   } catch (error) {
+    console.error('Error in statistics route:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request parameters', details: error.errors },
@@ -96,9 +96,8 @@ export async function GET(request: Request) {
       );
     }
 
-    console.error('Error fetching statistics:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

@@ -71,7 +71,9 @@ const mergeIntervals = (intervals: TimeInterval[]): TimeInterval[] => {
 const calculateTotalDuration = (intervals: TimeInterval[]): number => {
   return intervals.reduce((total, interval) => {
     const end = interval.end || new Date();
-    return total + calculateDuration(interval.start, end);
+    const duration = calculateDuration(interval.start, end);
+    console.log(`Interval duration: ${duration}ms (${interval.start.toISOString()} -> ${end.toISOString()})`);
+    return total + duration;
   }, 0);
 };
 
@@ -79,6 +81,7 @@ const calculateTotalDuration = (intervals: TimeInterval[]): number => {
  * Extracts in-progress intervals from issue events
  */
 const extractInProgressIntervals = (events: IssueEvent[]): TimeInterval[] => {
+  console.log('Processing events:', events);
   const intervals: TimeInterval[] = [];
   let currentInterval: TimeInterval | null = null;
 
@@ -87,6 +90,12 @@ const extractInProgressIntervals = (events: IssueEvent[]): TimeInterval[] => {
     parseDate(a.created_at).getTime() - parseDate(b.created_at).getTime()
   );
 
+  console.log('Sorted events:', sortedEvents.map(e => ({
+    date: e.created_at,
+    action: e.action,
+    label: e.label?.name
+  })));
+
   for (const event of sortedEvents) {
     if (event.label?.name === 'in-progress') {
       if (event.action === 'add' && !currentInterval) {
@@ -94,8 +103,10 @@ const extractInProgressIntervals = (events: IssueEvent[]): TimeInterval[] => {
           start: parseDate(event.created_at),
           end: null
         };
+        console.log(`Started in-progress interval at ${event.created_at}`);
       } else if (event.action === 'remove' && currentInterval) {
         currentInterval.end = parseDate(event.created_at);
+        console.log(`Ended in-progress interval at ${event.created_at}`);
         intervals.push(currentInterval);
         currentInterval = null;
       }
@@ -104,9 +115,11 @@ const extractInProgressIntervals = (events: IssueEvent[]): TimeInterval[] => {
 
   // If there's an open interval, add it
   if (currentInterval) {
+    console.log(`Found open interval starting at ${currentInterval.start.toISOString()}`);
     intervals.push(currentInterval);
   }
 
+  console.log(`Found ${intervals.length} in-progress intervals`);
   return intervals;
 };
 
@@ -114,10 +127,12 @@ const extractInProgressIntervals = (events: IssueEvent[]): TimeInterval[] => {
  * Calculates time statistics for a single issue
  */
 export const calculateIssueTimeStats = (issue: IssueWithEvents): IssueTimeStats => {
+  console.log(`Calculating time stats for issue #${issue.iid}`);
   const intervals = extractInProgressIntervals(issue.events);
   const mergedIntervals = mergeIntervals(intervals);
   const totalDuration = calculateTotalDuration(mergedIntervals);
 
+  console.log(`Total duration for issue #${issue.iid}: ${totalDuration}ms`);
   return {
     issueId: issue.id,
     totalDuration,
@@ -129,24 +144,30 @@ export const calculateIssueTimeStats = (issue: IssueWithEvents): IssueTimeStats 
  * Calculates time statistics for multiple issues
  */
 export const calculateBulkIssuesTimeStats = (issues: IssueWithEvents[]): IssueTimeStats[] => {
+  console.log(`Calculating time stats for ${issues.length} issues`);
   return issues.map(calculateIssueTimeStats);
 };
 
 /**
- * Formats duration in milliseconds to human readable string
+ * Formats duration in milliseconds to human readable string in format "Xd HH:MM"
  */
 export const formatDuration = (durationMs: number): string => {
+  if (!durationMs || isNaN(durationMs)) return '00:00';
+
   const seconds = Math.floor(durationMs / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
 
+  const remainingHours = hours % 24;
+  const remainingMinutes = minutes % 60;
+
   const parts: string[] = [];
-
   if (days > 0) parts.push(`${days}d`);
-  if (hours % 24 > 0) parts.push(`${hours % 24}h`);
-  if (minutes % 60 > 0) parts.push(`${minutes % 60}m`);
-  if (seconds % 60 > 0) parts.push(`${seconds % 60}s`);
+  
+  // Always show hours and minutes in HH:MM format
+  const timeStr = `${String(remainingHours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}`;
+  parts.push(timeStr);
 
-  return parts.join(' ') || '0s';
+  return parts.join(' ');
 }; 

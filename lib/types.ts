@@ -51,12 +51,17 @@ export interface DeveloperIssueStats {
 
 export interface DeveloperStatistics {
   username: string;
-  totalTimeInProgress: number;
-  formattedTimeInProgress: string;
   issuesCount: number;
-  issues: DeveloperIssueStats[];
-  avgTimePerIssue: number;
-  formattedAvgTime: string;
+  issues: {
+    id: number;
+    iid: number;
+    title: string;
+    timeInProgress: number;
+    totalTimeFromStart: number;
+    formattedTimeInProgress: string;
+    url: string;
+    labels: string[];
+  }[];
 }
 
 // API Types
@@ -100,4 +105,15 @@ export interface TrackedDeveloper {
   id: number;
   username: string;
   createdAt: Date;
+}
+
+export interface IssueStatistics {
+  id: number;
+  iid: number;
+  title: string;
+  timeInProgress: number;
+  totalTimeFromStart: number;
+  url: string;
+  labels: string[];
+  username: string;
 } 
