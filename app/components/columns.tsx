@@ -126,23 +126,43 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     enableResizing: true,
     minSize: 120,
     cell: ({ row }) => {
-      const labels = (row.original.mergeRequestLabels || [])
-        .filter(label => 
-          !label.match(/^p[1-8]$/) && // исключаем priority метки
-          !['review', 'in-progress', 'code-review', 'team1', 'team2'].includes(label) // исключаем специфичные метки
-        );
-
-      if (labels.length === 0) return <div className="leading-none">-</div>;
+      const mrLabels = row.original.mergeRequestLabels || [];
+      
+      if (mrLabels.length === 0) return <div className="leading-none">-</div>;
       
       return (
-        <div className="leading-none flex gap-1 flex-wrap">
-          {labels.map((label, index) => (
-            <LabelPill 
-              key={index}
-              text={label} 
-              colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'} 
-            />
-          ))}
+        <div className="leading-none space-y-1">
+          {mrLabels.map((mr) => {
+            const filteredLabels = mr.labels.filter(label => 
+              !label.match(/^p[1-8]$/) && // исключаем priority метки
+              !['review', 'in-progress', 'code-review', 'team1', 'team2'].includes(label) // исключаем специфичные метки
+            );
+
+            if (filteredLabels.length === 0) return null;
+
+            return (
+              <div key={mr.mrIid} className="flex gap-1 items-center">
+                <a
+                  href={mr.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+                >
+                  {mr.mrIid}
+                </a>
+                <span className="text-xs text-gray-500">:</span>
+                <div className="flex gap-1 flex-wrap">
+                  {filteredLabels.map((label, index) => (
+                    <LabelPill 
+                      key={index}
+                      text={label} 
+                      colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'} 
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       );
     },

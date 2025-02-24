@@ -34,6 +34,12 @@ export interface GitLabEvent {
   };
 }
 
+export interface MergeRequestLabels {
+  mrIid: number;
+  labels: string[];
+  url: string;
+}
+
 export interface IssueStatistics {
   id: number;
   iid: number;
@@ -43,7 +49,7 @@ export interface IssueStatistics {
   url: string;
   labels: string[];
   username: string;
-  mergeRequestLabels?: string[];
+  mergeRequestLabels?: MergeRequestLabels[];
 }
 
 export interface IssueWithEvents extends GitLabIssue {
