@@ -38,6 +38,7 @@ export interface MergeRequestLabels {
   mrIid: number;
   labels: string[];
   url: string;
+  title: string;
 }
 
 export interface IssueStatistics {

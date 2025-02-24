@@ -75,10 +75,12 @@ export async function GET(request: Request) {
       );
       const mergeRequestLabels = mergeRequests
         .filter(mr => mr.state === 'opened')
+        .filter(mr => mr.title.startsWith(`${issue.iid}`))
         .map(mr => ({
           mrIid: mr.iid,
           labels: mr.labels,
-          url: `${process.env.GITLAB_BASE_URL}/${process.env.GITLAB_PROJECT_PATH}/-/merge_requests/${mr.iid}`
+          url: `${process.env.GITLAB_BASE_URL}/${process.env.GITLAB_PROJECT_PATH}/-/merge_requests/${mr.iid}`,
+          title: mr.title
         }));
 
       return {
