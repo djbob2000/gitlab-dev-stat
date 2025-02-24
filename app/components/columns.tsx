@@ -124,7 +124,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'MR Labels',
     enableSorting: true,
     enableResizing: true,
-    minSize: 120,
+    minSize: 250,
     cell: ({ row }) => {
       const mrLabels = row.original.mergeRequestLabels || [];
       
@@ -138,7 +138,11 @@ export const columns: ColumnDef<IssueStatistics>[] = [
               !['review', 'in-progress', 'code-review', 'team1', 'team2'].includes(label) // исключаем специфичные метки
             );
 
-            if (filteredLabels.length === 0) return null;
+            const isReview = row.original.labels?.includes('review');
+            const hasNoLabels = filteredLabels.length === 0;
+            const mrNumberClass = isReview && hasNoLabels 
+              ? "text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 font-bold"
+              : "text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200";
 
             return (
               <div key={mr.mrIid} className="flex gap-1 items-center">
@@ -146,7 +150,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                   href={mr.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+                  className={mrNumberClass}
                 >
                   {mr.mrIid}
                 </a>
