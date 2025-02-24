@@ -135,14 +135,14 @@ export default function DevelopersPage() {
             ) : (
               filteredDevelopers.map((developer) => (
                 <TableRow key={developer.username}>
-                  <TableCell className="w-[50px]">
+                  <TableCell className="w-[50px] py-1">
                     <Checkbox
                       checked={developer.selected}
                       onCheckedChange={() => toggleDeveloper(developer.username)}
                       aria-label={`Select ${developer.username}`}
                     />
                   </TableCell>
-                  <TableCell>{developer.username}</TableCell>
+                  <TableCell className="py-1">{developer.username}</TableCell>
                 </TableRow>
               ))
             )}
