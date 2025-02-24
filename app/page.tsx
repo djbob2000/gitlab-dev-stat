@@ -18,7 +18,6 @@ async function fetchAnalytics(usernames: string[]): Promise<IssueStatistics[]> {
   const params = new URLSearchParams();
   params.append('usernames', usernames.join(','));
 
-  console.log('Fetching data for usernames:', usernames);
   const response = await fetch(`/api/statistics?${params.toString()}`, {
     cache: 'no-store'
   });
@@ -36,15 +35,12 @@ export default function HomePage() {
   const loadData = useCallback(async () => {
     if (!isInitialized) return;
     
-    console.log('loadData called');
     try {
       setIsLoading(true);
       const selectedUsernames = developers
         .filter(dev => dev.selected)
         .map(dev => dev.username);
-      console.log('Selected usernames:', selectedUsernames);
       const newData = await fetchAnalytics(selectedUsernames);
-      console.log('Received data:', newData);
       setData(newData);
       setLastUpdated(new Date());
       setError(null);

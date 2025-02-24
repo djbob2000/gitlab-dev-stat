@@ -34,14 +34,14 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Developer',
     enableSorting: true,
     enableResizing: true,
-    minSize: 100,
+    minSize: 80,
   },
   {
     accessorKey: 'labels',
-    header: 'Priority',
+    header: 'Prio',
     enableSorting: true,
     enableResizing: true,
-    minSize: 80,
+    minSize: 20,
     sortingFn: (rowA, rowB) => {
       const getPriority = (labels: string[]) => {
         const priorityLabel = labels?.find(label => /^p[1-8]$/.test(label));
@@ -69,7 +69,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Status',
     enableSorting: true,
     enableResizing: true,
-    minSize: 100,
+    minSize: 80,
     sortingFn: (rowA, rowB) => {
       const getStatusPriority = (labels: string[]) => {
         if (labels?.includes('blocked')) return 4;
@@ -112,6 +112,18 @@ export const columns: ColumnDef<IssueStatistics>[] = [
         >
           {row.original.iid}
         </a>
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'title',
+    header: 'Title',
+    enableSorting: true,
+    enableResizing: true,
+    minSize: 200,
+    cell: ({ row }) => (
+      <div className="leading-none truncate max-w-md" title={row.original.title}>
+        {row.original.title}
       </div>
     ),
   },

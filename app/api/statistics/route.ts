@@ -55,11 +55,9 @@ export async function GET(request: Request) {
       validatedData.usernames
     );
 
-    console.log('Fetched issues:', issues);
 
     // Calculate time statistics for all issues
     const timeStats = calculateBulkIssuesTimeStats(issues);
-    console.log('Calculated time stats:', timeStats);
 
     // Create a map of issue ID to time stats for quick lookup
     const timeStatsMap = new Map(
@@ -84,7 +82,6 @@ export async function GET(request: Request) {
       };
     });
 
-    console.log('Final issue stats:', issueStats);
 
     return NextResponse.json(issueStats);
   } catch (error) {
