@@ -253,8 +253,6 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
     const currentDate = new Date(startDate);
     const endDay = new Date(endDate);
 
-    console.log(`\nCalculating working time from ${startDate.toISOString()} to ${endDate.toISOString()}`);
-
     // Process each day
     while (currentDate.getTime() <= endDay.getTime()) {
       // For the current day, calculate working minutes
@@ -268,11 +266,6 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
 
       // Get working minutes for this day
       const dayMinutes = getWorkingMinutesInDay(dayStart, dayEnd);
-      if (dayMinutes > 0) {
-        console.log(`  Day ${currentDate.toISOString().split('T')[0]}: ${dayMinutes} minutes`);
-      } else {
-        console.log(`  Day ${currentDate.toISOString().split('T')[0]}: skipped (${isWeekend(currentDate) ? 'weekend' : 'outside working hours'})`);
-      }
       totalMinutes += dayMinutes;
 
       // Move to next day
@@ -280,7 +273,6 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
       currentDate.setUTCHours(0, 0, 0, 0);
     }
 
-    console.log(`  Total minutes: ${totalMinutes} (${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m)\n`);
     return totalMinutes * 60 * 1000; // Convert minutes to milliseconds
   };
 
@@ -288,22 +280,11 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
     let activeTime = 0;
     let lastInProgressStart: string | null = null;
     let lastPausedStart: string | null = null;
-
-    console.log('\n=== Time Calculation Details ===');
     
     // Sort events by creation date
     const sortedEvents = [...events].sort((a, b) => 
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
-
-    console.log('\nEvent timeline:');
-    for (const event of sortedEvents) {
-      if (event.label) {
-        console.log(`${event.created_at} - ${event.action} ${event.label.name}`);
-      } else if (event.resource_type === 'issue' && event.action === 'assignee') {
-        console.log(`${event.created_at} - assigned to ${event.assignee?.username}`);
-      }
-    }
 
     // Find when the current assignee was assigned
     let assignmentTime: string | null = null;
@@ -312,12 +293,10 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
           event.action === 'assignee' && 
           event.assignee?.username === currentAssignee) {
         assignmentTime = event.created_at;
-        console.log(`\nTask assigned: ${new Date(assignmentTime).toISOString()}`);
         break;
       }
     }
 
-    console.log('\nActive time periods:');
     // Calculate in-progress time
     for (const event of sortedEvents) {
       if (event.label) {
@@ -325,13 +304,11 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
           if (event.action === 'add') {
             lastInProgressStart = event.created_at;
             lastPausedStart = null;
-            console.log(`  Started in-progress at ${new Date(event.created_at).toISOString()}`);
           } else if (event.action === 'remove' && lastInProgressStart) {
             const startDate = new Date(lastInProgressStart);
             const endDate = new Date(event.created_at);
             const duration = calculateWorkingTime(startDate, endDate);
             activeTime += duration;
-            console.log(`  Ended in-progress at ${endDate.toISOString()}`);
             lastInProgressStart = null;
           }
         } else if (event.label.name === 'paused') {
@@ -342,7 +319,6 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
               const endDate = new Date(event.created_at);
               const duration = calculateWorkingTime(startDate, endDate);
               activeTime += duration;
-              console.log(`  Paused at ${endDate.toISOString()}`);
               lastInProgressStart = null;
             }
             lastPausedStart = event.created_at;
@@ -358,7 +334,6 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
       const startDate = new Date(lastInProgressStart);
       const duration = calculateWorkingTime(startDate, now);
       activeTime += duration;
-      console.log(`  Currently in progress since ${startDate.toISOString()}`);
     }
 
     // Calculate total time from assignment time to last non-paused state
@@ -375,13 +350,7 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
       endTime = now;
     }
 
-    console.log('\nTotal time period:');
     const totalTime = calculateWorkingTime(startDate, endTime);
-
-    console.log(`\nFinal results:`);
-    console.log(`Active time: ${Math.floor(activeTime / (60 * 60 * 1000))}h ${Math.floor((activeTime / (60 * 1000)) % 60)}m`);
-    console.log(`Total time: ${Math.floor(totalTime / (60 * 60 * 1000))}h ${Math.floor((totalTime / (60 * 1000)) % 60)}m`);
-    console.log('===========================\n');
 
     return { activeTime, totalTime };
   };

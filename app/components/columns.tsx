@@ -124,7 +124,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'MR Labels',
     enableSorting: true,
     enableResizing: true,
-    minSize: 250,
+    minSize: 300,
     cell: ({ row }) => {
       const mrLabels = row.original.mergeRequestLabels || [];
       
@@ -176,7 +176,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Issue',
     enableSorting: true,
     enableResizing: true,
-    minSize: 80,
+    minSize: 20,
     cell: ({ row }) => (
       <div className="leading-none">
         <a
