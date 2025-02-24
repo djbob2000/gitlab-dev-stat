@@ -63,6 +63,21 @@ export interface GitLabNote {
   system: boolean;
 }
 
+export interface MergeRequest {
+  id: number;
+  iid: number;
+  title: string;
+  state: string;
+  created_at: string;
+  updated_at: string;
+  labels: string[];
+  web_url: string;
+  author: {
+    id: number;
+    username: string;
+  };
+}
+
 // GitLab API client
 export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ }: GitLabConfig) => {
   const fetchFromGitLab = async (endpoint: string, params: Record<string, string | number> = {}) => {
@@ -468,9 +483,26 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
     }));
   }
 
+  const getIssueRelatedMergeRequests = async (
+    projectId: number,
+    issueIid: number
+  ): Promise<MergeRequest[]> => {
+    try {
+      const mergeRequests = await fetchFromGitLab(
+        `/projects/${projectId}/issues/${issueIid}/related_merge_requests`,
+        { state: 'opened' }
+      );
+      
+      return mergeRequests;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   return {
     getIssueWithEvents,
     getProjectIssues,
     getProjectMembers,
+    getIssueRelatedMergeRequests,
   };
 }; 

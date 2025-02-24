@@ -34,6 +34,18 @@ export interface GitLabEvent {
   };
 }
 
+export interface IssueStatistics {
+  id: number;
+  iid: number;
+  title: string;
+  timeInProgress: number;
+  totalTimeFromStart: number;
+  url: string;
+  labels: string[];
+  username: string;
+  mergeRequestLabels?: string[];
+}
+
 export interface IssueWithEvents extends GitLabIssue {
   events: GitLabEvent[];
   inProgressDuration: number; // Duration in milliseconds

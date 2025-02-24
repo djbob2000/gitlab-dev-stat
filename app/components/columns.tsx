@@ -22,6 +22,29 @@ const statusColors: Record<string, string> = {
   'review': 'bg-[#0d0d0d] text-white',
 };
 
+const mrLabelColors: Record<string, string> = {
+  'action-required': 'bg-[#dbc8a0] text-black',    // бежевый
+  'action-required2': 'bg-[#69d36e] text-black',   // зеленый
+  'action-required3': 'bg-[#4b28b6] text-white',   // темно-фиолетовый
+  'approved': 'bg-[#69d36e] text-white',          // зеленый
+  'blocked': 'bg-[#666666] text-white',           // серый
+  'bug': 'bg-[#cc5842] text-white',              // красно-коричневый
+  'cluster': 'bg-[#4f97d3] text-white',          // голубой
+  'code-review': 'bg-[#4f97d3] text-white',      // голубой
+  'comment': 'bg-[#666666] text-white',          // серый
+  'discuss': 'bg-[#666666] text-white',          // серый
+  'feedback': 'bg-[#cc5842] text-white',         // красно-коричневый
+  'in-progress': 'bg-[#69d36e] text-white',      // зеленый
+  'maintenance': 'bg-[#b5326e] text-white',      // темно-розовый
+  'not-ready': 'bg-[#666666] text-white',        // серый
+  'paused': 'bg-[#ebc21b] text-black',          // желтый
+  'qa-pre-check': 'bg-[#ebc21b] text-black',    // желтый
+  'review': 'bg-[#344759] text-white',          // темно-синий
+  'status-update-commit': 'bg-[#dbc8a0] text-black', // бежевый
+  'team1': 'bg-[#cccccc] text-black',           // светло-серый
+  'team2': 'bg-[#8e5bb5] text-white',           // фиолетовый
+};
+
 const LabelPill = ({ text, colorClass }: { text: string, colorClass: string }) => (
   <span className={`inline-flex items-center px-2 rounded-full text-xs font-medium ${colorClass}`}>
     {text}
@@ -92,6 +115,34 @@ export const columns: ColumnDef<IssueStatistics>[] = [
             text={statusLabel} 
             colorClass={statusColors[statusLabel] || 'bg-gray-200 text-gray-800'} 
           />
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: 'mergeRequestLabels',
+    header: 'MR Labels',
+    enableSorting: true,
+    enableResizing: true,
+    minSize: 120,
+    cell: ({ row }) => {
+      const labels = (row.original.mergeRequestLabels || [])
+        .filter(label => 
+          !label.match(/^p[1-8]$/) && // исключаем priority метки
+          !['review', 'in-progress', 'code-review', 'team1', 'team2'].includes(label) // исключаем специфичные метки
+        );
+
+      if (labels.length === 0) return <div className="leading-none">-</div>;
+      
+      return (
+        <div className="leading-none flex gap-1 flex-wrap">
+          {labels.map((label, index) => (
+            <LabelPill 
+              key={index}
+              text={label} 
+              colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'} 
+            />
+          ))}
         </div>
       );
     },
