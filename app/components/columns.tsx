@@ -1,7 +1,7 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { formatDuration } from '@/src/tasks/time-calculation.task';
+import { formatDuration, formatHoursAndMinutes } from '@/src/tasks/time-calculation.task';
 import type { IssueStatistics } from '@/lib/types';
 
 const priorityColors: Record<string, string> = {
@@ -210,7 +210,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     minSize: 100,
     cell: ({ row }) => (
       <div className="leading-none">
-        {formatDuration(row.original.timeInProgress)}
+        {formatHoursAndMinutes(row.original.timeInProgress)}
       </div>
     ),
   },

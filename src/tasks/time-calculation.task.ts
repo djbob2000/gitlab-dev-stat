@@ -88,8 +88,6 @@ const extractInProgressIntervals = (events: IssueEvent[]): TimeInterval[] => {
     parseDate(a.created_at).getTime() - parseDate(b.created_at).getTime()
   );
 
-
-
   for (const event of sortedEvents) {
     if (event.label?.name === 'in-progress') {
       if (event.action === 'add' && !currentInterval) {
@@ -136,25 +134,55 @@ export const calculateBulkIssuesTimeStats = (issues: IssueWithEvents[]): IssueTi
 };
 
 /**
- * Formats duration in milliseconds to human readable string in format "Xd HH:MM"
+ * Форматирует продолжительность в миллисекундах в формат "HH:MM" (только часы и минуты)
+ * для колонки In Progress
+ */
+export const formatHoursAndMinutes = (durationMs: number): string => {
+  if (!durationMs || isNaN(durationMs)) return '';
+
+  // Конвертируем миллисекунды в часы и минуты
+  const seconds = Math.floor(durationMs / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  // Форматируем как "HH:MM"
+  return `${String(hours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}`;
+};
+
+/**
+ * Форматирует продолжительность в миллисекундах в формат "Xwd HH:MM"
+ * где wd представляет рабочие дни (8 часов на день)
+ * для колонки Total Time
  */
 export const formatDuration = (durationMs: number): string => {
   if (!durationMs || isNaN(durationMs)) return '';
 
+  console.log(`Formatting duration: ${durationMs}ms`);
+  
   const seconds = Math.floor(durationMs / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
+  
+  // Рассчитываем рабочие дни (8 часов в день)
+  const workingDays = Math.floor(hours / 8);
 
-  const remainingHours = hours % 24;
+  // Рассчитываем оставшиеся часы (после вычитания полных рабочих дней)
+  const remainingHours = hours % 8;
   const remainingMinutes = minutes % 60;
 
-  const parts: string[] = [];
-  if (days > 0) parts.push(`${days}d`);
+  console.log(`  Total hours: ${hours} (${workingDays} working days and ${remainingHours} hours)`);
+  console.log(`  Remaining minutes: ${remainingMinutes}`);
   
-  // Always show hours and minutes in HH:MM format
+  const parts: string[] = [];
+  if (workingDays > 0) parts.push(`${workingDays}wd`);
+  
+  // Всегда показываем часы и минуты в формате HH:MM
   const timeStr = `${String(remainingHours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}`;
   parts.push(timeStr);
 
-  return parts.join(' ');
+  const formattedDuration = parts.join(' ');
+  console.log(`  Formatted duration: ${formattedDuration}`);
+  
+  return formattedDuration;
 }; 

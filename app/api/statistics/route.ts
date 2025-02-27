@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
-import { calculateBulkIssuesTimeStats } from '@/src/tasks/time-calculation.task';
 
 // Environment variables validation
 const requiredEnvVars = [
@@ -54,18 +53,9 @@ export async function GET(request: Request) {
       validatedData.usernames
     );
 
-    // Calculate time statistics for all issues
-    const timeStats = calculateBulkIssuesTimeStats(issues);
-
-    // Create a map of issue ID to time stats for quick lookup
-    const timeStatsMap = new Map(
-      issues.map((issue, index) => [issue.id, timeStats[index]])
-    );
-
     // Create flat list of issues with statistics
     const issueStats = await Promise.all(issues.map(async issue => {
-      const stats = timeStatsMap.get(issue.id);
-      const timeInProgress = stats ? stats.totalDuration : 0;
+      const timeInProgress = issue.inProgressDuration;
       const totalTimeFromStart = issue.totalTimeFromStart;
 
       // Fetch related merge requests and their labels
