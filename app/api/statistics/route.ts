@@ -77,15 +77,79 @@ export async function GET(request: Request) {
         Number(validatedData.projectId),
         issue.iid
       );
-      const mergeRequestLabels = mergeRequests
+      
+      // Get MR labels and check for action-required labels
+      const mergeRequestLabelsPromises = mergeRequests
         .filter(mr => mr.state === 'opened')
         .filter(mr => mr.title.startsWith(`${issue.iid}`))
-        .map(mr => ({
-          mrIid: mr.iid,
-          labels: mr.labels,
-          url: `${process.env.GITLAB_BASE_URL}/${process.env.GITLAB_PROJECT_PATH}/-/merge_requests/${mr.iid}`,
-          title: mr.title
-        }));
+        .map(async mr => {
+          // Check if MR has any action-required label
+          const actionRequiredLabels = mr.labels.filter(label => 
+            label === 'action-required' || 
+            label === 'action-required2' || 
+            label === 'action-required3'
+          );
+          
+          // Если есть метка action-required, получаем время её добавления
+          let actionRequiredLabelTime: number | undefined = undefined;
+          
+          if (actionRequiredLabels.length > 0) {
+            // Получаем события меток только для MR с метками action-required
+            const labelEvents = await gitlabClient.getMergeRequestLabelEvents(
+              Number(validatedData.projectId),
+              mr.iid
+            );
+            
+            // Для каждой текущей метки action-required находим время её последнего добавления
+            let latestAddTime: number | undefined = undefined;
+            
+            for (const label of actionRequiredLabels) {
+              // Находим все события добавления этой метки
+              const addEvents = labelEvents.filter(event => 
+                event.action === 'add' && event.label?.name === label
+              );
+              
+              if (addEvents.length === 0) continue;
+              
+              // Сортируем события добавления по времени (от новых к старым)
+              addEvents.sort((a, b) => 
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+              );
+              
+              // Берем самое последнее событие добавления
+              const addTime = new Date(addEvents[0].created_at).getTime();
+              
+              // Если это самая поздняя метка, обновляем время
+              if (!latestAddTime || addTime > latestAddTime) {
+                latestAddTime = addTime;
+              }
+            }
+            
+            actionRequiredLabelTime = latestAddTime;
+          }
+          
+          return {
+            mrIid: mr.iid,
+            labels: mr.labels,
+            url: `${process.env.GITLAB_BASE_URL}/${process.env.GITLAB_PROJECT_PATH}/-/merge_requests/${mr.iid}`,
+            title: mr.title,
+            actionRequiredLabelTime
+          };
+        });
+      
+      const mergeRequestLabels = await Promise.all(mergeRequestLabelsPromises);
+
+      // Находим самое позднее время добавления метки action-required среди всех MR
+      // Нам нужно время последней добавленной метки, а не самой ранней
+      let actionRequiredTime: number | undefined = undefined;
+      
+      mergeRequestLabels.forEach(mr => {
+        if (mr.actionRequiredLabelTime) {
+          if (!actionRequiredTime || mr.actionRequiredLabelTime > actionRequiredTime) {
+            actionRequiredTime = mr.actionRequiredLabelTime;
+          }
+        }
+      });
 
       return {
         id: issue.id,
@@ -97,6 +161,7 @@ export async function GET(request: Request) {
         labels: issue.labels || [],
         username: issue.assignee?.username || '-',
         mergeRequestLabels,
+        actionRequiredTime,
       };
     }));
 

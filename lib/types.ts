@@ -39,6 +39,7 @@ export interface MergeRequestLabels {
   labels: string[];
   url: string;
   title: string;
+  actionRequiredLabelTime?: number; // Time when any action-required label was added
 }
 
 export interface IssueStatistics {
@@ -51,6 +52,7 @@ export interface IssueStatistics {
   labels: string[];
   username: string;
   mergeRequestLabels?: MergeRequestLabels[];
+  actionRequiredTime?: number; // Time elapsed since any action-required label appeared
 }
 
 export interface IssueWithEvents extends GitLabIssue {

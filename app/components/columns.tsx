@@ -172,6 +172,44 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     },
   },
   {
+    accessorKey: 'actionRequiredTime',
+    header: 'AR Time',
+    enableSorting: true,
+    enableResizing: true,
+    minSize: 100,
+    sortingFn: (rowA, rowB) => {
+      const timeA = rowA.original.actionRequiredTime || 0;
+      const timeB = rowB.original.actionRequiredTime || 0;
+      return timeA - timeB;
+    },
+    cell: ({ row }) => {
+      const actionRequiredTime = row.original.actionRequiredTime;
+      
+      if (!actionRequiredTime) return <div className="leading-none">-</div>;
+      
+      // Calculate elapsed time from actionRequiredTime to now
+      // This will be recalculated on every render, which happens when actionRequiredUpdateTime changes
+      const elapsedTime = Date.now() - actionRequiredTime;
+      
+      // Определяем цвет в зависимости от прошедшего времени
+      // Более 24 часов - красный, более 12 часов - оранжевый, иначе - желтый
+      let colorClass = 'text-amber-600 dark:text-amber-400'; // По умолчанию желтый
+      
+      if (elapsedTime > 24 * 60 * 60 * 1000) { // Более 24 часов
+        colorClass = 'text-red-600 dark:text-red-400 font-bold';
+      } else if (elapsedTime > 12 * 60 * 60 * 1000) { // Более 12 часов
+        colorClass = 'text-orange-600 dark:text-orange-400';
+      }
+      
+      // Format the elapsed time
+      return (
+        <div className={`leading-none font-medium ${colorClass}`}>
+          {formatDuration(elapsedTime)}
+        </div>
+      );
+    },
+  },
+  {
     accessorKey: 'iid',
     header: 'Issue',
     enableSorting: true,

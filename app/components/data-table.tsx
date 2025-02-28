@@ -19,6 +19,7 @@ interface DataTableProps<TData, TValue> {
   error?: string | null;
   onRefresh?: () => void;
   lastUpdated?: Date;
+  actionRequiredUpdateTime?: Date;
 }
 
 export function DataTable<TData, TValue>({
@@ -27,6 +28,8 @@ export function DataTable<TData, TValue>({
   error,
   onRefresh,
   lastUpdated,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  actionRequiredUpdateTime,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'username', desc: false }

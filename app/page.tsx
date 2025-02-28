@@ -41,6 +41,10 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>();
+  
+  // Add a state to track when we last updated the actionRequiredTime
+  // This will be used to force re-renders without changing the data
+  const [lastActionRequiredUpdate, setLastActionRequiredUpdate] = useState<Date>(new Date());
 
   const loadData = useCallback(async () => {
     if (!isInitialized) return;
@@ -60,6 +64,19 @@ export default function HomePage() {
       setIsLoading(false);
     }
   }, [developers, isInitialized]);
+
+  // Update the actionRequiredTime every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLastActionRequiredUpdate(new Date());
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // We don't need a separate effect to update the data
+  // The component will re-render when lastActionRequiredUpdate changes
+  // and the column renderer will calculate the new elapsed time
 
   useEffect(() => {
     if (isInitialized) {
@@ -105,6 +122,8 @@ export default function HomePage() {
           error={error}
           onRefresh={loadData}
           lastUpdated={lastUpdated}
+          // Pass lastActionRequiredUpdate to force re-renders
+          actionRequiredUpdateTime={lastActionRequiredUpdate}
         />
       </div>
     </>

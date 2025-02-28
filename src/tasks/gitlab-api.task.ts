@@ -499,11 +499,36 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
     }
   };
 
+  // Добавляем новую функцию для получения истории меток MR
+  const getMergeRequestLabelEvents = async (projectId: number, mrIid: number): Promise<IssueEvent[]> => {
+    let page = 1;
+    const perPage = 100;
+    let allEvents: IssueEvent[] = [];
+    
+    // Fetch label events for merge request
+    while (true) {
+      const events = await fetchFromGitLab(
+        `/projects/${projectId}/merge_requests/${mrIid}/resource_label_events`,
+        { per_page: perPage, page }
+      );
+      
+      if (events.length === 0) break;
+      
+      allEvents = [...allEvents, ...events];
+      if (events.length < perPage) break;
+      
+      page++;
+    }
+
+    return allEvents;
+  };
+
   return {
     getIssueWithEvents,
     getProjectIssues,
     getProjectMembers,
     getIssueRelatedMergeRequests,
     getUserIdsByUsernames,
+    getMergeRequestLabelEvents,
   };
 }; 
