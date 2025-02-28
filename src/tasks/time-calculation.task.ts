@@ -151,38 +151,51 @@ export const formatHoursAndMinutes = (durationMs: number): string => {
 };
 
 /**
- * Форматирует продолжительность в миллисекундах в формат "Xwd HH:MM"
- * где wd представляет рабочие дни (8 часов на день)
- * для колонки Total Time
+ * Форматирует продолжительность в миллисекундах в формат "Xd HH:MM"
+ * где d представляет календарные дни (24 часа в день), исключая выходные
  */
 export const formatDuration = (durationMs: number): string => {
   if (!durationMs || isNaN(durationMs)) return '';
 
   console.log(`Formatting duration: ${durationMs}ms`);
   
-  const seconds = Math.floor(durationMs / 1000);
+  // Calculate weekends to subtract
+  const startDate = new Date(Date.now() - durationMs);
+  const endDate = new Date();
+  
+  // Count weekend days between start and end dates
+  let weekendDays = 0;
+  const tempDate = new Date(startDate);
+  while (tempDate <= endDate) {
+    if (tempDate.getUTCDay() === 0 || tempDate.getUTCDay() === 6) {
+      weekendDays++;
+    }
+    tempDate.setUTCDate(tempDate.getUTCDate() + 1);
+  }
+  
+  // Subtract weekend time from total milliseconds
+  const weekendTimeMs = weekendDays * 24 * 60 * 60 * 1000;
+  const adjustedMs = durationMs - weekendTimeMs;
+  
+  const seconds = Math.floor(adjustedMs / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
   
-  // Рассчитываем рабочие дни (8 часов в день)
-  const workingDays = Math.floor(hours / 8);
-
-  // Рассчитываем оставшиеся часы (после вычитания полных рабочих дней)
-  const remainingHours = hours % 8;
+  // Calculate days based on 24-hour periods
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
   const remainingMinutes = minutes % 60;
 
-  console.log(`  Total hours: ${hours} (${workingDays} working days and ${remainingHours} hours)`);
+  console.log(`  Weekend days subtracted: ${weekendDays}`);
+  console.log(`  Adjusted time: ${adjustedMs}ms`);
+  console.log(`  Total hours: ${hours} (${days} days and ${remainingHours} hours)`);
   console.log(`  Remaining minutes: ${remainingMinutes}`);
   
   const parts: string[] = [];
-  if (workingDays > 0) parts.push(`${workingDays}wd`);
+  if (days > 0) parts.push(`${days}d`);
   
   // Всегда показываем часы и минуты в формате HH:MM
-  const timeStr = `${String(remainingHours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}`;
-  parts.push(timeStr);
-
-  const formattedDuration = parts.join(' ');
-  console.log(`  Formatted duration: ${formattedDuration}`);
+  parts.push(`${String(remainingHours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}`);
   
-  return formattedDuration;
+  return parts.join(' ');
 }; 
