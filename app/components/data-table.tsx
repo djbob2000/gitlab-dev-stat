@@ -12,6 +12,7 @@ import {
 } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -20,6 +21,7 @@ interface DataTableProps<TData, TValue> {
   onRefresh?: () => void;
   lastUpdated?: Date;
   actionRequiredUpdateTime?: Date;
+  isLoading?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -30,6 +32,7 @@ export function DataTable<TData, TValue>({
   lastUpdated,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   actionRequiredUpdateTime,
+  isLoading = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'username', desc: false }
@@ -76,8 +79,12 @@ export function DataTable<TData, TValue>({
             size="sm"
             onClick={onRefresh}
             className="flex items-center gap-2"
+            disabled={isLoading}
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={cn(
+              "h-4 w-4",
+              isLoading && "animate-spin"
+            )} />
             Refresh Data
           </Button>
         </div>
