@@ -78,6 +78,11 @@ export interface MergeRequest {
   };
 }
 
+export interface GitLabUser {
+  id: number;
+  username: string;
+}
+
 // GitLab API client
 export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ }: GitLabConfig) => {
   const fetchFromGitLab = async (endpoint: string, params: Record<string, string | number> = {}) => {
@@ -349,35 +354,97 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
     }
   };
 
+  /**
+   * Get user IDs for the given usernames
+   * @param projectId The GitLab project ID
+   * @param usernames Array of usernames to convert to IDs
+   * @returns Map of usernames to user IDs
+   */
+  const getUserIdsByUsernames = async (
+    projectId: number,
+    usernames: string[]
+  ): Promise<Map<string, number>> => {
+    const members = await getProjectMembers(projectId);
+    const usernameToIdMap = new Map<string, number>();
+    
+    for (const username of usernames) {
+      const member = members.find(m => m.username === username);
+      if (member) {
+        usernameToIdMap.set(username, member.id);
+      }
+    }
+    
+    return usernameToIdMap;
+  };
+
   const getProjectIssues = async (
     projectId: number,
-    assigneeUsernames?: string[]
+    assigneeUsernames?: string[],
+    assigneeIds?: number[]
   ): Promise<IssueWithEvents[]> => {
-    if (!assigneeUsernames || assigneeUsernames.length === 0) {
+    // If neither usernames nor IDs are provided, return empty array
+    if ((!assigneeUsernames || assigneeUsernames.length === 0) && (!assigneeIds || assigneeIds.length === 0)) {
       return [];
     }
 
     let allIssues: Issue[] = [];
+    
+    // If we have user IDs, use them directly
+    if (assigneeIds && assigneeIds.length > 0) {
+      for (const userId of assigneeIds) {
+        let page = 1;
+        const perPage = 100;
+        
+        while (true) {
+          const issues = await fetchFromGitLab(`/projects/${projectId}/issues`, {
+            assignee_id: userId,
+            state: 'opened',
+            per_page: perPage,
+            page
+          });
 
-    // Fetch issues for each assignee
-    for (const username of assigneeUsernames) {
-      let page = 1;
-      const perPage = 100;
+          if (issues.length === 0) break;
+
+          allIssues = [...allIssues, ...issues];
+          if (issues.length < perPage) break;
+
+          page++;
+        }
+      }
+    } 
+    // Otherwise use usernames
+    else if (assigneeUsernames && assigneeUsernames.length > 0) {
+      // Get user IDs for the usernames
+      const usernameToIdMap = await getUserIdsByUsernames(projectId, assigneeUsernames);
       
-      while (true) {
-        const issues = await fetchFromGitLab(`/projects/${projectId}/issues`, {
-          assignee_username: username,
-          state: 'opened',
-          per_page: perPage,
-          page
-        });
+      // Fetch issues for each assignee using their ID instead of username
+      for (const username of assigneeUsernames) {
+        const userId = usernameToIdMap.get(username);
+        
+        // If we couldn't find the user ID, skip this username
+        if (!userId) {
+          console.warn(`Could not find user ID for username: ${username}`);
+          continue;
+        }
+        
+        let page = 1;
+        const perPage = 100;
+        
+        while (true) {
+          const issues = await fetchFromGitLab(`/projects/${projectId}/issues`, {
+            assignee_id: userId,
+            state: 'opened',
+            per_page: perPage,
+            page
+          });
 
-        if (issues.length === 0) break;
+          if (issues.length === 0) break;
 
-        allIssues = [...allIssues, ...issues];
-        if (issues.length < perPage) break;
+          allIssues = [...allIssues, ...issues];
+          if (issues.length < perPage) break;
 
-        page++;
+          page++;
+        }
       }
     }
 
@@ -391,21 +458,16 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
     return issuesWithEvents;
   };
 
-  async function getProjectMembers(projectId: number) {
-    interface GitLabMember {
-      id: number;
-      username: string;
-    }
-
+  async function getProjectMembers(projectId: number): Promise<GitLabUser[]> {
     let page = 1;
     const perPage = 100;
-    let allMembers: GitLabMember[] = [];
+    let allMembers: GitLabUser[] = [];
     
     while (true) {
       const members = await fetchFromGitLab(`/projects/${projectId}/members/all`, {
         per_page: perPage,
         page
-      }) as GitLabMember[];
+      }) as GitLabUser[];
 
       if (members.length === 0) break;
 
@@ -442,5 +504,6 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
     getProjectIssues,
     getProjectMembers,
     getIssueRelatedMergeRequests,
+    getUserIdsByUsernames,
   };
 }; 

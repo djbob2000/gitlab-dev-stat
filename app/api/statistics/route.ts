@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
+import { createGitLabClient, IssueWithEvents } from '@/src/tasks/gitlab-api.task';
 
 // Environment variables validation
 const requiredEnvVars = [
@@ -24,7 +24,8 @@ const gitlabClient = createGitLabClient({
 
 // Validation schema for GET request
 const getStatisticsSchema = z.object({
-  usernames: z.string().transform(str => str.split(',')),
+  usernames: z.string().transform(str => str.split(',')).nullish(),
+  userIds: z.string().transform(str => str.split(',').map(Number)).nullish(),
   projectId: z.string().optional(),
 });
 
@@ -32,11 +33,12 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const usernames = searchParams.get('usernames');
+    const userIds = searchParams.get('userIds');
     const projectId = searchParams.get('projectId') || process.env.GITLAB_PROJECT_ID;
 
-    if (!usernames) {
+    if (!usernames && !userIds) {
       return NextResponse.json(
-        { error: 'Usernames parameter is required' },
+        { error: 'Either usernames or userIds parameter is required' },
         { status: 400 }
       );
     }
@@ -44,14 +46,26 @@ export async function GET(request: Request) {
     // Validate and parse parameters
     const validatedData = getStatisticsSchema.parse({
       usernames,
+      userIds,
       projectId,
     });
 
     // Get issues for each developer
-    const issues = await gitlabClient.getProjectIssues(
-      Number(validatedData.projectId),
-      validatedData.usernames
-    );
+    let issues: IssueWithEvents[] = [];
+    if (validatedData.userIds && validatedData.userIds.length > 0) {
+      // If user IDs are provided, use them directly
+      issues = await gitlabClient.getProjectIssues(
+        Number(validatedData.projectId),
+        undefined,
+        validatedData.userIds
+      );
+    } else if (validatedData.usernames && validatedData.usernames.length > 0) {
+      // If only usernames are provided, use them
+      issues = await gitlabClient.getProjectIssues(
+        Number(validatedData.projectId),
+        validatedData.usernames
+      );
+    }
 
     // Create flat list of issues with statistics
     const issueStats = await Promise.all(issues.map(async issue => {

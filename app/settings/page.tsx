@@ -138,7 +138,7 @@ export default function DevelopersPage() {
                   <TableCell className="w-[50px] py-1">
                     <Checkbox
                       checked={developer.selected}
-                      onCheckedChange={() => toggleDeveloper(developer.username)}
+                      onCheckedChange={() => toggleDeveloper(developer.userId)}
                       aria-label={`Select ${developer.username}`}
                     />
                   </TableCell>

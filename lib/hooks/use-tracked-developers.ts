@@ -48,10 +48,10 @@ export function useTrackedDevelopers() {
     setDevelopers(updatedDevelopers);
   };
 
-  const toggleDeveloper = (username: string) => {
+  const toggleDeveloper = (userId: number) => {
     setDevelopers(prev => 
       prev.map(dev => 
-        dev.username === username 
+        dev.userId === userId 
           ? { ...dev, selected: !dev.selected }
           : dev
       )
@@ -59,7 +59,7 @@ export function useTrackedDevelopers() {
   };
 
   const getSelectedDevelopers = () => {
-    return developers.filter(dev => dev.selected).map(dev => dev.username);
+    return developers.filter(dev => dev.selected);
   };
 
   return {

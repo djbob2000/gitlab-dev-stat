@@ -10,13 +10,23 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useTrackedDevelopers } from '@/lib/hooks/use-tracked-developers';
 
-async function fetchAnalytics(usernames: string[]): Promise<IssueStatistics[]> {
-  if (usernames.length === 0) {
+async function fetchAnalytics(developers: { userId: number; username: string }[]): Promise<IssueStatistics[]> {
+  if (developers.length === 0) {
     return [];
   }
   
   const params = new URLSearchParams();
-  params.append('usernames', usernames.join(','));
+  
+  // Prefer user IDs over usernames for better reliability
+  const userIds = developers.map(dev => dev.userId).filter(Boolean);
+  
+  if (userIds.length > 0) {
+    params.append('userIds', userIds.join(','));
+  } else {
+    // Fall back to usernames if no user IDs are available
+    const usernames = developers.map(dev => dev.username);
+    params.append('usernames', usernames.join(','));
+  }
 
   const response = await fetch(`/api/statistics?${params.toString()}`, {
     cache: 'no-store'
@@ -37,10 +47,9 @@ export default function HomePage() {
     
     try {
       setIsLoading(true);
-      const selectedUsernames = developers
-        .filter(dev => dev.selected)
-        .map(dev => dev.username);
-      const newData = await fetchAnalytics(selectedUsernames);
+      const selectedDevelopers = developers
+        .filter(dev => dev.selected);
+      const newData = await fetchAnalytics(selectedDevelopers);
       setData(newData);
       setLastUpdated(new Date());
       setError(null);
