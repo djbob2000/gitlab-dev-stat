@@ -2,7 +2,8 @@
 
 import { ColumnDef } from '@tanstack/react-table';
 import { formatDuration, formatHoursAndMinutes } from '@/src/tasks/time-calculation.task';
-import type { IssueStatistics } from '@/lib/types';
+import type { IssueStatistics, MergeRequestLabels } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 const priorityColors: Record<string, string> = {
   p1: 'bg-[#db3b21] text-white',
@@ -45,8 +46,8 @@ const mrLabelColors: Record<string, string> = {
   'team2': 'bg-[#8e5bb5] text-white',           // фиолетовый
 };
 
-const LabelPill = ({ text, colorClass }: { text: string, colorClass: string }) => (
-  <span className={`inline-flex items-center px-2 rounded-full text-xs font-medium ${colorClass}`}>
+const LabelPill = ({ text, colorClass, className }: { text: string, colorClass: string, className?: string }) => (
+  <span className={cn(`inline-flex items-center px-2 rounded-full text-xs font-medium ${colorClass}`, className)}>
     {text}
   </span>
 );
@@ -81,6 +82,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
           <LabelPill 
             text={priorityLabel} 
             colorClass={priorityColors[priorityLabel] || 'bg-gray-200 text-gray-800'} 
+            className="text-xs"
           />
         </div>
       );
@@ -125,6 +127,36 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     enableSorting: true,
     enableResizing: true,
     minSize: 300,
+    sortingFn: (rowA, rowB) => {
+      // Get the highest priority action-required label for each row
+      const getActionRequiredPriority = (mrLabels: MergeRequestLabels[] = []) => {
+        let highestPriority = 4; // Default priority (lower than any action-required)
+        
+        for (const mr of mrLabels) {
+          const actionRequiredLabels = mr.labels.filter((label: string) => 
+            label === 'action-required' || 
+            label === 'action-required2' || 
+            label === 'action-required3'
+          );
+          
+          for (const label of actionRequiredLabels) {
+            let priority = 4; // Default
+            if (label === 'action-required') priority = 1;
+            else if (label === 'action-required2') priority = 2;
+            else if (label === 'action-required3') priority = 3;
+            
+            if (priority < highestPriority) {
+              highestPriority = priority;
+            }
+          }
+        }
+        
+        return highestPriority;
+      };
+      
+      return getActionRequiredPriority(rowA.original.mergeRequestLabels) - 
+             getActionRequiredPriority(rowB.original.mergeRequestLabels);
+    },
     cell: ({ row }) => {
       const mrLabels = row.original.mergeRequestLabels || [];
       
@@ -135,7 +167,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
           {mrLabels.map((mr) => {
             const filteredLabels = mr.labels.filter(label => 
               !label.match(/^p[1-8]$/) && // исключаем priority метки
-              !['review', 'in-progress', 'code-review', 'team1', 'team2'].includes(label) // исключаем специфичные метки
+              !['review', 'in-progress', 'code-review', 'team1', 'team2', 'bug'].includes(label) // исключаем специфичные метки
             );
 
             const isReview = row.original.labels?.includes('review');
