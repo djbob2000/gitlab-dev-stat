@@ -58,7 +58,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Developer',
     enableSorting: true,
     enableResizing: true,
-    minSize: 80,
+    minSize: 20,
   },
   {
     accessorKey: 'labels',
@@ -94,7 +94,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Status',
     enableSorting: true,
     enableResizing: true,
-    minSize: 80,
+    minSize: 20,
     sortingFn: (rowA, rowB) => {
       const getStatusPriority = (labels: string[]) => {
         if (labels?.includes('blocked')) return 4;
@@ -126,7 +126,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'MR Labels',
     enableSorting: true,
     enableResizing: true,
-    minSize: 300,
+    minSize: 80,
     sortingFn: (rowA, rowB) => {
       // Get the highest priority action-required label for each row
       const getActionRequiredPriority = (mrLabels: MergeRequestLabels[] = []) => {
@@ -208,7 +208,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'AR Time',
     enableSorting: true,
     enableResizing: true,
-    minSize: 100,
+    minSize: 20,
     sortingFn: (rowA, rowB) => {
       const timeA = rowA.original.actionRequiredTime || 0;
       const timeB = rowB.original.actionRequiredTime || 0;
@@ -277,7 +277,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'In Progress',
     enableSorting: true,
     enableResizing: true,
-    minSize: 100,
+    minSize: 20,
     cell: ({ row }) => (
       <div className="leading-none">
         {formatHoursAndMinutes(row.original.timeInProgress)}
@@ -289,7 +289,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Total Time',
     enableSorting: true,
     enableResizing: true,
-    minSize: 100,
+    minSize: 20,
     cell: ({ row }) => (
       <div className="leading-none">
         {formatDuration(row.original.totalTimeFromStart)}
