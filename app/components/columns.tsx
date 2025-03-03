@@ -217,7 +217,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     cell: ({ row }) => {
       const actionRequiredTime = row.original.actionRequiredTime;
       
-      if (!actionRequiredTime) return <div className="leading-none">-</div>;
+      if (!actionRequiredTime) return <div className="leading-none"></div>;
       
       // Calculate elapsed time from actionRequiredTime to now
       // This will be recalculated on every render, which happens when actionRequiredUpdateTime changes
@@ -247,18 +247,29 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     enableSorting: true,
     enableResizing: true,
     minSize: 20,
-    cell: ({ row }) => (
-      <div className="leading-none">
-        <a
-          href={row.original.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
-        >
-          {row.original.iid}
-        </a>
-      </div>
-    ),
+    cell: ({ row }) => {
+      const hasTeam1 = row.original.labels?.includes('team1');
+      
+      return (
+        <div className="leading-none flex items-center gap-2">
+          <a
+            href={row.original.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+          >
+            {row.original.iid}
+          </a>
+          {hasTeam1 && (
+            <LabelPill 
+              text="team1" 
+              colorClass={mrLabelColors['team1'] || 'bg-gray-200 text-gray-800'} 
+              className="shrink-0"
+            />
+          )}
+        </div>
+      );
+    },
   },
   {
     accessorKey: 'title',
