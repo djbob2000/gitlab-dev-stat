@@ -9,6 +9,8 @@ import {
   getSortedRowModel,
   useReactTable,
   ColumnResizeMode,
+  ColumnSizingState,
+  Updater,
 } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
@@ -27,6 +29,7 @@ interface DataTableProps<TData, TValue> {
   autoRefresh?: boolean;
   onAutoRefreshChange?: (value: boolean) => void;
   nextRefreshTime?: Date | null;
+  tableId?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -41,12 +44,46 @@ export function DataTable<TData, TValue>({
   autoRefresh = false,
   onAutoRefreshChange,
   nextRefreshTime,
+  tableId = 'developer-stats',
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'username', desc: false }
   ]);
   const [columnResizeMode] = React.useState<ColumnResizeMode>('onChange');
   const [timeRemaining, setTimeRemaining] = React.useState<string>('5:00');
+  
+  // State for column sizing
+  const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({});
+  
+  // Load saved column widths on mount
+  React.useEffect(() => {
+    try {
+      const savedWidths = localStorage.getItem(`table-column-widths-${tableId}`);
+      if (savedWidths) {
+        setColumnSizing(JSON.parse(savedWidths));
+      }
+    } catch (error) {
+      console.error('Failed to load column widths from localStorage:', error);
+    }
+  }, [tableId]);
+  
+  // Save column widths when they change
+  const handleColumnSizingChange = React.useCallback(
+    (updaterOrValue: Updater<ColumnSizingState>) => {
+      // Handle both function updater and direct value
+      const newSizing = typeof updaterOrValue === 'function' 
+        ? updaterOrValue(columnSizing as ColumnSizingState) 
+        : updaterOrValue;
+      
+      setColumnSizing(newSizing);
+      try {
+        localStorage.setItem(`table-column-widths-${tableId}`, JSON.stringify(newSizing));
+      } catch (error) {
+        console.error('Failed to save column widths to localStorage:', error);
+      }
+    },
+    [tableId, columnSizing]
+  );
 
   const formatLastUpdated = (date?: Date) => {
     if (!date) return '';
@@ -94,7 +131,10 @@ export function DataTable<TData, TValue>({
     columnResizeMode,
     state: {
       sorting,
+      columnSizing,
     },
+    onColumnSizingChange: handleColumnSizingChange,
+    columnResizeDirection: 'ltr',
   });
 
   // Track the current developer to apply alternating backgrounds
