@@ -26,6 +26,7 @@ interface DataTableProps<TData, TValue> {
   isLoading?: boolean;
   autoRefresh?: boolean;
   onAutoRefreshChange?: (value: boolean) => void;
+  nextRefreshTime?: Date | null;
 }
 
 export function DataTable<TData, TValue>({
@@ -39,11 +40,13 @@ export function DataTable<TData, TValue>({
   isLoading = false,
   autoRefresh = false,
   onAutoRefreshChange,
+  nextRefreshTime,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'username', desc: false }
   ]);
   const [columnResizeMode] = React.useState<ColumnResizeMode>('onChange');
+  const [timeRemaining, setTimeRemaining] = React.useState<string>('5:00');
 
   const formatLastUpdated = (date?: Date) => {
     if (!date) return '';
@@ -53,6 +56,34 @@ export function DataTable<TData, TValue>({
       second: '2-digit',
     }).format(date);
   };
+
+  // Update countdown timer
+  React.useEffect(() => {
+    if (!autoRefresh || !nextRefreshTime) {
+      setTimeRemaining('5:00');
+      return;
+    }
+
+    const updateCountdown = () => {
+      const now = new Date();
+      const diff = Math.max(0, nextRefreshTime.getTime() - now.getTime());
+      
+      if (diff <= 0) {
+        setTimeRemaining('0:00');
+        return;
+      }
+      
+      const minutes = Math.floor(diff / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      setTimeRemaining(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    // Update immediately and then every second
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    
+    return () => clearInterval(interval);
+  }, [autoRefresh, nextRefreshTime]);
 
   const table = useReactTable({
     data,
@@ -94,7 +125,7 @@ export function DataTable<TData, TValue>({
               )} />
               Refresh Data
             </Button>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-26">
               <Checkbox 
                 id="auto-refresh" 
                 checked={autoRefresh} 
@@ -105,7 +136,7 @@ export function DataTable<TData, TValue>({
                 htmlFor="auto-refresh" 
                 className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
               >
-                Auto (5m)
+                Auto {autoRefresh && `(${timeRemaining})`}
               </Label>
             </div>
           </div>

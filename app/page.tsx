@@ -44,6 +44,7 @@ export default function HomePage() {
   const [progress, setProgress] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>();
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [nextAutoRefresh, setNextAutoRefresh] = useState<Date | null>(null);
   
   // Add a state to track when we last updated the actionRequiredTime
   // This will be used to force re-renders without changing the data
@@ -120,16 +121,26 @@ export default function HomePage() {
 
   // Auto-refresh data every 5 minutes when enabled
   useEffect(() => {
-    if (!autoRefresh || !isInitialized) return;
+    if (!autoRefresh || !isInitialized) {
+      setNextAutoRefresh(null);
+      return;
+    }
     
-    const interval = setInterval(() => {
+    // Set the next refresh time to 5 minutes from now
+    const nextRefresh = new Date();
+    nextRefresh.setMinutes(nextRefresh.getMinutes() + 5);
+    setNextAutoRefresh(nextRefresh);
+    
+    const timeUntilRefresh = nextRefresh.getTime() - new Date().getTime();
+    
+    const interval = setTimeout(() => {
       if (!isLoading) {
         loadData();
       }
-    }, 5 * 60 * 1000); // 5 minutes
+    }, timeUntilRefresh);
     
-    return () => clearInterval(interval);
-  }, [autoRefresh, isInitialized, loadData, isLoading]);
+    return () => clearTimeout(interval);
+  }, [autoRefresh, isInitialized, loadData, isLoading, lastUpdated]);
 
   // We don't need a separate effect to update the data
   // The component will re-render when lastActionRequiredUpdate changes
@@ -184,6 +195,7 @@ export default function HomePage() {
           isLoading={isLoading}
           autoRefresh={autoRefresh}
           onAutoRefreshChange={setAutoRefresh}
+          nextRefreshTime={nextAutoRefresh}
         />
       </div>
     </>
