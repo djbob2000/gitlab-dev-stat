@@ -43,6 +43,7 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>();
+  const [autoRefresh, setAutoRefresh] = useState(false);
   
   // Add a state to track when we last updated the actionRequiredTime
   // This will be used to force re-renders without changing the data
@@ -117,6 +118,19 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Auto-refresh data every 5 minutes when enabled
+  useEffect(() => {
+    if (!autoRefresh || !isInitialized) return;
+    
+    const interval = setInterval(() => {
+      if (!isLoading) {
+        loadData();
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+    
+    return () => clearInterval(interval);
+  }, [autoRefresh, isInitialized, loadData, isLoading]);
+
   // We don't need a separate effect to update the data
   // The component will re-render when lastActionRequiredUpdate changes
   // and the column renderer will calculate the new elapsed time
@@ -168,6 +182,8 @@ export default function HomePage() {
           // Pass lastActionRequiredUpdate to force re-renders
           actionRequiredUpdateTime={lastActionRequiredUpdate}
           isLoading={isLoading}
+          autoRefresh={autoRefresh}
+          onAutoRefreshChange={setAutoRefresh}
         />
       </div>
     </>

@@ -13,6 +13,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -22,6 +24,8 @@ interface DataTableProps<TData, TValue> {
   lastUpdated?: Date;
   actionRequiredUpdateTime?: Date;
   isLoading?: boolean;
+  autoRefresh?: boolean;
+  onAutoRefreshChange?: (value: boolean) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -33,6 +37,8 @@ export function DataTable<TData, TValue>({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   actionRequiredUpdateTime,
   isLoading = false,
+  autoRefresh = false,
+  onAutoRefreshChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'username', desc: false }
@@ -74,19 +80,35 @@ export function DataTable<TData, TValue>({
               Last updated: {formatLastUpdated(lastUpdated)}
             </span>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            className="flex items-center gap-2"
-            disabled={isLoading}
-          >
-            <RefreshCw className={cn(
-              "h-4 w-4",
-              isLoading && "animate-spin"
-            )} />
-            Refresh Data
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRefresh}
+              className="flex items-center gap-2"
+              disabled={isLoading}
+            >
+              <RefreshCw className={cn(
+                "h-4 w-4",
+                isLoading && "animate-spin"
+              )} />
+              Refresh Data
+            </Button>
+            <div className="flex items-center gap-2">
+              <Checkbox 
+                id="auto-refresh" 
+                checked={autoRefresh} 
+                onCheckedChange={onAutoRefreshChange}
+                disabled={isLoading}
+              />
+              <Label 
+                htmlFor="auto-refresh" 
+                className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+              >
+                Auto (5m)
+              </Label>
+            </div>
+          </div>
         </div>
       </div>
 
