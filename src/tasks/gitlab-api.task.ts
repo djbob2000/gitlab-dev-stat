@@ -283,6 +283,7 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
 
+    // Find when the issue was assigned to the current assignee
     let assignmentTime: string | null = null;
     for (const event of sortedEvents) {
       if (event.resource_type === 'issue' && 
@@ -293,7 +294,13 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
       }
     }
 
+    // Only process "in-progress" events that happened after assignment
     for (const event of sortedEvents) {
+      // Skip events that happened before assignment to the current assignee
+      if (assignmentTime && event.created_at < assignmentTime) {
+        continue;
+      }
+
       if (event.label) {
         if (event.label.name === 'in-progress') {
           if (event.action === 'add') {
