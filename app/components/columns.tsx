@@ -166,8 +166,8 @@ export const columns: ColumnDef<IssueStatistics>[] = [
         <div className="leading-none space-y-1">
           {mrLabels.map((mr) => {
             const filteredLabels = mr.labels.filter(label => 
-              !label.match(/^p[1-8]$/) && // исключаем priority метки
-              !['review', 'in-progress', 'code-review', 'team1', 'team2', 'bug'].includes(label) // исключаем специфичные метки
+              !label.match(/^p[1-8]$/) && // exclude priority labels
+              !['review', 'in-progress', 'code-review', 'team1', 'team2', 'bug'].includes(label) // exclude specific labels
             );
 
             const isReview = row.original.labels?.includes('review');

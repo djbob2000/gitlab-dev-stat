@@ -100,26 +100,26 @@ export async function GET(request: Request) {
               mr.iid
             );
             
-            // Для каждой текущей метки action-required находим время её последнего добавления
+            // For each current action-required label, find the time of its last addition
             let latestAddTime: number | undefined = undefined;
             
             for (const label of actionRequiredLabels) {
-              // Находим все события добавления этой метки
+              // Find all events of adding this label
               const addEvents = labelEvents.filter(event => 
                 event.action === 'add' && event.label?.name === label
               );
               
               if (addEvents.length === 0) continue;
               
-              // Сортируем события добавления по времени (от новых к старым)
+              // Sort addition events by time (from newest to oldest)
               addEvents.sort((a, b) => 
                 new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
               );
               
-              // Берем самое последнее событие добавления
+              // Take the most recent addition event
               const addTime = new Date(addEvents[0].created_at).getTime();
               
-              // Если это самая поздняя метка, обновляем время
+              // If this is the latest label, update the time
               if (!latestAddTime || addTime > latestAddTime) {
                 latestAddTime = addTime;
               }
@@ -139,8 +139,8 @@ export async function GET(request: Request) {
       
       const mergeRequestLabels = await Promise.all(mergeRequestLabelsPromises);
 
-      // Находим самое позднее время добавления метки action-required среди всех MR
-      // Нам нужно время последней добавленной метки, а не самой ранней
+      // Find the latest time of adding an action-required label among all MRs
+      // We need the time of the last added label, not the earliest one
       let actionRequiredTime: number | undefined = undefined;
       
       mergeRequestLabels.forEach(mr => {

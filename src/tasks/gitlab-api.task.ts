@@ -186,6 +186,7 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
   // Working hours configuration in UTC
   const WORK_START_HOUR_UTC = 8;
   const WORK_END_HOUR_UTC = 17;
+  const MAX_WORKING_HOURS_PER_DAY = 8; // Maximum of 8 working hours per day
 
   /**
    * Check if the given UTC date is a weekend
@@ -204,7 +205,7 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
     const startMinute = start.getUTCMinutes();
     const endHour = end.getUTCHours();
     const endMinute = end.getUTCMinutes();
-
+    
     if (endHour < WORK_START_HOUR_UTC || startHour >= WORK_END_HOUR_UTC) {
       return 0;
     }
@@ -232,6 +233,7 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
 
   /**
    * Calculate working time between two dates in milliseconds
+   * Limited to a maximum of 8 working hours per day
    */
   const calculateWorkingTime = (startDate: Date, endDate: Date): number => {
     let totalMinutes = 0;
@@ -265,7 +267,11 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
         dayEnd.setUTCHours(WORK_END_HOUR_UTC, 0, 0, 0);
       }
 
-      totalMinutes += getWorkingMinutesInDay(dayStart, dayEnd);
+      // Calculate minutes for this day
+      const dayMinutes = getWorkingMinutesInDay(dayStart, dayEnd);
+      
+      // Cap the daily minutes to MAX_WORKING_HOURS_PER_DAY (in minutes)
+      totalMinutes += Math.min(dayMinutes, MAX_WORKING_HOURS_PER_DAY * 60);
 
       currentDate.setDate(currentDate.getDate() + 1);
       currentDate.setUTCHours(0, 0, 0, 0);
@@ -278,6 +284,9 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
     let activeTime = 0;
     let lastInProgressStart: string | null = null;
     let lastPausedStart: string | null = null;
+    
+    // Object for tracking time by days
+    const dailyWorkTimeMs: Record<string, number> = {};
     
     const sortedEvents = [...events].sort((a, b) => 
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -309,14 +318,26 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
           } else if (event.action === 'remove' && lastInProgressStart) {
             const startDate = new Date(lastInProgressStart);
             const endDate = new Date(event.created_at);
-            activeTime += calculateWorkingTime(startDate, endDate);
+            
+            // Calculate working time for this period
+            const periodWorkTime = calculateWorkingTime(startDate, endDate);
+            
+            // Distribute this time by days
+            distributeTimeByDays(startDate, endDate, periodWorkTime, dailyWorkTimeMs);
+            
             lastInProgressStart = null;
           }
         } else if (event.label.name === 'paused') {
           if (event.action === 'add' && lastInProgressStart) {
             const startDate = new Date(lastInProgressStart);
             const endDate = new Date(event.created_at);
-            activeTime += calculateWorkingTime(startDate, endDate);
+            
+            // Calculate working time for this period
+            const periodWorkTime = calculateWorkingTime(startDate, endDate);
+            
+            // Distribute this time by days
+            distributeTimeByDays(startDate, endDate, periodWorkTime, dailyWorkTimeMs);
+            
             lastInProgressStart = null;
             lastPausedStart = event.created_at;
           }
@@ -328,7 +349,59 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
     
     if (lastInProgressStart && !lastPausedStart) {
       const startDate = new Date(lastInProgressStart);
-      activeTime += calculateWorkingTime(startDate, now);
+      
+      // Calculate working time for this period
+      const periodWorkTime = calculateWorkingTime(startDate, now);
+      
+      // Distribute this time by days
+      distributeTimeByDays(startDate, now, periodWorkTime, dailyWorkTimeMs);
+    }
+    
+    // Function for distributing time by days and applying restriction
+    function distributeTimeByDays(start: Date, end: Date, totalTime: number, dailyTimeMap: Record<string, number>) {
+      // Iterate through all days between start and end
+      let currentDate = new Date(start);
+      currentDate.setUTCHours(0, 0, 0, 0); // Start of the day
+      
+      const endDay = new Date(end);
+      endDay.setUTCHours(23, 59, 59, 999); // End of the day
+      
+      // Determine the number of working days in the period
+      let workDaysCount = 0;
+      while (currentDate <= endDay) {
+        if (!isWeekend(currentDate)) {
+          workDaysCount++;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      if (workDaysCount === 0) return; // No working days
+      
+      // Distribute time evenly among working days
+      const timePerDay = totalTime / workDaysCount;
+      
+      // Iterate through days again and add time
+      currentDate = new Date(start);
+      currentDate.setUTCHours(0, 0, 0, 0);
+      
+      while (currentDate <= endDay) {
+        if (!isWeekend(currentDate)) {
+          const dayKey = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, '0')}-${String(currentDate.getUTCDate()).padStart(2, '0')}`;
+          
+          if (!dailyTimeMap[dayKey]) {
+            dailyTimeMap[dayKey] = 0;
+          }
+          
+          dailyTimeMap[dayKey] += timePerDay;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+    
+    // Restrict time for each day to 8 hours and sum up
+    for (const day in dailyWorkTimeMs) {
+      const maxDailyTimeMs = MAX_WORKING_HOURS_PER_DAY * 60 * 60 * 1000; // 8 hours in milliseconds
+      activeTime += Math.min(dailyWorkTimeMs[day], maxDailyTimeMs);
     }
 
     const startTime = assignmentTime || issueCreatedAt;
@@ -506,7 +579,7 @@ export const createGitLabClient = ({ baseUrl, token /* projectPath is unused */ 
     }
   };
 
-  // Добавляем новую функцию для получения истории меток MR
+  // Adding a new function to get MR label history
   const getMergeRequestLabelEvents = async (projectId: number, mrIid: number): Promise<IssueEvent[]> => {
     let page = 1;
     const perPage = 100;
