@@ -26,7 +26,7 @@ const statusColors: Record<string, string> = {
 const mrLabelColors: Record<string, string> = {
   'action-required': 'bg-[#dbc8a0] text-black',    // бежевый
   'action-required2': 'bg-[#4f97d3] text-black',   // зеленый
-  'action-required3': 'bg-[#4b28b6] text-white',   // темно-фиолетовый
+  'action-required3': 'bg-[#8f0ced] text-white',   // темно-фиолетовый
   'approved': 'bg-[#69d36e] text-black',          // зеленый
   'blocked': 'bg-[#666666] text-white',           // серый
   'bug': 'bg-[#cc5842] text-white',              // красно-коричневый
@@ -160,7 +160,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     cell: ({ row }) => {
       const mrLabels = row.original.mergeRequestLabels || [];
       
-      if (mrLabels.length === 0) return <div className="leading-none">-</div>;
+      if (mrLabels.length === 0) return <div className="leading-none"></div>;
       
       return (
         <div className="leading-none space-y-1">
