@@ -156,8 +156,6 @@ export const formatHoursAndMinutes = (durationMs: number): string => {
  */
 export const formatDuration = (durationMs: number): string => {
   if (!durationMs || isNaN(durationMs)) return '';
-
-  console.log(`Formatting duration: ${durationMs}ms`);
   
   // Calculate weekends to subtract
   const startDate = new Date(Date.now() - durationMs);
@@ -185,11 +183,6 @@ export const formatDuration = (durationMs: number): string => {
   const days = Math.floor(hours / 24);
   const remainingHours = hours % 24;
   const remainingMinutes = minutes % 60;
-
-  console.log(`  Weekend days subtracted: ${weekendDays}`);
-  console.log(`  Adjusted time: ${adjustedMs}ms`);
-  console.log(`  Total hours: ${hours} (${days} days and ${remainingHours} hours)`);
-  console.log(`  Remaining minutes: ${remainingMinutes}`);
   
   const parts: string[] = [];
   if (days > 0) parts.push(`${days}d`);

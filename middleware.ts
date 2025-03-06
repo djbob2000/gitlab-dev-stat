@@ -10,19 +10,19 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = request.cookies.get(COOKIE_NAME)?.value;
+  const encodedToken = request.cookies.get(COOKIE_NAME)?.value;
   
   // If no token, return unauthorized
-  if (!token) {
+  if (!encodedToken) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
     );
   }
 
-  // Clone the request headers and add the token
+  // Clone the request headers and add the decoded token
   const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-gitlab-token', token);
+  requestHeaders.set('x-gitlab-token', decodeURIComponent(encodedToken));
 
   // Return the response with modified headers
   const response = NextResponse.next({

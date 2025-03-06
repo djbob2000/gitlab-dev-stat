@@ -17,14 +17,9 @@ export async function validateAndSetToken(token: string) {
 
     // If we get here, token is valid
     const cookieStore = await cookies();
-    console.log('Setting cookie with options:', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365, // 365 days
-    });
-    cookieStore.set('gitlab-token', token, {
+    const encodedToken = encodeURIComponent(token);
+    
+    cookieStore.set('gitlab-token', encodedToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
@@ -45,13 +40,14 @@ export async function removeToken() {
 
 export async function hasValidToken() {
   const cookieStore = await cookies();
-  const token = await cookieStore.get('gitlab-token')?.value;
+  const encodedToken = cookieStore.get('gitlab-token')?.value;
   
-  if (!token) {
+  if (!encodedToken) {
     return { hasToken: false };
   }
 
   try {
+    const token = decodeURIComponent(encodedToken);
     // Verify that the token is still valid
     const client = createGitLabClient({
       baseUrl: process.env.GITLAB_BASE_URL!,
@@ -63,7 +59,7 @@ export async function hasValidToken() {
     return { hasToken: true };
   } catch {
     // If token is invalid, remove it
-    await cookieStore.delete('gitlab-token');
+    cookieStore.delete('gitlab-token');
     return { hasToken: false };
   }
 } 

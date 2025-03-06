@@ -11,13 +11,6 @@ if (missingEnvVars.length > 0) {
   throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
 }
 
-// Log environment variables (without sensitive data)
-console.log('[Statistics API] Environment:', {
-  GITLAB_BASE_URL: process.env.GITLAB_BASE_URL,
-  GITLAB_PROJECT_PATH: process.env.GITLAB_PROJECT_PATH,
-  GITLAB_PROJECT_ID: process.env.GITLAB_PROJECT_ID,
-});
-
 // Validation schema for GET request
 const getStatisticsSchema = z.object({
   usernames: z.string().transform(str => str.split(',')).nullish(),
@@ -51,20 +44,12 @@ export async function GET(request: Request) {
       projectId: process.env.GITLAB_PROJECT_ID,
     });
 
-    console.log('[Statistics API] Request params:', {
-      usernames: validatedData.usernames,
-      userIds: validatedData.userIds,
-      projectId: validatedData.projectId,
-    });
-
     const projectId = Number(validatedData.projectId);
     const issues = await gitlabClient.getProjectIssues(
       projectId,
       validatedData.usernames ?? undefined,
       validatedData.userIds ?? undefined
     );
-
-    console.log(`[Statistics API] Found ${issues.length} issues`);
 
     // Group issues by assignee
     const issuesByAssignee = new Map<string, IssueWithEvents[]>();
@@ -160,7 +145,6 @@ export async function GET(request: Request) {
       };
     }));
 
-    console.log(`[Statistics API] Processed ${issueStats.length} issues with stats`);
     return NextResponse.json(issueStats);
   } catch (error) {
     console.error('[Statistics API] Error:', error);
