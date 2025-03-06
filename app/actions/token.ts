@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
+import { encrypt, decrypt } from '@/lib/crypto';
 
 export async function validateAndSetToken(token: string) {
   try {
@@ -17,9 +18,9 @@ export async function validateAndSetToken(token: string) {
 
     // If we get here, token is valid
     const cookieStore = await cookies();
-    const encodedToken = encodeURIComponent(token);
+    const encryptedToken = await encrypt(token);
     
-    cookieStore.set('gitlab-token', encodedToken, {
+    cookieStore.set('gitlab-token', encryptedToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
@@ -40,14 +41,14 @@ export async function removeToken() {
 
 export async function hasValidToken() {
   const cookieStore = await cookies();
-  const encodedToken = cookieStore.get('gitlab-token')?.value;
+  const encryptedToken = cookieStore.get('gitlab-token')?.value;
   
-  if (!encodedToken) {
+  if (!encryptedToken) {
     return { hasToken: false };
   }
 
   try {
-    const token = decodeURIComponent(encodedToken);
+    const token = await decrypt(encryptedToken);
     // Verify that the token is still valid
     const client = createGitLabClient({
       baseUrl: process.env.GITLAB_BASE_URL!,
