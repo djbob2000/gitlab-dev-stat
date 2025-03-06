@@ -1,3 +1,6 @@
+// Re-export everything from the modular structure
+export * from './time-calculation/index';
+
 import { IssueEvent, IssueWithEvents } from './gitlab-api.task';
 
 export interface TimeInterval {
@@ -132,25 +135,25 @@ export const calculateBulkIssuesTimeStats = (issues: IssueWithEvents[]): IssueTi
 };
 
 /**
- * Форматирует продолжительность в миллисекундах в формат "HH:MM" (только часы и минуты)
- * для колонки In Progress
+ * Formats duration in milliseconds into "HH:MM" format (hours and minutes only)
+ * for the In Progress column
  */
 export const formatHoursAndMinutes = (durationMs: number): string => {
   if (!durationMs || isNaN(durationMs)) return '';
 
-  // Конвертируем миллисекунды в часы и минуты
+  // Convert milliseconds to hours and minutes
   const seconds = Math.floor(durationMs / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
 
-  // Форматируем как "HH:MM"
+  // Format as "HH:MM"
   return `${String(hours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}`;
 };
 
 /**
- * Форматирует продолжительность в миллисекундах в формат "Xd HH:MM"
- * где d представляет календарные дни (24 часа в день), исключая выходные
+ * Formats duration in milliseconds into "Xd HH:MM" format
+ * where d represents calendar days (24 hours per day), excluding weekends
  */
 export const formatDuration = (durationMs: number): string => {
   if (!durationMs || isNaN(durationMs)) return '';
@@ -185,7 +188,7 @@ export const formatDuration = (durationMs: number): string => {
   const parts: string[] = [];
   if (days > 0) parts.push(`${days}d`);
 
-  // Всегда показываем часы и минуты в формате HH:MM
+  // Always display hours and minutes in HH:MM format
   parts.push(
     `${String(remainingHours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}`
   );

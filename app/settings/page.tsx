@@ -171,6 +171,18 @@ export default function DevelopersPage() {
           ) : (
             <div>
               <p className="mb-4">Please add your GitLab token to access repository statistics.</p>
+              <p className="mb-4 text-sm text-muted-foreground">
+                You can generate a personal access token at{' '}
+                <a
+                  href="https://gitlab.com/-/user_settings/personal_access_tokens"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 underline"
+                >
+                  GitLab User Settings page
+                </a>
+                . Make sure to grant <strong>api</strong> and <strong>read_api</strong> scopes.
+              </p>
               <div className="flex items-center gap-4">
                 <Input
                   type={showToken ? 'text' : 'password'}

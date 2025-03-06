@@ -1,17 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { DataTable } from './components/data-table';
-import { columns } from './components/columns';
-import type { IssueStatistics } from '@/lib/types';
-import { ThemeToggle } from './components/theme-toggle';
+import { DataTable } from '@/src/components/common/data-table';
+import { columns } from '@/src/components/common/columns';
+import type { IssueStatistics } from '@/src/types/types';
+import { ThemeToggle } from '@/src/components/common/theme-toggle';
 import { Settings } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/src/components/ui/button';
 import Link from 'next/link';
-import { useTrackedDevelopers } from '@/lib/hooks/use-tracked-developers';
-import { useGitLabToken } from '@/lib/hooks/use-gitlab-token';
-import { Progress } from '@/components/ui/progress';
-import { fetchWithToken } from '@/lib/api';
+import { useTrackedDevelopers } from '@/src/hooks/use-tracked-developers';
+import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
+import { Progress } from '@/src/components/ui/progress';
+import { fetchWithToken } from '@/src/lib/api';
 import { toast } from 'sonner';
 
 async function fetchAnalytics(
