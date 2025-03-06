@@ -14,16 +14,18 @@ import { Progress } from '@/components/ui/progress';
 import { fetchWithToken } from '@/lib/api';
 import { toast } from 'sonner';
 
-async function fetchAnalytics(developers: { userId: number; username: string }[]): Promise<IssueStatistics[]> {
+async function fetchAnalytics(
+  developers: { userId: number; username: string }[]
+): Promise<IssueStatistics[]> {
   if (developers.length === 0) {
     return [];
   }
-  
+
   const params = new URLSearchParams();
-  
+
   // Prefer user IDs over usernames for better reliability
   const userIds = developers.map(dev => dev.userId).filter(Boolean);
-  
+
   if (userIds.length > 0) {
     params.append('userIds', userIds.join(','));
   } else {
@@ -45,27 +47,27 @@ export default function HomePage() {
   const [lastUpdated, setLastUpdated] = useState<Date>();
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [nextAutoRefresh, setNextAutoRefresh] = useState<Date | null>(null);
-  
+
   // Add a state to track when we last updated the actionRequiredTime
   // This will be used to force re-renders without changing the data
   const [lastActionRequiredUpdate, setLastActionRequiredUpdate] = useState<Date>(new Date());
 
   const loadData = useCallback(async () => {
     if (!isInitialized || !hasToken) return;
-    
+
     try {
       setIsLoading(true);
       setProgress(0);
-      
+
       // Start progress animation
       const startTime = Date.now();
       const animationDuration = 15000; // 15 seconds total animation
       const midpointDuration = 10000; // 10 seconds in the middle (30-80%)
-      
+
       const progressInterval = setInterval(() => {
         const elapsed = Date.now() - startTime;
         let newProgress = 0;
-        
+
         if (elapsed < 1000) {
           // First second: 0-30%
           newProgress = (elapsed / 1000) * 30;
@@ -82,18 +84,17 @@ export default function HomePage() {
           // Cap at 95% until data is loaded
           newProgress = 95;
         }
-        
+
         setProgress(Math.min(newProgress, 95));
       }, 50);
-      
-      const selectedDevelopers = developers
-        .filter(dev => dev.selected);
+
+      const selectedDevelopers = developers.filter(dev => dev.selected);
       const newData = await fetchAnalytics(selectedDevelopers);
-      
+
       // Clear interval and complete progress
       clearInterval(progressInterval);
       setProgress(100);
-      
+
       // Small delay to show completed progress
       setTimeout(() => {
         setData(newData);
@@ -116,7 +117,7 @@ export default function HomePage() {
     const interval = setInterval(() => {
       setLastActionRequiredUpdate(new Date());
     }, 60000); // Update every minute
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -126,20 +127,20 @@ export default function HomePage() {
       setNextAutoRefresh(null);
       return;
     }
-    
+
     // Set the next refresh time to 5 minutes from now
     const nextRefresh = new Date();
     nextRefresh.setMinutes(nextRefresh.getMinutes() + 5);
     setNextAutoRefresh(nextRefresh);
-    
+
     const timeUntilRefresh = nextRefresh.getTime() - new Date().getTime();
-    
+
     const interval = setTimeout(() => {
       if (!isLoading) {
         loadData();
       }
     }, timeUntilRefresh);
-    
+
     return () => clearTimeout(interval);
   }, [autoRefresh, isInitialized, loadData, isLoading, lastUpdated, hasToken]);
 
@@ -216,4 +217,4 @@ export default function HomePage() {
       </div>
     </>
   );
-} 
+}

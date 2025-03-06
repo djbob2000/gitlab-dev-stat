@@ -23,16 +23,12 @@ export function useGitLabToken() {
   }, []);
 
   const updateToken = async (newToken: string | null) => {
-    try {
-      if (newToken) {
-        await validateAndSetToken(newToken);
-        setHasToken(true);
-      } else {
-        await removeToken();
-        setHasToken(false);
-      }
-    } catch (error) {
-      throw error;
+    if (newToken) {
+      await validateAndSetToken(newToken);
+      setHasToken(true);
+    } else {
+      await removeToken();
+      setHasToken(false);
     }
   };
 
@@ -41,4 +37,4 @@ export function useGitLabToken() {
     isInitialized,
     updateToken,
   };
-} 
+}

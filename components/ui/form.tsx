@@ -4,28 +4,18 @@ import { cn } from '@/lib/utils';
 import { useFormField } from './use-form-field';
 import { Controller, ControllerProps, FieldPath, FieldValues } from 'react-hook-form';
 
-const Form = React.forwardRef<
-  HTMLFormElement,
-  React.HTMLAttributes<HTMLFormElement>
->(({ className, ...props }, ref) => (
-  <form
-    ref={ref}
-    className={cn('space-y-6', className)}
-    {...props}
-  />
-));
+const Form = React.forwardRef<HTMLFormElement, React.HTMLAttributes<HTMLFormElement>>(
+  ({ className, ...props }, ref) => (
+    <form ref={ref} className={cn('space-y-6', className)} {...props} />
+  )
+);
 Form.displayName = 'Form';
 
-const FormItem = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn('space-y-2', className)}
-    {...props}
-  />
-));
+const FormItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('space-y-2', className)} {...props} />
+  )
+);
 FormItem.displayName = 'FormItem';
 
 const FormLabel = React.forwardRef<
@@ -49,26 +39,21 @@ const FormLabel = React.forwardRef<
 });
 FormLabel.displayName = 'FormLabel';
 
-const FormControl = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ ...props }, ref) => {
-  const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
+const FormControl = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ ...props }, ref) => {
+    const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
 
-  return (
-    <div
-      ref={ref}
-      id={formItemId}
-      aria-describedby={
-        !error
-          ? `${formDescriptionId}`
-          : `${formDescriptionId} ${formMessageId}`
-      }
-      aria-invalid={!!error}
-      {...props}
-    />
-  );
-});
+    return (
+      <div
+        ref={ref}
+        id={formItemId}
+        aria-describedby={!error ? `${formDescriptionId}` : `${formDescriptionId} ${formMessageId}`}
+        aria-invalid={!!error}
+        {...props}
+      />
+    );
+  }
+);
 FormControl.displayName = 'FormControl';
 
 const FormDescription = React.forwardRef<
@@ -114,7 +99,7 @@ FormMessage.displayName = 'FormMessage';
 
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
 >({
   ...props
 }: ControllerProps<TFieldValues, TName>) => {
@@ -122,12 +107,4 @@ const FormField = <
 };
 FormField.displayName = 'FormField';
 
-export {
-  Form,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-  FormMessage,
-  FormField,
-}; 
+export { Form, FormItem, FormLabel, FormControl, FormDescription, FormMessage, FormField };

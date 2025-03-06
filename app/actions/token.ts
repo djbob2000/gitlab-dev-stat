@@ -6,29 +6,25 @@ import { encrypt, decrypt } from '@/lib/crypto';
 
 export async function validateAndSetToken(token: string) {
   try {
-    // Test if token is valid by making a test API call
     const client = createGitLabClient({
       baseUrl: process.env.GITLAB_BASE_URL!,
       token,
       projectPath: process.env.GITLAB_PROJECT_PATH!,
     });
 
-    // Try to get project members as a test
     await client.getProjectMembers(Number(process.env.GITLAB_PROJECT_ID!));
-
-    // If we get here, token is valid
     const cookieStore = await cookies();
     const encryptedToken = await encrypt(token);
-    
+
     cookieStore.set('gitlab-token', encryptedToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       path: '/',
       maxAge: 60 * 60 * 24 * 365, // 365 days
     });
     return { success: true };
-  } catch {
+  } catch (_error: unknown) {
     return { success: false };
   }
 }
@@ -42,14 +38,13 @@ export async function removeToken() {
 export async function hasValidToken() {
   const cookieStore = await cookies();
   const encryptedToken = cookieStore.get('gitlab-token')?.value;
-  
+
   if (!encryptedToken) {
     return { hasToken: false };
   }
 
   try {
     const token = await decrypt(encryptedToken);
-    // Verify that the token is still valid
     const client = createGitLabClient({
       baseUrl: process.env.GITLAB_BASE_URL!,
       token,
@@ -58,9 +53,8 @@ export async function hasValidToken() {
 
     await client.getProjectMembers(Number(process.env.GITLAB_PROJECT_ID!));
     return { hasToken: true };
-  } catch {
-    // If token is invalid, remove it
+  } catch (_error: unknown) {
     cookieStore.delete('gitlab-token');
     return { hasToken: false };
   }
-} 
+}

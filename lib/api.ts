@@ -4,7 +4,7 @@ export async function fetchWithToken(url: string, options: RequestInit = {}) {
     credentials: 'same-origin', // This ensures cookies are sent with the request
     headers: {
       ...options.headers,
-    }
+    },
   });
 
   if (!response.ok) {
@@ -13,4 +13,4 @@ export async function fetchWithToken(url: string, options: RequestInit = {}) {
   }
 
   return response.json();
-} 
+}

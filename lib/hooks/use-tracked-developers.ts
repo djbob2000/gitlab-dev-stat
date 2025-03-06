@@ -22,7 +22,7 @@ export function useTrackedDevelopers() {
     setIsInitialized(true);
 
     return () => {
-      setIsInitialized(false); 
+      setIsInitialized(false);
     };
   }, []);
 
@@ -35,26 +35,21 @@ export function useTrackedDevelopers() {
   }, [developers, isInitialized]);
 
   const updateDevelopers = (newDevelopers: TrackedDeveloper[]) => {
-
     const existingSelections = new Map(
       developers.filter(dev => dev.selected).map(dev => [dev.userId, true])
     );
 
     const updatedDevelopers = newDevelopers.map(dev => ({
       ...dev,
-      selected: existingSelections.has(dev.userId)
+      selected: existingSelections.has(dev.userId),
     }));
 
     setDevelopers(updatedDevelopers);
   };
 
   const toggleDeveloper = (userId: number) => {
-    setDevelopers(prev => 
-      prev.map(dev => 
-        dev.userId === userId 
-          ? { ...dev, selected: !dev.selected }
-          : dev
-      )
+    setDevelopers(prev =>
+      prev.map(dev => (dev.userId === userId ? { ...dev, selected: !dev.selected } : dev))
     );
   };
 
@@ -69,4 +64,4 @@ export function useTrackedDevelopers() {
     toggleDeveloper,
     getSelectedDevelopers,
   };
-} 
+}

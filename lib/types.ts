@@ -139,4 +139,4 @@ export interface IssueStatistics {
   url: string;
   labels: string[];
   username: string;
-} 
+}

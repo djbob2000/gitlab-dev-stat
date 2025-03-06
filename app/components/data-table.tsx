@@ -46,15 +46,13 @@ export function DataTable<TData, TValue>({
   nextRefreshTime,
   tableId = 'developer-stats',
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([
-    { id: 'username', desc: false }
-  ]);
+  const [sorting, setSorting] = React.useState<SortingState>([{ id: 'username', desc: false }]);
   const [columnResizeMode] = React.useState<ColumnResizeMode>('onChange');
   const [timeRemaining, setTimeRemaining] = React.useState<string>('5:00');
-  
+
   // State for column sizing
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>({});
-  
+
   // Load saved column widths on mount
   React.useEffect(() => {
     try {
@@ -66,15 +64,16 @@ export function DataTable<TData, TValue>({
       console.error('Failed to load column widths from localStorage:', error);
     }
   }, [tableId]);
-  
+
   // Save column widths when they change
   const handleColumnSizingChange = React.useCallback(
     (updaterOrValue: Updater<ColumnSizingState>) => {
       // Handle both function updater and direct value
-      const newSizing = typeof updaterOrValue === 'function' 
-        ? updaterOrValue(columnSizing as ColumnSizingState) 
-        : updaterOrValue;
-      
+      const newSizing =
+        typeof updaterOrValue === 'function'
+          ? updaterOrValue(columnSizing as ColumnSizingState)
+          : updaterOrValue;
+
       setColumnSizing(newSizing);
       try {
         localStorage.setItem(`table-column-widths-${tableId}`, JSON.stringify(newSizing));
@@ -104,12 +103,12 @@ export function DataTable<TData, TValue>({
     const updateCountdown = () => {
       const now = new Date();
       const diff = Math.max(0, nextRefreshTime.getTime() - now.getTime());
-      
+
       if (diff <= 0) {
         setTimeRemaining('0:00');
         return;
       }
-      
+
       const minutes = Math.floor(diff / 60000);
       const seconds = Math.floor((diff % 60000) / 1000);
       setTimeRemaining(`${minutes}:${seconds.toString().padStart(2, '0')}`);
@@ -118,7 +117,7 @@ export function DataTable<TData, TValue>({
     // Update immediately and then every second
     updateCountdown();
     const interval = setInterval(updateCountdown, 1000);
-    
+
     return () => clearInterval(interval);
   }, [autoRefresh, nextRefreshTime]);
 
@@ -144,7 +143,9 @@ export function DataTable<TData, TValue>({
   return (
     <div className="rounded-lg shadow-md bg-white dark:bg-gray-800">
       <div className="flex justify-between items-center p-2 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Developer Statistics</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          Developer Statistics
+        </h2>
         <div className="flex items-center gap-4">
           {lastUpdated && (
             <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -159,21 +160,18 @@ export function DataTable<TData, TValue>({
               className="flex items-center gap-2"
               disabled={isLoading}
             >
-              <RefreshCw className={cn(
-                "h-4 w-4",
-                isLoading && "animate-spin"
-              )} />
+              <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
               Refresh Data
             </Button>
             <div className="flex items-center gap-2 min-w-26">
-              <Checkbox 
-                id="auto-refresh" 
-                checked={autoRefresh} 
+              <Checkbox
+                id="auto-refresh"
+                checked={autoRefresh}
                 onCheckedChange={onAutoRefreshChange}
                 disabled={isLoading}
               />
-              <Label 
-                htmlFor="auto-refresh" 
+              <Label
+                htmlFor="auto-refresh"
                 className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
               >
                 Auto {autoRefresh && `(${timeRemaining})`}
@@ -184,11 +182,14 @@ export function DataTable<TData, TValue>({
       </div>
 
       <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <table className="w-full divide-y divide-gray-200 dark:divide-gray-700" style={{ minWidth: table.getTotalSize() }}>
+        <table
+          className="w-full divide-y divide-gray-200 dark:divide-gray-700"
+          style={{ minWidth: table.getTotalSize() }}
+        >
           <thead className="bg-gray-50 dark:bg-gray-900">
-            {table.getHeaderGroups().map((headerGroup) => (
+            {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
+                {headerGroup.headers.map(header => (
                   <th
                     key={header.id}
                     className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider relative"
@@ -199,10 +200,7 @@ export function DataTable<TData, TValue>({
                         className={header.column.getCanSort() ? 'cursor-pointer select-none' : ''}
                         onClick={header.column.getToggleSortingHandler()}
                       >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        {flexRender(header.column.columnDef.header, header.getContext())}
                         <span className="ml-2">
                           {{
                             asc: '↑',
@@ -226,33 +224,30 @@ export function DataTable<TData, TValue>({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => {
+              table.getRowModel().rows.map(row => {
                 // Check if developer changed
                 const rowData = row.original as { username: string };
                 if (currentDeveloper !== rowData.username) {
                   currentDeveloper = rowData.username;
                   developerGroup++;
                 }
-                
+
                 return (
-                  <tr 
-                    key={row.id} 
+                  <tr
+                    key={row.id}
                     className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                      developerGroup % 2 === 0 
-                        ? 'bg-gray-50 dark:bg-gray-800' 
+                      developerGroup % 2 === 0
+                        ? 'bg-gray-50 dark:bg-gray-800'
                         : 'bg-white dark:bg-gray-900'
                     }`}
                   >
-                    {row.getVisibleCells().map((cell) => (
+                    {row.getVisibleCells().map(cell => (
                       <td
                         key={cell.id}
                         className="px-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
                         style={{ width: cell.column.getSize() }}
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
                   </tr>
@@ -273,4 +268,4 @@ export function DataTable<TData, TValue>({
       </div>
     </div>
   );
-} 
+}

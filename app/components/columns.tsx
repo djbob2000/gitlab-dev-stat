@@ -17,37 +17,50 @@ const priorityColors: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  'blocked': 'bg-[#666666] text-white',
+  blocked: 'bg-[#666666] text-white',
   'in-progress': 'bg-[#1f7e23] text-white',
-  'paused': 'bg-[#fc9403] text-black',
-  'review': 'bg-[#0d0d0d] text-white',
+  paused: 'bg-[#fc9403] text-black',
+  review: 'bg-[#0d0d0d] text-white',
 };
 
 const mrLabelColors: Record<string, string> = {
-  'action-required': 'bg-[#dbc8a0] text-black',    // бежевый
-  'action-required2': 'bg-[#4f97d3] text-black',   // зеленый
-  'action-required3': 'bg-[#8f0ced] text-white',   // темно-фиолетовый
-  'approved': 'bg-[#69d36e] text-black',          // зеленый
-  'blocked': 'bg-[#666666] text-white',           // серый
-  'bug': 'bg-[#cc5842] text-white',              // красно-коричневый
-  'cluster': 'bg-[#4f97d3] text-white',          // голубой
-  'code-review': 'bg-[#4f97d3] text-white',      // голубой
-  'comment': 'bg-[#666666] text-white',          // серый
-  'discuss': 'bg-[#666666] text-white',          // серый
-  'feedback': 'bg-[#cc5842] text-white',         // красно-коричневый
-  'in-progress': 'bg-[#69d36e] text-white',      // зеленый
-  'maintenance': 'bg-[#b5326e] text-white',      // темно-розовый
-  'not-ready': 'bg-[#666666] text-white',        // серый
-  'paused': 'bg-[#ebc21b] text-black',          // желтый
-  'qa-pre-check': 'bg-[#ebc21b] text-black',    // желтый
-  'review': 'bg-[#344759] text-white',          // темно-синий
+  'action-required': 'bg-[#dbc8a0] text-black', // бежевый
+  'action-required2': 'bg-[#4f97d3] text-black', // зеленый
+  'action-required3': 'bg-[#8f0ced] text-white', // темно-фиолетовый
+  approved: 'bg-[#69d36e] text-black', // зеленый
+  blocked: 'bg-[#666666] text-white', // серый
+  bug: 'bg-[#cc5842] text-white', // красно-коричневый
+  cluster: 'bg-[#4f97d3] text-white', // голубой
+  'code-review': 'bg-[#4f97d3] text-white', // голубой
+  comment: 'bg-[#666666] text-white', // серый
+  discuss: 'bg-[#666666] text-white', // серый
+  feedback: 'bg-[#cc5842] text-white', // красно-коричневый
+  'in-progress': 'bg-[#69d36e] text-white', // зеленый
+  maintenance: 'bg-[#b5326e] text-white', // темно-розовый
+  'not-ready': 'bg-[#666666] text-white', // серый
+  paused: 'bg-[#ebc21b] text-black', // желтый
+  'qa-pre-check': 'bg-[#ebc21b] text-black', // желтый
+  review: 'bg-[#344759] text-white', // темно-синий
   'status-update-commit': 'bg-[#dbc8a0] text-black', // бежевый
-  'team1': 'bg-[#cccccc] text-black',           // светло-серый
-  'team2': 'bg-[#8e5bb5] text-white',           // фиолетовый
+  team1: 'bg-[#cccccc] text-black', // светло-серый
+  team2: 'bg-[#8e5bb5] text-white', // фиолетовый
 };
 
-const LabelPill = ({ text, colorClass, className }: { text: string, colorClass: string, className?: string }) => (
-  <span className={cn(`inline-flex items-center px-2 rounded-full text-xs font-medium ${colorClass}`, className)}>
+const LabelPill = ({
+  text,
+  colorClass,
+  className,
+}: {
+  text: string;
+  colorClass: string;
+  className?: string;
+}) => (
+  <span
+    className={cn(
+      `inline-flex items-center px-2 rounded-full text-xs font-medium ${colorClass}`,
+      className
+    )}
+  >
     {text}
   </span>
 );
@@ -77,12 +90,12 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     cell: ({ row }) => {
       const priorityLabel = row.original.labels?.find(label => /^p[1-8]$/.test(label));
       if (!priorityLabel) return <div className="leading-none">-</div>;
-      
+
       return (
         <div className="leading-none">
-          <LabelPill 
-            text={priorityLabel} 
-            colorClass={priorityColors[priorityLabel] || 'bg-gray-200 text-gray-800'} 
+          <LabelPill
+            text={priorityLabel}
+            colorClass={priorityColors[priorityLabel] || 'bg-gray-200 text-gray-800'}
             className="text-xs"
           />
         </div>
@@ -108,15 +121,17 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     },
     cell: ({ row }) => {
       const labels = row.original.labels;
-      const statusLabel = labels?.find(label => ['in-progress', 'paused', 'blocked', 'review'].includes(label));
-      
+      const statusLabel = labels?.find(label =>
+        ['in-progress', 'paused', 'blocked', 'review'].includes(label)
+      );
+
       if (!statusLabel) return <div className="leading-none"></div>;
-      
+
       return (
         <div className="leading-none">
-          <LabelPill 
-            text={statusLabel} 
-            colorClass={statusColors[statusLabel] || 'bg-gray-200 text-gray-800'} 
+          <LabelPill
+            text={statusLabel}
+            colorClass={statusColors[statusLabel] || 'bg-gray-200 text-gray-800'}
           />
         </div>
       );
@@ -132,50 +147,55 @@ export const columns: ColumnDef<IssueStatistics>[] = [
       // Get the highest priority action-required label for each row
       const getActionRequiredPriority = (mrLabels: MergeRequestLabels[] = []) => {
         let highestPriority = 4; // Default priority (lower than any action-required)
-        
+
         for (const mr of mrLabels) {
-          const actionRequiredLabels = mr.labels.filter((label: string) => 
-            label === 'action-required' || 
-            label === 'action-required2' || 
-            label === 'action-required3'
+          const actionRequiredLabels = mr.labels.filter(
+            (label: string) =>
+              label === 'action-required' ||
+              label === 'action-required2' ||
+              label === 'action-required3'
           );
-          
+
           for (const label of actionRequiredLabels) {
             let priority = 4; // Default
             if (label === 'action-required') priority = 1;
             else if (label === 'action-required2') priority = 2;
             else if (label === 'action-required3') priority = 3;
-            
+
             if (priority < highestPriority) {
               highestPriority = priority;
             }
           }
         }
-        
+
         return highestPriority;
       };
-      
-      return getActionRequiredPriority(rowA.original.mergeRequests) - 
-             getActionRequiredPriority(rowB.original.mergeRequests);
+
+      return (
+        getActionRequiredPriority(rowA.original.mergeRequests) -
+        getActionRequiredPriority(rowB.original.mergeRequests)
+      );
     },
     cell: ({ row }) => {
       const mrLabels = row.original.mergeRequests || [];
-      
+
       if (mrLabels.length === 0) return <div className="leading-none"></div>;
-      
+
       return (
         <div className="leading-none space-y-1">
-          {mrLabels.map((mr) => {
-            const filteredLabels = mr.labels.filter(label => 
-              !label.match(/^p[1-8]$/) && // exclude priority labels
-              !['review', 'in-progress', 'code-review', 'team1', 'team2', 'bug'].includes(label) // exclude specific labels
+          {mrLabels.map(mr => {
+            const filteredLabels = mr.labels.filter(
+              label =>
+                !label.match(/^p[1-8]$/) && // exclude priority labels
+                !['review', 'in-progress', 'code-review', 'team1', 'team2', 'bug'].includes(label) // exclude specific labels
             );
 
             const isReview = row.original.labels?.includes('review');
             const hasNoLabels = filteredLabels.length === 0;
-            const mrNumberClass = isReview && hasNoLabels 
-              ? "text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 font-bold"
-              : "text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200";
+            const mrNumberClass =
+              isReview && hasNoLabels
+                ? 'text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 font-bold'
+                : 'text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200';
 
             return (
               <div key={mr.mrIid} className="flex gap-1 items-center">
@@ -190,10 +210,10 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                 <span className="text-xs text-gray-500">:</span>
                 <div className="flex gap-1 flex-wrap">
                   {filteredLabels.map((label, index) => (
-                    <LabelPill 
+                    <LabelPill
                       key={index}
-                      text={label} 
-                      colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'} 
+                      text={label}
+                      colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'}
                     />
                   ))}
                 </div>
@@ -217,20 +237,20 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     },
     cell: ({ row }) => {
       const actionRequiredTime = row.original.actionRequiredTime;
-      
+
       if (!actionRequiredTime) return <div className="leading-none"></div>;
-      
+
       // Calculate elapsed time from actionRequiredTime to now
       const elapsedTime = Date.now() - actionRequiredTime;
-      
+
       let colorClass = 'text-amber-600 dark:text-amber-400';
-      
+
       if (elapsedTime > 24 * 60 * 60 * 1000) {
         colorClass = 'text-red-600 dark:text-red-400 font-bold';
       } else if (elapsedTime > 12 * 60 * 60 * 1000) {
         colorClass = 'text-orange-600 dark:text-orange-400';
       }
-      
+
       return (
         <div className={`leading-none font-medium ${colorClass}`}>
           {formatDuration(elapsedTime)}
@@ -246,7 +266,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     minSize: 20,
     cell: ({ row }) => {
       const hasTeam1 = row.original.labels?.includes('team1');
-      
+
       return (
         <div className="leading-none flex items-center gap-2">
           <a
@@ -258,9 +278,9 @@ export const columns: ColumnDef<IssueStatistics>[] = [
             {row.original.iid}
           </a>
           {hasTeam1 && (
-            <LabelPill 
-              text="team1" 
-              colorClass={mrLabelColors['team1'] || 'bg-gray-200 text-gray-800'} 
+            <LabelPill
+              text="team1"
+              colorClass={mrLabelColors['team1'] || 'bg-gray-200 text-gray-800'}
               className="shrink-0"
             />
           )}
@@ -287,9 +307,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     enableResizing: true,
     minSize: 20,
     cell: ({ row }) => (
-      <div className="leading-none">
-        {formatHoursAndMinutes(row.original.timeInProgress)}
-      </div>
+      <div className="leading-none">{formatHoursAndMinutes(row.original.timeInProgress)}</div>
     ),
   },
   {
@@ -299,9 +317,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     enableResizing: true,
     minSize: 20,
     cell: ({ row }) => (
-      <div className="leading-none">
-        {formatDuration(row.original.totalTimeFromStart)}
-      </div>
+      <div className="leading-none">{formatDuration(row.original.totalTimeFromStart)}</div>
     ),
   },
-]; 
+];

@@ -33,7 +33,7 @@ export default function DevelopersPage() {
   const { developers, updateDevelopers, toggleDeveloper, isInitialized } = useTrackedDevelopers();
   const { hasToken, updateToken, isInitialized: isTokenInitialized } = useGitLabToken();
   const [search, setSearch] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
   const [newToken, setNewToken] = useState('');
   const [showToken, setShowToken] = useState(false);
@@ -42,14 +42,17 @@ export default function DevelopersPage() {
 
   useEffect(() => {
     const initializeDevelopers = async () => {
+      if (!hasToken) return;
+
       try {
+        setIsLoading(true);
         const data = await fetchProjectDevelopers();
         const updatedDevelopers = data.map(dev => ({
           userId: dev.id,
           username: dev.username,
-          selected: developers.some(d => d.userId === dev.id && d.selected)
+          selected: developers.some(d => d.userId === dev.id && d.selected),
         }));
-        
+
         updateDevelopers(updatedDevelopers);
       } catch {
         toast.error('Failed to fetch developers. Please check your GitLab token.');
@@ -162,27 +165,16 @@ export default function DevelopersPage() {
               <p className="mb-4">Please add your GitLab token to access repository statistics.</p>
               <div className="flex items-center gap-4">
                 <Input
-                  type={showToken ? "text" : "password"}
+                  type={showToken ? 'text' : 'password'}
                   placeholder="Enter your GitLab token"
                   value={newToken}
-                  onChange={(e) => setNewToken(e.target.value)}
+                  onChange={e => setNewToken(e.target.value)}
                   className="max-w-md"
                 />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowToken(!showToken)}
-                >
-                  {showToken ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                <Button variant="ghost" size="icon" onClick={() => setShowToken(!showToken)}>
+                  {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
-                <Button 
-                  onClick={() => handleSaveToken(newToken)}
-                  disabled={isValidating}
-                >
+                <Button onClick={() => handleSaveToken(newToken)} disabled={isValidating}>
                   {isValidating ? 'Validating...' : 'Save Token'}
                 </Button>
               </div>
@@ -203,7 +195,7 @@ export default function DevelopersPage() {
             <Input
               placeholder="Search developers..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={e => setSearch(e.target.value)}
               className="max-w-sm"
             />
             <div className="ml-auto text-sm text-muted-foreground">
@@ -217,14 +209,12 @@ export default function DevelopersPage() {
                 <TableRow>
                   <TableHead className="w-[50px]">
                     <Checkbox
-                      checked={
-                        developers.length > 0 && selectedCount === developers.length
-                      }
-                      onCheckedChange={(checked) => {
+                      checked={developers.length > 0 && selectedCount === developers.length}
+                      onCheckedChange={checked => {
                         updateDevelopers(
                           developers.map(dev => ({
                             ...dev,
-                            selected: !!checked
+                            selected: !!checked,
                           }))
                         );
                       }}
@@ -254,7 +244,7 @@ export default function DevelopersPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredDevelopers.map((developer) => (
+                  filteredDevelopers.map(developer => (
                     <TableRow key={developer.username}>
                       <TableCell className="w-[50px] py-1">
                         <Checkbox
@@ -274,4 +264,4 @@ export default function DevelopersPage() {
       </Card>
     </div>
   );
-} 
+}
