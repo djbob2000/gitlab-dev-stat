@@ -142,7 +142,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'MR Labels',
     enableSorting: true,
     enableResizing: true,
-    minSize: 80,
+    minSize: 20,
     sortingFn: (rowA, rowB) => {
       // Get the highest priority action-required label for each row
       const getActionRequiredPriority = (mrLabels: MergeRequestLabels[] = []) => {
@@ -293,7 +293,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Title',
     enableSorting: true,
     enableResizing: true,
-    minSize: 200,
+    minSize: 20,
     cell: ({ row }) => (
       <div className="leading-none truncate max-w-md" title={row.original.title}>
         {row.original.title}
