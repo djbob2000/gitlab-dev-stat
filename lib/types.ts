@@ -46,13 +46,15 @@ export interface IssueStatistics {
   id: number;
   iid: number;
   title: string;
+  labels: string[];
+  assignee?: {
+    id: number;
+    username: string;
+  } | null;
   timeInProgress: number;
   totalTimeFromStart: number;
-  url: string;
-  labels: string[];
-  username: string;
-  mergeRequestLabels?: MergeRequestLabels[];
-  actionRequiredTime?: number; // Time elapsed since any action-required label appeared
+  mergeRequests: MergeRequestLabels[];
+  actionRequiredTime?: number;
 }
 
 export interface IssueWithEvents extends GitLabIssue {

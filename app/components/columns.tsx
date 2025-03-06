@@ -54,7 +54,8 @@ const LabelPill = ({ text, colorClass, className }: { text: string, colorClass: 
 
 export const columns: ColumnDef<IssueStatistics>[] = [
   {
-    accessorKey: 'username',
+    accessorKey: 'assignee.username',
+    id: 'username',
     header: 'Developer',
     enableSorting: true,
     enableResizing: true,
@@ -122,7 +123,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     },
   },
   {
-    accessorKey: 'mergeRequestLabels',
+    accessorKey: 'mergeRequests',
     header: 'MR Labels',
     enableSorting: true,
     enableResizing: true,
@@ -154,11 +155,11 @@ export const columns: ColumnDef<IssueStatistics>[] = [
         return highestPriority;
       };
       
-      return getActionRequiredPriority(rowA.original.mergeRequestLabels) - 
-             getActionRequiredPriority(rowB.original.mergeRequestLabels);
+      return getActionRequiredPriority(rowA.original.mergeRequests) - 
+             getActionRequiredPriority(rowB.original.mergeRequests);
     },
     cell: ({ row }) => {
-      const mrLabels = row.original.mergeRequestLabels || [];
+      const mrLabels = row.original.mergeRequests || [];
       
       if (mrLabels.length === 0) return <div className="leading-none"></div>;
       
@@ -220,20 +221,16 @@ export const columns: ColumnDef<IssueStatistics>[] = [
       if (!actionRequiredTime) return <div className="leading-none"></div>;
       
       // Calculate elapsed time from actionRequiredTime to now
-      // This will be recalculated on every render, which happens when actionRequiredUpdateTime changes
       const elapsedTime = Date.now() - actionRequiredTime;
       
-      // Определяем цвет в зависимости от прошедшего времени
-      // Более 24 часов - красный, более 12 часов - оранжевый, иначе - желтый
-      let colorClass = 'text-amber-600 dark:text-amber-400'; // По умолчанию желтый
+      let colorClass = 'text-amber-600 dark:text-amber-400';
       
-      if (elapsedTime > 24 * 60 * 60 * 1000) { // Более 24 часов
+      if (elapsedTime > 24 * 60 * 60 * 1000) {
         colorClass = 'text-red-600 dark:text-red-400 font-bold';
-      } else if (elapsedTime > 12 * 60 * 60 * 1000) { // Более 12 часов
+      } else if (elapsedTime > 12 * 60 * 60 * 1000) {
         colorClass = 'text-orange-600 dark:text-orange-400';
       }
       
-      // Format the elapsed time
       return (
         <div className={`leading-none font-medium ${colorClass}`}>
           {formatDuration(elapsedTime)}

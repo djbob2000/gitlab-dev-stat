@@ -12,9 +12,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTrackedDevelopers } from '@/lib/hooks/use-tracked-developers';
+import { useGitLabToken } from '@/lib/hooks/use-gitlab-token';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { fetchWithToken } from '@/lib/api';
 
 interface GitLabDeveloper {
   id: number;
@@ -22,16 +26,19 @@ interface GitLabDeveloper {
 }
 
 async function fetchProjectDevelopers(): Promise<GitLabDeveloper[]> {
-  const response = await fetch('/api/gitlab/developers');
-  if (!response.ok) throw new Error('Failed to fetch developers');
-  return response.json();
+  return fetchWithToken('/api/gitlab/developers');
 }
 
 export default function DevelopersPage() {
   const { developers, updateDevelopers, toggleDeveloper, isInitialized } = useTrackedDevelopers();
+  const { hasToken, updateToken, isInitialized: isTokenInitialized } = useGitLabToken();
   const [search, setSearch] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [hasFetched, setHasFetched] = useState(false);
+  const [newToken, setNewToken] = useState('');
+  const [showToken, setShowToken] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeDevelopers = async () => {
@@ -44,18 +51,18 @@ export default function DevelopersPage() {
         }));
         
         updateDevelopers(updatedDevelopers);
-      } catch (error) {
-        console.error(error);
+      } catch {
+        toast.error('Failed to fetch developers. Please check your GitLab token.');
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (isInitialized && !hasFetched) {
+    if (isInitialized && !hasFetched && hasToken) {
       setHasFetched(true);
       initializeDevelopers();
     }
-  }, [isInitialized, hasFetched, developers, updateDevelopers]);
+  }, [isInitialized, hasFetched, developers, updateDevelopers, hasToken]);
 
   // Filter developers based on search
   const filteredDevelopers = developers.filter(dev =>
@@ -65,8 +72,49 @@ export default function DevelopersPage() {
   // Calculate selected count
   const selectedCount = developers.filter(dev => dev.selected).length;
 
+  const handleSaveToken = async (token: string) => {
+    setIsValidating(true);
+    setError(null);
+    try {
+      await updateToken(token);
+      setNewToken('');
+      toast.success('GitLab token saved successfully');
+      // Reset hasFetched to trigger a new fetch of developers
+      setHasFetched(false);
+    } catch {
+      setError('Failed to validate token. Please check if the token is valid.');
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleRemoveToken = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await updateToken(null);
+      setHasFetched(false);
+      updateDevelopers([]);
+      toast.success('GitLab token removed successfully');
+    } catch {
+      setError('Failed to remove token.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isInitialized || !isTokenInitialized) {
+    return (
+      <div className="container mx-auto py-10">
+        <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto py-10 space-y-4">
+    <div className="container mx-auto py-10 space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
@@ -76,79 +124,154 @@ export default function DevelopersPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">GitLab Project Developers</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
             <p className="text-sm text-muted-foreground">
-              Select developers to track their activity in the analytics dashboard.
+              Manage your GitLab integration and tracked developers.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-4 py-4">
-        <Input
-          placeholder="Search developers..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
-        />
-        <div className="ml-auto text-sm text-muted-foreground">
-          {selectedCount} of {developers.length} developer(s) selected
-        </div>
-      </div>
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  checked={
-                    developers.length > 0 && selectedCount === developers.length
-                  }
-                  onCheckedChange={(checked) => {
-                    updateDevelopers(
-                      developers.map(dev => ({
-                        ...dev,
-                        selected: !!checked
-                      }))
-                    );
-                  }}
-                  aria-label="Select all"
+      <Card>
+        <CardHeader>
+          <CardTitle>GitLab Token</CardTitle>
+          <CardDescription>
+            Manage your GitLab personal access token. This token is used to access the GitLab API.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              {error}
+            </div>
+          )}
+          {hasToken ? (
+            <div>
+              <p className="mb-4 text-green-600">GitLab token is set and valid.</p>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleRemoveToken}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Removing...' : 'Remove Token'}
+              </Button>
+            </div>
+          ) : (
+            <div>
+              <p className="mb-4">Please add your GitLab token to access repository statistics.</p>
+              <div className="flex items-center gap-4">
+                <Input
+                  type={showToken ? "text" : "password"}
+                  placeholder="Enter your GitLab token"
+                  value={newToken}
+                  onChange={(e) => setNewToken(e.target.value)}
+                  className="max-w-md"
                 />
-              </TableHead>
-              <TableHead>Username</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={2} className="h-24 text-center">
-                  Loading developers from GitLab...
-                </TableCell>
-              </TableRow>
-            ) : filteredDevelopers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={2} className="h-24 text-center">
-                  No developers found
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredDevelopers.map((developer) => (
-                <TableRow key={developer.username}>
-                  <TableCell className="w-[50px] py-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowToken(!showToken)}
+                >
+                  {showToken ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button 
+                  onClick={() => handleSaveToken(newToken)}
+                  disabled={isValidating}
+                >
+                  {isValidating ? 'Validating...' : 'Save Token'}
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Tracked Developers</CardTitle>
+          <CardDescription>
+            Select developers to track their activity in the analytics dashboard.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4 py-4">
+            <Input
+              placeholder="Search developers..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-sm"
+            />
+            <div className="ml-auto text-sm text-muted-foreground">
+              {selectedCount} of {developers.length} developer(s) selected
+            </div>
+          </div>
+
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50px]">
                     <Checkbox
-                      checked={developer.selected}
-                      onCheckedChange={() => toggleDeveloper(developer.userId)}
-                      aria-label={`Select ${developer.username}`}
+                      checked={
+                        developers.length > 0 && selectedCount === developers.length
+                      }
+                      onCheckedChange={(checked) => {
+                        updateDevelopers(
+                          developers.map(dev => ({
+                            ...dev,
+                            selected: !!checked
+                          }))
+                        );
+                      }}
+                      aria-label="Select all"
                     />
-                  </TableCell>
-                  <TableCell className="py-1">{developer.username}</TableCell>
+                  </TableHead>
+                  <TableHead>Username</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="h-24 text-center">
+                      Loading developers from GitLab...
+                    </TableCell>
+                  </TableRow>
+                ) : !hasToken ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="h-24 text-center">
+                      Please add a GitLab token to view developers
+                    </TableCell>
+                  </TableRow>
+                ) : filteredDevelopers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={2} className="h-24 text-center">
+                      No developers found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredDevelopers.map((developer) => (
+                    <TableRow key={developer.username}>
+                      <TableCell className="w-[50px] py-1">
+                        <Checkbox
+                          checked={developer.selected}
+                          onCheckedChange={() => toggleDeveloper(developer.userId)}
+                          aria-label={`Select ${developer.username}`}
+                        />
+                      </TableCell>
+                      <TableCell className="py-1">{developer.username}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 } 

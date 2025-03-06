@@ -9,7 +9,10 @@ import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useTrackedDevelopers } from '@/lib/hooks/use-tracked-developers';
+import { useGitLabToken } from '@/lib/hooks/use-gitlab-token';
 import { Progress } from '@/components/ui/progress';
+import { fetchWithToken } from '@/lib/api';
+import { toast } from 'sonner';
 
 async function fetchAnalytics(developers: { userId: number; username: string }[]): Promise<IssueStatistics[]> {
   if (developers.length === 0) {
@@ -29,15 +32,12 @@ async function fetchAnalytics(developers: { userId: number; username: string }[]
     params.append('usernames', usernames.join(','));
   }
 
-  const response = await fetch(`/api/statistics?${params.toString()}`, {
-    cache: 'no-store'
-  });
-  if (!response.ok) throw new Error('Failed to fetch analytics');
-  return response.json();
+  return fetchWithToken(`/api/statistics?${params.toString()}`);
 }
 
 export default function HomePage() {
   const { developers, isInitialized } = useTrackedDevelopers();
+  const { hasToken, isInitialized: isTokenInitialized } = useGitLabToken();
   const [data, setData] = useState<IssueStatistics[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,7 +51,7 @@ export default function HomePage() {
   const [lastActionRequiredUpdate, setLastActionRequiredUpdate] = useState<Date>(new Date());
 
   const loadData = useCallback(async () => {
-    if (!isInitialized) return;
+    if (!isInitialized || !hasToken) return;
     
     try {
       setIsLoading(true);
@@ -107,8 +107,9 @@ export default function HomePage() {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
       setIsLoading(false);
       setProgress(0);
+      toast.error('Failed to load data. Please check your GitLab token.');
     }
-  }, [developers, isInitialized]);
+  }, [developers, isInitialized, hasToken]);
 
   // Update the actionRequiredTime every minute
   useEffect(() => {
@@ -121,7 +122,7 @@ export default function HomePage() {
 
   // Auto-refresh data every 5 minutes when enabled
   useEffect(() => {
-    if (!autoRefresh || !isInitialized) {
+    if (!autoRefresh || !isInitialized || !hasToken) {
       setNextAutoRefresh(null);
       return;
     }
@@ -140,23 +141,38 @@ export default function HomePage() {
     }, timeUntilRefresh);
     
     return () => clearTimeout(interval);
-  }, [autoRefresh, isInitialized, loadData, isLoading, lastUpdated]);
+  }, [autoRefresh, isInitialized, loadData, isLoading, lastUpdated, hasToken]);
 
   // We don't need a separate effect to update the data
   // The component will re-render when lastActionRequiredUpdate changes
   // and the column renderer will calculate the new elapsed time
 
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitialized && hasToken) {
       loadData();
     }
-  }, [isInitialized, loadData]);
+  }, [isInitialized, loadData, hasToken]);
 
-  if (!isInitialized) {
+  if (!isInitialized || !isTokenInitialized) {
     return (
       <div className="container py-10">
         <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
-          Loading developers...
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasToken) {
+    return (
+      <div className="container py-10">
+        <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
+          Please add your GitLab token in the settings to view analytics.
+          <div className="mt-4">
+            <Button asChild>
+              <Link href="/settings">Go to Settings</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
