@@ -20,6 +20,16 @@ export function middleware(request: NextRequest) {
     );
   }
 
-  // If token exists, allow the request to proceed
-  return NextResponse.next();
+  // Clone the request headers and add the token
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-gitlab-token', token);
+
+  // Return the response with modified headers
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  return response;
 } 

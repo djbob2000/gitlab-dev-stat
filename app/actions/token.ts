@@ -17,9 +17,15 @@ export async function validateAndSetToken(token: string) {
 
     // If we get here, token is valid
     const cookieStore = await cookies();
+    console.log('Setting cookie with options:', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      path: '/',
+    });
     cookieStore.set('gitlab-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true,
       sameSite: 'strict',
       path: '/',
     });
