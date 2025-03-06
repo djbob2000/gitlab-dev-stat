@@ -1,9 +1,9 @@
 export async function fetchWithToken(url: string, options: RequestInit = {}) {
   const response = await fetch(url, {
     ...options,
+    credentials: 'same-origin', // This ensures cookies are sent with the request
     headers: {
       ...options.headers,
-      'x-gitlab-token': document.cookie.split('; ').find(row => row.startsWith('gitlab-token='))?.split('=')[1] || '',
     }
   });
 

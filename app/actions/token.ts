@@ -22,12 +22,14 @@ export async function validateAndSetToken(token: string) {
       secure: true,
       sameSite: 'strict',
       path: '/',
+      maxAge: 60 * 60 * 24 * 365, // 365 days
     });
     cookieStore.set('gitlab-token', token, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
       path: '/',
+      maxAge: 60 * 60 * 24 * 365, // 365 days
     });
     return { success: true };
   } catch {
