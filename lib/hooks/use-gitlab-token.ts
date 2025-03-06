@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { validateAndSetToken, removeToken, hasValidToken } from '@/app/actions/token';
+import { removeToken, hasValidToken } from '@/app/actions/token';
 
 export function useGitLabToken() {
   const [hasToken, setHasToken] = useState<boolean>(false);
@@ -23,12 +23,12 @@ export function useGitLabToken() {
   }, []);
 
   const updateToken = async (newToken: string | null) => {
-    if (newToken) {
-      await validateAndSetToken(newToken);
-      setHasToken(true);
-    } else {
+    if (newToken === null) {
       await removeToken();
       setHasToken(false);
+    } else {
+      // Token validation is already done in the settings page
+      setHasToken(true);
     }
   };
 

@@ -5,8 +5,12 @@ const COOKIE_NAME = 'gitlab-token';
 const API_ROUTES = ['/api/gitlab', '/api/statistics'];
 
 export function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
   // Only apply middleware to API routes
-  if (!API_ROUTES.some(route => request.nextUrl.pathname.startsWith(route))) {
+  const isApiRoute = API_ROUTES.some(route => path.startsWith(route));
+
+  if (!isApiRoute) {
     return NextResponse.next();
   }
 
@@ -30,3 +34,8 @@ export function middleware(request: NextRequest) {
 
   return response;
 }
+
+// Specify which paths the middleware should run on
+export const config = {
+  matcher: ['/api/gitlab/:path*', '/api/statistics/:path*'],
+};

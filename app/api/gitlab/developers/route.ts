@@ -34,12 +34,10 @@ export async function GET() {
       const developers = await gitlabClient.getProjectMembers(Number(projectId));
 
       return NextResponse.json(developers);
-    } catch (error) {
-      console.error('Failed to decrypt token:', error);
+    } catch (_error) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
-  } catch (error) {
-    console.error('Error fetching project developers:', error);
+  } catch (_error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

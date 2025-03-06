@@ -13,30 +13,32 @@ export async function validateAndSetToken(token: string) {
     });
 
     await client.getProjectMembers(Number(process.env.GITLAB_PROJECT_ID!));
-    const cookieStore = await cookies();
     const encryptedToken = await encrypt(token);
 
+    // Set cookie on the server side
+    const cookieStore = cookies();
     cookieStore.set('gitlab-token', encryptedToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 * 365, // 365 days
     });
+
     return { success: true };
-  } catch (_error: unknown) {
+  } catch (_error) {
     return { success: false };
   }
 }
 
 export async function removeToken() {
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   cookieStore.delete('gitlab-token');
   return { success: true };
 }
 
 export async function hasValidToken() {
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   const encryptedToken = cookieStore.get('gitlab-token')?.value;
 
   if (!encryptedToken) {
@@ -53,7 +55,8 @@ export async function hasValidToken() {
 
     await client.getProjectMembers(Number(process.env.GITLAB_PROJECT_ID!));
     return { hasToken: true };
-  } catch (_error: unknown) {
+  } catch (_error) {
+    const cookieStore = cookies();
     cookieStore.delete('gitlab-token');
     return { hasToken: false };
   }

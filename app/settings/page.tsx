@@ -19,6 +19,8 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { fetchWithToken } from '@/lib/api';
+import { validateAndSetToken } from '../actions/token';
+import { removeToken } from '../actions/token';
 
 interface GitLabDeveloper {
   id: number;
@@ -33,11 +35,12 @@ export default function DevelopersPage() {
   const { developers, updateDevelopers, toggleDeveloper, isInitialized } = useTrackedDevelopers();
   const { hasToken, updateToken, isInitialized: isTokenInitialized } = useGitLabToken();
   const [search, setSearch] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isDevelopersLoading, setIsDevelopersLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
   const [newToken, setNewToken] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  const [isRemovingToken, setIsRemovingToken] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,7 +48,7 @@ export default function DevelopersPage() {
       if (!hasToken) return;
 
       try {
-        setIsLoading(true);
+        setIsDevelopersLoading(true);
         const data = await fetchProjectDevelopers();
         const updatedDevelopers = data.map(dev => ({
           userId: dev.id,
@@ -57,7 +60,7 @@ export default function DevelopersPage() {
       } catch {
         toast.error('Failed to fetch developers. Please check your GitLab token.');
       } finally {
-        setIsLoading(false);
+        setIsDevelopersLoading(false);
       }
     };
 
@@ -79,11 +82,15 @@ export default function DevelopersPage() {
     setIsValidating(true);
     setError(null);
     try {
-      await updateToken(token);
-      setNewToken('');
-      toast.success('GitLab token saved successfully');
-      // Reset hasFetched to trigger a new fetch of developers
-      setHasFetched(false);
+      const result = await validateAndSetToken(token);
+      if (result.success) {
+        setNewToken('');
+        toast.success('GitLab token saved successfully');
+        await updateToken(token);
+        setHasFetched(false);
+      } else {
+        setError('Failed to validate token. Please check if the token is valid.');
+      }
     } catch {
       setError('Failed to validate token. Please check if the token is valid.');
     } finally {
@@ -92,9 +99,10 @@ export default function DevelopersPage() {
   };
 
   const handleRemoveToken = async () => {
-    setIsLoading(true);
+    setIsRemovingToken(true);
     setError(null);
     try {
+      await removeToken();
       await updateToken(null);
       setHasFetched(false);
       updateDevelopers([]);
@@ -102,7 +110,7 @@ export default function DevelopersPage() {
     } catch {
       setError('Failed to remove token.');
     } finally {
-      setIsLoading(false);
+      setIsRemovingToken(false);
     }
   };
 
@@ -155,9 +163,9 @@ export default function DevelopersPage() {
                 variant="destructive"
                 size="sm"
                 onClick={handleRemoveToken}
-                disabled={isLoading}
+                disabled={isRemovingToken}
               >
-                {isLoading ? 'Removing...' : 'Remove Token'}
+                {isRemovingToken ? 'Removing...' : 'Remove Token'}
               </Button>
             </div>
           ) : (
@@ -225,7 +233,7 @@ export default function DevelopersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isDevelopersLoading ? (
                   <TableRow>
                     <TableCell colSpan={2} className="h-24 text-center">
                       Loading developers from GitLab...
