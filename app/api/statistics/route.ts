@@ -137,6 +137,7 @@ export async function GET(request: Request) {
             totalTimeFromStart,
             mergeRequests: mergeRequestLabels,
             actionRequiredTime,
+            url: `${process.env.GITLAB_BASE_URL}/${process.env.GITLAB_PROJECT_PATH}/-/issues/${issue.iid}`,
           };
         })
       );
