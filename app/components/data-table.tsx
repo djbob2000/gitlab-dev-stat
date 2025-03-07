@@ -17,6 +17,7 @@ import { RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { formatLastUpdated } from '@/src/components/common/data-table/date-formatter';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -83,15 +84,6 @@ export function DataTable<TData, TValue>({
     },
     [tableId, columnSizing]
   );
-
-  const formatLastUpdated = (date?: Date) => {
-    if (!date) return '';
-    return new Intl.DateTimeFormat('ru-RU', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    }).format(date);
-  };
 
   // Update countdown timer
   React.useEffect(() => {
