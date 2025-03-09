@@ -178,8 +178,6 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     enableResizing: true,
     minSize: 20,
     cell: ({ row }) => {
-      const hasTeam1 = row.original.labels?.includes('team1');
-
       return (
         <div className="leading-none flex items-center gap-2">
           <a
@@ -190,10 +188,33 @@ export const columns: ColumnDef<IssueStatistics>[] = [
           >
             {row.original.iid}
           </a>
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: 'team',
+    header: 'Team',
+    enableSorting: true,
+    enableResizing: true,
+    minSize: 20,
+    cell: ({ row }) => {
+      const hasTeam1 = row.original.labels?.includes('team1');
+      const hasTeam2 = row.original.labels?.includes('team2');
+
+      return (
+        <div className="leading-none flex items-center gap-2">
           {hasTeam1 && (
             <LabelPill
               text="team1"
               colorClass={mrLabelColors['team1'] || 'bg-gray-200 text-gray-800'}
+              className="shrink-0"
+            />
+          )}
+          {hasTeam2 && (
+            <LabelPill
+              text="team2"
+              colorClass={mrLabelColors['team2'] || 'bg-gray-200 text-gray-800'}
               className="shrink-0"
             />
           )}
