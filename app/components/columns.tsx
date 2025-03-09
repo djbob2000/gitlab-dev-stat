@@ -24,26 +24,26 @@ const statusColors: Record<string, string> = {
 };
 
 const mrLabelColors: Record<string, string> = {
-  'action-required': 'bg-[#dbc8a0] text-black', // бежевый
-  'action-required2': 'bg-[#4f97d3] text-black', // зеленый
-  'action-required3': 'bg-[#8f0ced] text-white', // темно-фиолетовый
-  approved: 'bg-[#69d36e] text-black', // зеленый
-  blocked: 'bg-[#666666] text-white', // серый
-  bug: 'bg-[#cc5842] text-white', // красно-коричневый
-  cluster: 'bg-[#4f97d3] text-white', // голубой
-  'code-review': 'bg-[#4f97d3] text-white', // голубой
-  comment: 'bg-[#666666] text-white', // серый
-  discuss: 'bg-[#666666] text-white', // серый
-  feedback: 'bg-[#cc5842] text-white', // красно-коричневый
-  'in-progress': 'bg-[#69d36e] text-white', // зеленый
-  maintenance: 'bg-[#b5326e] text-white', // темно-розовый
-  'not-ready': 'bg-[#666666] text-white', // серый
-  paused: 'bg-[#ebc21b] text-black', // желтый
-  'qa-pre-check': 'bg-[#ebc21b] text-black', // желтый
-  review: 'bg-[#344759] text-white', // темно-синий
-  'status-update-commit': 'bg-[#dbc8a0] text-black', // бежевый
-  team1: 'bg-[#cccccc] text-black', // светло-серый
-  team2: 'bg-[#8e5bb5] text-white', // фиолетовый
+  'action-required': 'bg-[#dbc8a0] text-black', // beige
+  'action-required2': 'bg-[#4f97d3] text-black', // blue
+  'action-required3': 'bg-[#8f0ced] text-white', // dark purple
+  approved: 'bg-[#69d36e] text-black', // green
+  blocked: 'bg-[#666666] text-white', // gray
+  bug: 'bg-[#cc5842] text-white', // red-brown
+  cluster: 'bg-[#4f97d3] text-white', // light blue
+  'code-review': 'bg-[#4f97d3] text-white', // light blue
+  comment: 'bg-[#666666] text-white', // gray
+  discuss: 'bg-[#666666] text-white', // gray
+  feedback: 'bg-[#cc5842] text-white', // red-brown
+  'in-progress': 'bg-[#69d36e] text-white', // green
+  maintenance: 'bg-[#b5326e] text-white', // dark pink
+  'not-ready': 'bg-[#666666] text-white', // gray
+  paused: 'bg-[#ebc21b] text-black', // yellow
+  'qa-pre-check': 'bg-[#ebc21b] text-black', // yellow
+  review: 'bg-[#344759] text-white', // dark blue
+  'status-update-commit': 'bg-[#dbc8a0] text-black', // beige
+  team1: 'bg-[#cccccc] text-black', // light gray
+  team2: 'bg-[#8e5bb5] text-white', // purple
 };
 
 const LabelPill = ({
