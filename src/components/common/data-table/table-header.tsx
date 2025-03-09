@@ -32,11 +32,48 @@ export function TableHeader({
     }
   }, [autoRefresh, onAutoRefreshChange]);
 
-  // Memoize formatted date
-  const formattedDate = React.useMemo(() => {
-    if (!lastUpdated) return '';
-    return lastUpdated.toLocaleString();
-  }, [lastUpdated]);
+  // State to track current time for updating "time ago" display
+  const [currentTime, setCurrentTime] = React.useState(new Date());
+
+  // Effect to update current time every minute
+  React.useEffect(() => {
+    const intervalId = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute (60000ms)
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Memoize formatted date and time ago
+  const { formattedTime, timeAgo } = React.useMemo(() => {
+    if (!lastUpdated) return { formattedTime: '', timeAgo: '' };
+
+    // Format time as hh:mm
+    const hours = lastUpdated.getHours().toString().padStart(2, '0');
+    const minutes = lastUpdated.getMinutes().toString().padStart(2, '0');
+    const formattedTime = `${hours}:${minutes}`;
+
+    // Calculate time difference in a way that works across day boundaries
+    const diffMs = currentTime.getTime() - lastUpdated.getTime();
+
+    // Ensure we're dealing with a positive time difference
+    // If somehow the lastUpdated is in the future, show 00:00 ago
+    if (diffMs < 0) {
+      return { formattedTime, timeAgo: '00:00 ago' };
+    }
+
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const remainingMinutes = diffMinutes % 60;
+
+    // Format with padded zeros
+    const formattedHours = String(diffHours).padStart(2, '0');
+    const formattedMinutes = String(remainingMinutes).padStart(2, '0');
+
+    const timeAgo = `${formattedHours}:${formattedMinutes} ago`;
+
+    return { formattedTime, timeAgo };
+  }, [lastUpdated, currentTime]);
 
   // Memoize classes for refresh icon
   const refreshIconClasses = React.useMemo(() => {
@@ -54,7 +91,7 @@ export function TableHeader({
       <div className="flex items-center gap-4">
         {lastUpdated && (
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            Last updated: {formattedDate}
+            Last updated: {formattedTime} ({timeAgo})
           </span>
         )}
         <div className="flex items-center gap-2">

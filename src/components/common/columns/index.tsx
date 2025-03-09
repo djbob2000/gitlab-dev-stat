@@ -17,14 +17,14 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Developer',
     enableSorting: true,
     enableResizing: true,
-    minSize: 20,
+    size: 150,
   },
   {
     accessorKey: 'labels',
     header: 'Prio',
     enableSorting: true,
     enableResizing: true,
-    minSize: 20,
+    size: 70,
     sortingFn: (rowA, rowB) => {
       return getPriority(rowA.original.labels).localeCompare(getPriority(rowB.original.labels));
     },
@@ -49,7 +49,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Status',
     enableSorting: true,
     enableResizing: true,
-    minSize: 20,
+    size: 100,
     sortingFn: (rowA, rowB) => {
       const statusPriority = ['blocked', 'paused', 'review', 'in-progress', ''];
       const statusA = getStatusPriority(rowA.original.labels);
@@ -75,7 +75,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'MR Labels',
     enableSorting: true,
     enableResizing: true,
-    minSize: 20,
+    size: 220,
     sortingFn: (rowA, rowB) => {
       const actionA = getActionRequiredPriority(rowA.original.mergeRequests);
       const actionB = getActionRequiredPriority(rowB.original.mergeRequests);
@@ -142,7 +142,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'AR Time',
     enableSorting: true,
     enableResizing: true,
-    minSize: 20,
+    size: 55,
     sortingFn: (rowA, rowB) => {
       const timeA = rowA.original.actionRequiredTime || 0;
       const timeB = rowB.original.actionRequiredTime || 0;
@@ -176,7 +176,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Issue',
     enableSorting: true,
     enableResizing: true,
-    minSize: 20,
+    size: 55,
     cell: ({ row }) => {
       return (
         <div className="leading-none flex items-center gap-2">
@@ -197,7 +197,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Team',
     enableSorting: true,
     enableResizing: true,
-    minSize: 20,
+    size: 55,
     cell: ({ row }) => {
       const hasTeam1 = row.original.labels?.includes('team1');
       const hasTeam2 = row.original.labels?.includes('team2');
@@ -227,9 +227,12 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Title',
     enableSorting: true,
     enableResizing: true,
-    minSize: 20,
+    size: 250,
     cell: ({ row }) => (
-      <div className="leading-none truncate max-w-md" title={row.original.title}>
+      <div
+        className="leading-none truncate w-full max-w-full overflow-hidden"
+        title={row.original.title}
+      >
         {row.original.title}
       </div>
     ),
@@ -239,7 +242,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'In Progress',
     enableSorting: true,
     enableResizing: true,
-    minSize: 20,
+    size: 50,
     cell: ({ row }) => (
       <div className="leading-none">{formatHoursAndMinutes(row.original.timeInProgress)}</div>
     ),
@@ -249,7 +252,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     header: 'Total Time',
     enableSorting: true,
     enableResizing: true,
-    minSize: 20,
+    size: 50,
     cell: ({ row }) => (
       <div className="leading-none">{formatDuration(row.original.totalTimeFromStart)}</div>
     ),

@@ -218,8 +218,12 @@ export function DataTable<TData, TValue>({
                       {row.getVisibleCells().map(cell => (
                         <td
                           key={cell.id}
-                          className="px-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"
-                          style={{ width: cell.column.getSize() }}
+                          className="px-2 text-sm text-gray-500 dark:text-gray-400 overflow-hidden"
+                          style={{
+                            width: cell.column.getSize(),
+                            maxWidth: cell.column.getSize(),
+                            minWidth: cell.column.getSize(),
+                          }}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
