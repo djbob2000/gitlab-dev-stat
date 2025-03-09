@@ -11,14 +11,14 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useTrackedDevelopers } from '@/lib/hooks/use-tracked-developers';
-import { useGitLabToken } from '@/lib/hooks/use-gitlab-token';
+import { useTrackedDevelopers } from '@/src/hooks/use-tracked-developers';
+import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { fetchWithToken } from '@/lib/api';
+import { fetchWithToken } from '@/src/lib/api';
 import { validateAndSetToken } from '../actions/token';
 import { removeToken } from '../actions/token';
 

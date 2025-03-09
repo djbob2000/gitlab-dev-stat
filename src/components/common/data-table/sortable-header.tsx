@@ -6,15 +6,12 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 
-interface SortableHeaderProps<TData, TValue> {
-  header: Header<TData, TValue>;
-  table: Table<TData>;
+interface SortableHeaderProps<TData> {
+  header: Header<TData, unknown>;
+  _table: Table<TData>;
 }
 
-export function SortableHeader<TData, TValue>({
-  header,
-  table,
-}: SortableHeaderProps<TData, TValue>) {
+export function SortableHeader<TData>({ header, _table }: SortableHeaderProps<TData>) {
   // Get column ID
   const columnId = React.useMemo(() => {
     return String(header.column.id);
@@ -26,35 +23,38 @@ export function SortableHeader<TData, TValue>({
   });
 
   // Memoize sort handler to prevent unnecessary rerenders
+  const canSort = header.column.getCanSort();
   const toggleSortingHandler = React.useMemo(() => {
-    return header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined;
-  }, [header.column]);
+    return canSort ? header.column.getToggleSortingHandler() : undefined;
+  }, [canSort, header.column]);
 
   // Memoize resize handler
+  const canResize = header.column.getCanResize();
   const resizeHandler = React.useMemo(() => {
-    return header.column.getCanResize() ? header.getResizeHandler() : undefined;
-  }, [header]);
+    return canResize ? header.getResizeHandler() : undefined;
+  }, [canResize, header]);
 
   // Memoize sort icon
+  const isSorted = header.column.getIsSorted();
   const sortingIcon = React.useMemo(() => {
-    const sortDirection = header.column.getIsSorted();
-    if (!sortDirection) return null;
+    if (!isSorted) return null;
 
-    return <span className="ml-2">{sortDirection === 'asc' ? '↑' : '↓'}</span>;
-  }, [header.column.getIsSorted()]);
+    return <span className="ml-2">{isSorted === 'asc' ? '↑' : '↓'}</span>;
+  }, [isSorted]);
 
   // Styles for dragging
+  const headerSize = header.getSize();
   const style = React.useMemo(
     () => ({
       transform: CSS.Transform.toString(transform),
       transition,
       opacity: isDragging ? 0.6 : 1,
       position: 'relative' as const,
-      width: header.getSize(),
+      width: headerSize,
       zIndex: isDragging ? 999 : 'auto',
       backgroundColor: isDragging ? 'rgba(59, 130, 246, 0.1)' : undefined,
     }),
-    [transform, transition, isDragging, header.getSize()]
+    [transform, transition, isDragging, headerSize]
   );
 
   // Memoize classes for th
@@ -65,11 +65,14 @@ export function SortableHeader<TData, TValue>({
   }, [isDragging]);
 
   // Memoize header content
+  const isPlaceholder = header.isPlaceholder;
+  const columnDef = header.column.columnDef.header;
+  const headerContext = header.getContext();
   const headerContent = React.useMemo(() => {
-    if (header.isPlaceholder) return null;
+    if (isPlaceholder) return null;
 
-    return flexRender(header.column.columnDef.header, header.getContext());
-  }, [header.isPlaceholder, header.column.columnDef.header, header.getContext()]);
+    return flexRender(columnDef, headerContext);
+  }, [isPlaceholder, columnDef, headerContext]);
 
   return (
     <th ref={setNodeRef} style={style} className={thClassName} {...attributes}>
@@ -83,9 +86,9 @@ export function SortableHeader<TData, TValue>({
         </span>
 
         {/* Column header content */}
-        {!header.isPlaceholder && (
+        {!isPlaceholder && (
           <span
-            className={header.column.getCanSort() ? 'cursor-pointer select-none flex-1' : 'flex-1'}
+            className={canSort ? 'cursor-pointer select-none flex-1' : 'flex-1'}
             onClick={toggleSortingHandler}
           >
             {headerContent}
@@ -94,7 +97,7 @@ export function SortableHeader<TData, TValue>({
         )}
 
         {/* Column resize handle */}
-        {header.column.getCanResize() && (
+        {canResize && (
           <span
             onMouseDown={resizeHandler}
             onTouchStart={resizeHandler}

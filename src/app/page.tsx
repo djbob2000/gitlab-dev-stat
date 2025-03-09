@@ -1,83 +1,220 @@
-import Image from 'next/image';
+'use client';
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{' '}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+import { useState, useEffect, useCallback } from 'react';
+import { DataTable } from '@/src/components/common/data-table';
+import { columns } from '@/src/components/common/columns';
+import type { IssueStatistics } from '@/src/types/types';
+import { ThemeToggle } from '@/src/components/common/theme-toggle';
+import { Settings } from 'lucide-react';
+import { Button } from '@/src/components/ui/button';
+import Link from 'next/link';
+import { useTrackedDevelopers } from '@/src/hooks/use-tracked-developers';
+import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
+import { Progress } from '@/src/components/ui/progress';
+import { fetchWithToken } from '@/src/lib/api';
+import { toast } from 'sonner';
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+async function fetchAnalytics(
+  developers: { userId: number; username: string }[]
+): Promise<IssueStatistics[]> {
+  if (developers.length === 0) {
+    return [];
+  }
+
+  const params = new URLSearchParams();
+
+  // Prefer user IDs over usernames for better reliability
+  const userIds = developers.map(dev => dev.userId).filter(Boolean);
+
+  if (userIds.length > 0) {
+    params.append('userIds', userIds.join(','));
+  } else {
+    // Fall back to usernames if no user IDs are available
+    const usernames = developers.map(dev => dev.username);
+    params.append('usernames', usernames.join(','));
+  }
+
+  return fetchWithToken(`/api/statistics?${params.toString()}`);
+}
+
+export default function HomePage() {
+  const { developers, isInitialized } = useTrackedDevelopers();
+  const { hasToken, isInitialized: isTokenInitialized } = useGitLabToken();
+  const [data, setData] = useState<IssueStatistics[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<Date>();
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [nextAutoRefresh, setNextAutoRefresh] = useState<Date | null>(null);
+
+  // Add a state to track when we last updated the actionRequiredTime
+  // This will be used to force re-renders without changing the data
+  const [lastActionRequiredUpdate, setLastActionRequiredUpdate] = useState<Date>(new Date());
+
+  const loadData = useCallback(async () => {
+    if (!isInitialized || !hasToken) return;
+
+    try {
+      setIsLoading(true);
+      setProgress(0);
+
+      // Start progress animation
+      const startTime = Date.now();
+      const animationDuration = 15000; // 15 seconds total animation
+      const midpointDuration = 10000; // 10 seconds in the middle (30-80%)
+
+      const progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        let newProgress = 0;
+
+        if (elapsed < 1000) {
+          // First second: 0-30%
+          newProgress = (elapsed / 1000) * 30;
+        } else if (elapsed < 1000 + midpointDuration) {
+          // Middle 10 seconds: 30-80%
+          const midpointElapsed = elapsed - 1000;
+          newProgress = 30 + (midpointElapsed / midpointDuration) * 50;
+        } else if (elapsed < animationDuration) {
+          // Last 4 seconds: 80-95%
+          const finalElapsed = elapsed - (1000 + midpointDuration);
+          const finalDuration = animationDuration - (1000 + midpointDuration);
+          newProgress = 80 + (finalElapsed / finalDuration) * 15;
+        } else {
+          // Cap at 95% until data is loaded
+          newProgress = 95;
+        }
+
+        setProgress(Math.min(newProgress, 95));
+      }, 50);
+
+      const selectedDevelopers = developers.filter(dev => dev.selected);
+      const newData = await fetchAnalytics(selectedDevelopers);
+
+      // Clear interval and complete progress
+      clearInterval(progressInterval);
+      setProgress(100);
+
+      // Small delay to show completed progress
+      setTimeout(() => {
+        setData(newData);
+        setLastUpdated(new Date());
+        setError(null);
+        setIsLoading(false);
+        setProgress(0);
+      }, 300);
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch data');
+      setIsLoading(false);
+      setProgress(0);
+      toast.error('Failed to load data. Please check your GitLab token.');
+    }
+  }, [developers, isInitialized, hasToken]);
+
+  // Update the actionRequiredTime every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLastActionRequiredUpdate(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Auto-refresh data every 5 minutes when enabled
+  useEffect(() => {
+    if (!autoRefresh || !isInitialized || !hasToken) {
+      setNextAutoRefresh(null);
+      return;
+    }
+
+    // Set the next refresh time to 5 minutes from now
+    const nextRefresh = new Date();
+    nextRefresh.setMinutes(nextRefresh.getMinutes() + 5);
+    setNextAutoRefresh(nextRefresh);
+
+    const timeUntilRefresh = nextRefresh.getTime() - new Date().getTime();
+
+    const interval = setTimeout(() => {
+      if (!isLoading) {
+        loadData();
+      }
+    }, timeUntilRefresh);
+
+    return () => clearTimeout(interval);
+  }, [autoRefresh, isInitialized, loadData, isLoading, lastUpdated, hasToken]);
+
+  // We don't need a separate effect to update the data
+  // The component will re-render when lastActionRequiredUpdate changes
+  // and the column renderer will calculate the new elapsed time
+
+  useEffect(() => {
+    if (isInitialized && hasToken) {
+      loadData();
+    }
+  }, [isInitialized, loadData, hasToken]);
+
+  if (!isInitialized || !isTokenInitialized) {
+    return (
+      <div className="container py-10">
+        <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
+          Loading...
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image aria-hidden src="/file.svg" alt="File icon" width={16} height={16} />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image aria-hidden src="/window.svg" alt="Window icon" width={16} height={16} />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image aria-hidden src="/globe.svg" alt="Globe icon" width={16} height={16} />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </div>
+    );
+  }
+
+  if (!hasToken) {
+    return (
+      <div className="container py-10">
+        <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
+          Please add your GitLab token in the settings to view analytics.
+          <div className="mt-4">
+            <Button asChild>
+              <Link href="/settings">Go to Settings</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {isLoading && progress > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-50">
+          <Progress value={progress} className="h-1 rounded-none" />
+        </div>
+      )}
+      <div className="fixed right-4 flex items-center gap-2">
+        <ThemeToggle />
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/settings">
+            <Settings className="h-5 w-5" />
+            <span className="sr-only">Settings</span>
+          </Link>
+        </Button>
+      </div>
+      <div className="container py-10">
+        {error && (
+          <div className="mb-4 p-4 text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-lg">
+            {error}
+          </div>
+        )}
+        <DataTable
+          columns={columns}
+          data={data}
+          error={error}
+          onRefresh={loadData}
+          lastUpdated={lastUpdated}
+          // Pass lastActionRequiredUpdate to force re-renders
+          actionRequiredUpdateTime={lastActionRequiredUpdate}
+          isLoading={isLoading}
+          autoRefresh={autoRefresh}
+          onAutoRefreshChange={setAutoRefresh}
+          nextRefreshTime={nextAutoRefresh}
+        />
+      </div>
+    </>
   );
 }

@@ -20,14 +20,26 @@ export async function encrypt(text: string): Promise<string> {
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
   const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
-  return `${iv.toString('hex')}:${encrypted.toString('hex')}`;
+  const result = `${iv.toString('hex')}:${encrypted.toString('hex')}`;
+  return result;
 }
 
 export async function decrypt(text: string): Promise<string> {
-  const [ivHex, encryptedHex] = text.split(':');
-  const iv = Buffer.from(ivHex, 'hex');
-  const encrypted = Buffer.from(encryptedHex, 'hex');
-  const decipher = createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
-  const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-  return decrypted.toString();
+  try {
+    const [ivHex, encryptedHex] = text.split(':');
+
+    if (!ivHex || !encryptedHex) {
+      console.error('[Crypto] Invalid encrypted text format');
+      throw new Error('Invalid encrypted text format');
+    }
+
+    const iv = Buffer.from(ivHex, 'hex');
+    const encrypted = Buffer.from(encryptedHex, 'hex');
+    const decipher = createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+    return decrypted.toString();
+  } catch (error) {
+    console.error('[Crypto] Error decrypting text:', error);
+    throw error;
+  }
 }

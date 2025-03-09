@@ -8,7 +8,9 @@ export async function fetchWithToken(url: string, options: RequestInit = {}) {
   });
 
   if (!response.ok) {
+    console.error('[API Client] Request failed with status:', response.status);
     const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    console.error('[API Client] Error response:', error);
     throw new Error(error.error || 'API request failed');
   }
 

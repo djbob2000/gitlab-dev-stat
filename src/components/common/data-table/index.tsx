@@ -9,7 +9,6 @@ import {
   ColumnResizeMode,
   SortingState,
   getSortedRowModel,
-  ColumnOrderState,
 } from '@tanstack/react-table';
 import { useColumnSizing } from './use-column-sizing';
 import { useColumnOrder } from './use-column-order';
@@ -24,6 +23,7 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
   DragOverlay,
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
@@ -120,7 +120,7 @@ export function DataTable<TData, TValue>({
   });
 
   // Handler for drag start
-  const handleDragStart = React.useCallback((event: any) => {
+  const handleDragStart = React.useCallback((event: DragStartEvent) => {
     setActiveId(String(event.active.id));
   }, []);
 
@@ -196,7 +196,7 @@ export function DataTable<TData, TValue>({
                     strategy={horizontalListSortingStrategy}
                   >
                     {headerGroup.headers.map(header => (
-                      <SortableHeader key={header.id} header={header} table={table} />
+                      <SortableHeader<TData> key={header.id} header={header} _table={table} />
                     ))}
                   </SortableContext>
                 </tr>

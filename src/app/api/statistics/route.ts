@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
-import { decrypt } from '@/lib/crypto';
+import { decrypt } from '@/src/lib/crypto';
 import { headers } from 'next/headers';
 
 // Environment variables validation
@@ -27,7 +27,9 @@ const getStatisticsSchema = z.object({
 
 export async function GET(request: Request) {
   try {
+    // Пытаемся получить токен из заголовка
     const headersList = await headers();
+
     const encryptedToken = headersList.get('x-gitlab-token-encrypted');
 
     if (!encryptedToken) {
@@ -51,6 +53,7 @@ export async function GET(request: Request) {
       });
 
       const projectId = Number(validatedData.projectId);
+
       const issues = await gitlabClient.getProjectIssues(
         projectId,
         validatedData.usernames ?? undefined,
@@ -143,10 +146,12 @@ export async function GET(request: Request) {
       );
 
       return NextResponse.json(issueStats);
-    } catch (_error: unknown) {
+    } catch (error) {
+      console.error('[API] Error decrypting token or fetching data:', error);
       return NextResponse.json({ error: 'Invalid token or failed to fetch data' }, { status: 401 });
     }
-  } catch (_error: unknown) {
+  } catch (error) {
+    console.error('[API] Unhandled error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

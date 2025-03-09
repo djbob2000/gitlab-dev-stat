@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
-import { encrypt, decrypt } from '@/lib/crypto';
+import { encrypt, decrypt } from '@/src/lib/crypto';
 
 export async function validateAndSetToken(token: string) {
   try {
@@ -13,6 +13,7 @@ export async function validateAndSetToken(token: string) {
     });
 
     await client.getProjectMembers(Number(process.env.GITLAB_PROJECT_ID!));
+
     const encryptedToken = await encrypt(token);
 
     // Set cookie on the server side
@@ -27,6 +28,7 @@ export async function validateAndSetToken(token: string) {
 
     return { success: true };
   } catch (_error) {
+    console.error('[Token] Error validating token:', _error);
     return { success: false };
   }
 }
@@ -47,6 +49,7 @@ export async function hasValidToken() {
 
   try {
     const token = await decrypt(encryptedToken);
+
     const client = createGitLabClient({
       baseUrl: process.env.GITLAB_BASE_URL!,
       token,
@@ -56,6 +59,7 @@ export async function hasValidToken() {
     await client.getProjectMembers(Number(process.env.GITLAB_PROJECT_ID!));
     return { hasToken: true };
   } catch (_error) {
+    console.error('[Token] Error validating token:', _error);
     const cookieStore = await cookies();
     cookieStore.delete('gitlab-token');
     return { hasToken: false };

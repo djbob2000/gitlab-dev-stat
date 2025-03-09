@@ -2,8 +2,8 @@
 
 import { ColumnDef } from '@tanstack/react-table';
 import { formatDuration, formatHoursAndMinutes } from '@/src/tasks/time-calculation.task';
-import type { IssueStatistics, MergeRequestLabels } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import type { IssueStatistics, MergeRequestLabels } from '@/src/types/types';
+import { cn } from '@/src/lib/utils';
 
 const priorityColors: Record<string, string> = {
   p1: 'bg-[#db3b21] text-white',
@@ -88,7 +88,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
       return getPriority(rowA.original.labels) - getPriority(rowB.original.labels);
     },
     cell: ({ row }) => {
-      const priorityLabel = row.original.labels?.find(label => /^p[1-8]$/.test(label));
+      const priorityLabel = row.original.labels?.find((label: string) => /^p[1-8]$/.test(label));
       if (!priorityLabel) return <div className="leading-none">-</div>;
 
       return (
@@ -121,7 +121,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     },
     cell: ({ row }) => {
       const labels = row.original.labels;
-      const statusLabel = labels?.find(label =>
+      const statusLabel = labels?.find((label: string) =>
         ['in-progress', 'paused', 'blocked', 'review'].includes(label)
       );
 
@@ -183,9 +183,9 @@ export const columns: ColumnDef<IssueStatistics>[] = [
 
       return (
         <div className="leading-none space-y-1">
-          {mrLabels.map(mr => {
+          {mrLabels.map((mr: MergeRequestLabels) => {
             const filteredLabels = mr.labels.filter(
-              label =>
+              (label: string) =>
                 !label.match(/^p[1-8]$/) && // exclude priority labels
                 !['review', 'in-progress', 'code-review', 'team1', 'team2', 'bug'].includes(label) // exclude specific labels
             );
@@ -209,7 +209,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                 </a>
                 <span className="text-xs text-gray-500">:</span>
                 <div className="flex gap-1 flex-wrap">
-                  {filteredLabels.map((label, index) => (
+                  {filteredLabels.map((label: string, index: number) => (
                     <LabelPill
                       key={index}
                       text={label}

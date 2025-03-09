@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
 import { headers } from 'next/headers';
-import { decrypt } from '@/lib/crypto';
+import { decrypt } from '@/src/lib/crypto';
 
 // Environment variables validation
 const requiredEnvVars = ['GITLAB_PROJECT_ID', 'GITLAB_BASE_URL', 'GITLAB_PROJECT_PATH'];
@@ -13,7 +13,9 @@ if (missingEnvVars.length > 0) {
 
 export async function GET() {
   try {
+    // Пытаемся получить токен из заголовка
     const headersList = await headers();
+
     const encryptedToken = headersList.get('x-gitlab-token-encrypted');
 
     if (!encryptedToken) {
@@ -31,13 +33,16 @@ export async function GET() {
       });
 
       const projectId = process.env.GITLAB_PROJECT_ID!;
+
       const developers = await gitlabClient.getProjectMembers(Number(projectId));
 
       return NextResponse.json(developers);
-    } catch (_error) {
+    } catch (error) {
+      console.error('[API] Error decrypting token or fetching data:', error);
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
-  } catch (_error) {
+  } catch (error) {
+    console.error('[API] Unhandled error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
