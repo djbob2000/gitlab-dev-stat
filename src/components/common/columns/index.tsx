@@ -206,14 +206,14 @@ export const columns: ColumnDef<IssueStatistics>[] = [
         <div className="leading-none flex items-center gap-2">
           {hasTeam1 && (
             <LabelPill
-              text="team1"
+              text="1"
               colorClass={mrLabelColors['team1'] || 'bg-gray-200 text-gray-800'}
               className="shrink-0"
             />
           )}
           {hasTeam2 && (
             <LabelPill
-              text="team2"
+              text="2"
               colorClass={mrLabelColors['team2'] || 'bg-gray-200 text-gray-800'}
               className="shrink-0"
             />
