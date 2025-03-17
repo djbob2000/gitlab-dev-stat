@@ -198,7 +198,6 @@ export const formatDuration = (durationMs: number): string => {
 
     // Add remaining weekend days
     const remainingDays = daysBetween % 7;
-    const endDay = (startDay + remainingDays) % 7;
 
     // Count Saturdays and Sundays in the remaining days
     for (let day = startDay + 1; day <= startDay + remainingDays; day++) {
