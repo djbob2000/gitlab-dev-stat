@@ -158,40 +158,70 @@ export const formatHoursAndMinutes = (durationMs: number): string => {
 export const formatDuration = (durationMs: number): string => {
   if (!durationMs || isNaN(durationMs)) return '';
 
-  // Calculate weekends to subtract
-  const startDate = new Date(Date.now() - durationMs);
-  const endDate = new Date();
+  // Handle negative or zero duration
+  if (durationMs <= 0) return '00:00';
 
-  // Count weekend days between start and end dates
-  let weekendDays = 0;
-  const tempDate = new Date(startDate);
-  while (tempDate <= endDate) {
-    if (tempDate.getUTCDay() === 0 || tempDate.getUTCDay() === 6) {
-      weekendDays++;
-    }
-    tempDate.setUTCDate(tempDate.getUTCDate() + 1);
+  const now = Date.now();
+  const startTime = now - durationMs;
+  const startDate = new Date(startTime);
+
+  // Check if action was required on a weekend
+  const isWeekend = [0, 6].includes(startDate.getDay());
+
+  // Adjust start time to next Monday if needed
+  let effectiveStartTime = startTime;
+  if (isWeekend) {
+    // Calculate days until Monday (Sunday: +1, Saturday: +2)
+    const daysUntilMonday = startDate.getDay() === 0 ? 1 : 2;
+
+    // Create date for next Monday
+    const nextMonday = new Date(startDate);
+    nextMonday.setDate(startDate.getDate() + daysUntilMonday);
+    nextMonday.setHours(0, 0, 0, 0);
+
+    // If next Monday is in the future, return "00:00"
+    if (nextMonday.getTime() > now) return '00:00';
+
+    effectiveStartTime = nextMonday.getTime();
   }
 
-  // Subtract weekend time from total milliseconds
-  const weekendTimeMs = weekendDays * 24 * 60 * 60 * 1000;
-  const adjustedMs = durationMs - weekendTimeMs;
+  // Calculate workdays duration (excluding weekends)
+  const effectiveDuration = now - effectiveStartTime;
+  let workingTimeMs = effectiveDuration;
 
-  const seconds = Math.floor(adjustedMs / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
+  // Subtract weekend days between effective start and now
+  const daysBetween = Math.floor(effectiveDuration / (24 * 60 * 60 * 1000));
+  if (daysBetween > 0) {
+    // Count full weekend days
+    const startDay = new Date(effectiveStartTime).getDay();
+    let weekendCount = Math.floor(daysBetween / 7) * 2; // Complete weeks × 2 days
 
-  // Calculate days based on 24-hour periods
+    // Add remaining weekend days
+    const remainingDays = daysBetween % 7;
+    const endDay = (startDay + remainingDays) % 7;
+
+    // Count Saturdays and Sundays in the remaining days
+    for (let day = startDay + 1; day <= startDay + remainingDays; day++) {
+      const dayOfWeek = day % 7;
+      if (dayOfWeek === 0 || dayOfWeek === 6) weekendCount++;
+    }
+
+    // Subtract weekend time
+    workingTimeMs -= weekendCount * 24 * 60 * 60 * 1000;
+  }
+
+  // Ensure we don't have negative time
+  workingTimeMs = Math.max(0, workingTimeMs);
+
+  // Format the result
+  const hours = Math.floor(workingTimeMs / (60 * 60 * 1000));
+  const minutes = Math.floor((workingTimeMs % (60 * 60 * 1000)) / (60 * 1000));
   const days = Math.floor(hours / 24);
   const remainingHours = hours % 24;
-  const remainingMinutes = minutes % 60;
 
-  const parts: string[] = [];
+  const parts = [];
   if (days > 0) parts.push(`${days}d`);
-
-  // Always display hours and minutes in HH:MM format
-  parts.push(
-    `${String(remainingHours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')}`
-  );
+  parts.push(`${String(remainingHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`);
 
   return parts.join(' ');
 };
