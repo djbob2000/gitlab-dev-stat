@@ -25,10 +25,22 @@ import { removeToken } from '../actions/token';
 interface GitLabDeveloper {
   id: number;
   username: string;
+  name?: string;
+  avatar_url?: string;
+  web_url?: string;
+  access_level?: number;
+  expires_at?: string | null;
+}
+
+interface ApiResponse {
+  developers: GitLabDeveloper[];
+  count: number;
+  message?: string;
 }
 
 async function fetchProjectDevelopers(): Promise<GitLabDeveloper[]> {
-  return fetchWithToken('/api/gitlab/developers');
+  const response = await fetchWithToken<ApiResponse>('/api/gitlab/developers');
+  return response.developers;
 }
 
 export default function DevelopersPage() {
@@ -49,7 +61,9 @@ export default function DevelopersPage() {
 
       try {
         setIsDevelopersLoading(true);
+        setError(null);
         const data = await fetchProjectDevelopers();
+
         const updatedDevelopers = data.map(dev => ({
           userId: dev.id,
           username: dev.username,
@@ -57,8 +71,26 @@ export default function DevelopersPage() {
         }));
 
         updateDevelopers(updatedDevelopers);
-      } catch {
-        toast.error('Failed to fetch developers. Please check your GitLab token.');
+      } catch (err) {
+        let errorMessage = 'Failed to fetch developers.';
+
+        if (err instanceof Error) {
+          // Check for specific error messages
+          if (
+            err.message.includes('Project Not Found') ||
+            err.message.includes('Project with ID')
+          ) {
+            errorMessage = `${err.message} Please check that your token has access to the specified project.`;
+          } else if (err.message.includes('Invalid token')) {
+            errorMessage =
+              'Your GitLab token is invalid or expired. Please remove it and add a new token.';
+          } else {
+            errorMessage += ' ' + err.message;
+          }
+        }
+
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
         setIsDevelopersLoading(false);
       }

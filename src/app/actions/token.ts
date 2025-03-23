@@ -1,18 +1,45 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
 import { encrypt, decrypt } from '@/src/lib/crypto';
+
+// GitLab API Error constants
+const GITLAB_API_ERROR = {
+  MISSING_URL: 'GitLab base URL is not defined',
+  UNKNOWN: 'Unknown GitLab API error',
+};
+
+/**
+ * Validates a GitLab token by making a request to the GitLab API
+ */
+async function validateGitLabToken(token: string): Promise<boolean> {
+  if (!process.env.GITLAB_BASE_URL) {
+    throw new Error(GITLAB_API_ERROR.MISSING_URL);
+  }
+
+  try {
+    const response = await fetch(`${process.env.GITLAB_BASE_URL}/api/v4/user`, {
+      headers: { 'PRIVATE-TOKEN': token },
+    });
+
+    if (!response.ok) {
+      const _errorData = await response.json().catch(() => ({ error: GITLAB_API_ERROR.UNKNOWN }));
+      return false;
+    }
+
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
 
 export async function validateAndSetToken(token: string) {
   try {
-    const client = createGitLabClient({
-      baseUrl: process.env.GITLAB_BASE_URL!,
-      token,
-      projectPath: process.env.GITLAB_PROJECT_PATH!,
-    });
+    const isValid = await validateGitLabToken(token);
 
-    await client.getProjectMembers(Number(process.env.GITLAB_PROJECT_ID!));
+    if (!isValid) {
+      return { success: false };
+    }
 
     const encryptedToken = await encrypt(token);
 
@@ -28,7 +55,6 @@ export async function validateAndSetToken(token: string) {
 
     return { success: true };
   } catch (_error) {
-    console.error('[Token] Error validating token:', _error);
     return { success: false };
   }
 }
@@ -50,16 +76,16 @@ export async function hasValidToken() {
   try {
     const token = await decrypt(encryptedToken);
 
-    const client = createGitLabClient({
-      baseUrl: process.env.GITLAB_BASE_URL!,
-      token,
-      projectPath: process.env.GITLAB_PROJECT_PATH!,
-    });
+    const isValid = await validateGitLabToken(token);
 
-    await client.getProjectMembers(Number(process.env.GITLAB_PROJECT_ID!));
+    if (!isValid) {
+      const cookieStore = await cookies();
+      cookieStore.delete('gitlab-token');
+      return { hasToken: false };
+    }
+
     return { hasToken: true };
   } catch (_error) {
-    console.error('[Token] Error validating token:', _error);
     const cookieStore = await cookies();
     cookieStore.delete('gitlab-token');
     return { hasToken: false };
