@@ -8,15 +8,21 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
+} from '@/src/components/ui/table';
+import { Input } from '@/src/components/ui/input';
+import { Checkbox } from '@/src/components/ui/checkbox';
 import { useTrackedDevelopers } from '@/src/hooks/use-tracked-developers';
 import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/src/components/ui/button';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/src/components/ui/card';
 import { toast } from 'sonner';
 import { fetchWithToken } from '@/src/lib/api';
 import { validateAndSetToken } from '../actions/token';
@@ -220,7 +226,7 @@ export default function DevelopersPage() {
                   type={showToken ? 'text' : 'password'}
                   placeholder="Enter your GitLab token"
                   value={newToken}
-                  onChange={e => setNewToken(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewToken(e.target.value)}
                   className="max-w-md"
                 />
                 <Button variant="ghost" size="icon" onClick={() => setShowToken(!showToken)}>
@@ -247,7 +253,7 @@ export default function DevelopersPage() {
             <Input
               placeholder="Search developers..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
               className="max-w-sm"
             />
             <div className="ml-auto text-sm text-muted-foreground">
@@ -262,7 +268,7 @@ export default function DevelopersPage() {
                   <TableHead className="w-[50px]">
                     <Checkbox
                       checked={developers.length > 0 && selectedCount === developers.length}
-                      onCheckedChange={checked => {
+                      onCheckedChange={(checked: boolean) => {
                         updateDevelopers(
                           developers.map(dev => ({
                             ...dev,
@@ -301,7 +307,7 @@ export default function DevelopersPage() {
                       <TableCell className="w-[50px] py-1">
                         <Checkbox
                           checked={developer.selected}
-                          onCheckedChange={() => toggleDeveloper(developer.userId)}
+                          onCheckedChange={(checked: boolean) => toggleDeveloper(developer.userId)}
                           aria-label={`Select ${developer.username}`}
                         />
                       </TableCell>

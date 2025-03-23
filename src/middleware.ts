@@ -9,7 +9,11 @@ export function middleware(request: NextRequest) {
   // Get token from cookie
   const token = request.cookies.get('gitlab-token');
 
+  console.log('Middleware called for path:', request.nextUrl.pathname);
+  console.log('Token present:', !!token);
+
   if (!token || !token.value) {
+    console.log('No token found, returning 401');
     return NextResponse.json(
       {
         error: 'GitLab token is required',
@@ -23,6 +27,7 @@ export function middleware(request: NextRequest) {
   // Clone request headers and add token
   const headers = new Headers(request.headers);
   headers.set('x-gitlab-token-encrypted', token.value);
+  console.log('Added encrypted token to headers');
 
   // Return request with added header
   return NextResponse.next({

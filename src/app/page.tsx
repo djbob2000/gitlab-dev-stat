@@ -5,7 +5,7 @@ import { DataTable } from '@/src/components/common/data-table';
 import { columns } from '@/src/components/common/columns';
 import type { IssueStatistics } from '@/src/types/types';
 import { ThemeToggle } from '@/src/components/common/theme-toggle';
-import { Settings } from 'lucide-react';
+import { Settings, Server } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import Link from 'next/link';
 import { useTrackedDevelopers } from '@/src/hooks/use-tracked-developers';
@@ -188,6 +188,12 @@ export default function HomePage() {
       )}
       <div className="fixed right-4 flex items-center gap-2">
         <ThemeToggle />
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/projects">
+            <Server className="h-5 w-5" />
+            <span className="sr-only">Projects</span>
+          </Link>
+        </Button>
         <Button variant="ghost" size="icon" asChild>
           <Link href="/settings">
             <Settings className="h-5 w-5" />
