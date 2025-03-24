@@ -4,14 +4,6 @@ import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
 import { decrypt } from '@/src/lib/crypto';
 import { headers } from 'next/headers';
 
-// Environment variables validation
-const requiredEnvVars = ['GITLAB_BASE_URL'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-if (missingEnvVars.length > 0) {
-  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
-}
-
 // Validation schema for GET request
 const getStatisticsSchema = z.object({
   usernames: z
@@ -28,11 +20,37 @@ const getStatisticsSchema = z.object({
 
 export async function GET(request: Request) {
   try {
-    // Пытаемся получить токен из заголовка
-    // Try to get token from the header
+    // Environment variables validation
+    const requiredEnvVars = ['GITLAB_BASE_URL'];
+    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+    if (missingEnvVars.length > 0) {
+      return NextResponse.json(
+        { error: `Missing required environment variables: ${missingEnvVars.join(', ')}` },
+        { status: 500 }
+      );
+    }
+
+    // Try to get token from the header or cookie
     const headersList = await headers();
 
-    const encryptedToken = headersList.get('x-gitlab-token-encrypted');
+    // Get the token from cookies if the header is just a flag
+    let encryptedToken = headersList.get('x-gitlab-token-encrypted');
+
+    if (encryptedToken === 'true') {
+      // If header is just the flag 'true', get the real token from cookies
+      const cookiesList = await headers();
+      const tokenCookie = cookiesList
+        .get('cookie')
+        ?.split(';')
+        .find(c => c.trim().startsWith('gitlab-token='));
+
+      if (tokenCookie) {
+        encryptedToken = decodeURIComponent(tokenCookie.split('=')[1]);
+      } else {
+        encryptedToken = null;
+      }
+    }
 
     if (!encryptedToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

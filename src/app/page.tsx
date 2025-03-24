@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DataTable } from '@/src/components/common/data-table';
 import { columns } from '@/src/components/common/columns';
 import type { IssueStatistics } from '@/src/types/types';
@@ -62,6 +62,11 @@ export default function HomePage() {
   const [nextAutoRefresh, setNextAutoRefresh] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Use refs to track state without causing re-renders
+  const isLoadingRef = useRef(false);
+  const hasLoadedInitialData = useRef(false);
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Update the actionRequiredTime every minute
   useEffect(() => {
     const interval = setInterval(() => {
@@ -117,11 +122,22 @@ export default function HomePage() {
 
   // Load data for all projects
   const loadAllData = useCallback(async () => {
-    if (!isInitialized || !hasToken || projects.length === 0 || isLoading) return;
+    // Use the ref to prevent concurrent loading
+    if (!isInitialized || !hasToken || isLoadingRef.current) {
+      console.log('Skipping loadAllData due to conditions:', {
+        isInitialized,
+        hasToken,
+        isLoading: isLoadingRef.current,
+        projectsLength: projects.length,
+      });
+      return;
+    }
 
     try {
+      console.log('Starting data load for all projects');
       setIsLoading(true);
-      setProgress(0);
+      isLoadingRef.current = true;
+      setProgress(5); // Start with visible progress
 
       // Start progress animation
       const startTime = Date.now();
@@ -134,7 +150,7 @@ export default function HomePage() {
 
         if (elapsed < 1000) {
           // First second: 0-30%
-          newProgress = (elapsed / 1000) * 30;
+          newProgress = 5 + (elapsed / 1000) * 25;
         } else if (elapsed < 1000 + midpointDuration) {
           // Middle 10 seconds: 30-80%
           const midpointElapsed = elapsed - 1000;
@@ -192,20 +208,22 @@ export default function HomePage() {
       setTimeout(() => {
         setProjects(updatedProjects);
         setIsLoading(false);
+        isLoadingRef.current = false;
         setProgress(0);
       }, 300);
     } catch (err) {
       console.error('Error loading data:', err);
       setIsLoading(false);
+      isLoadingRef.current = false;
       setProgress(0);
       toast.error('Failed to load data. Please check your GitLab token.');
     }
-  }, [projects, isInitialized, hasToken, isLoading]);
+  }, [isInitialized, hasToken, projects]);
 
   // Load data for a specific project
   const loadProjectData = useCallback(
     async (projectId: number) => {
-      if (!isInitialized || !hasToken || isLoading) return;
+      if (!isInitialized || !hasToken || isLoadingRef.current) return;
 
       const projectIndex = projects.findIndex(p => p.id === projectId);
       if (projectIndex === -1) return;
@@ -214,6 +232,37 @@ export default function HomePage() {
       if (project.isLoading) return;
 
       try {
+        console.log(`Starting data load for project ${projectId}`);
+
+        // Set up progress bar
+        setProgress(5); // Start with visible progress
+
+        // Start progress animation similar to loadAllData
+        const startTime = Date.now();
+        const animationDuration = 8000; // 8 seconds for single project load
+
+        const progressInterval = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          let newProgress = 0;
+
+          if (elapsed < 500) {
+            // First 0.5 second: 5-30%
+            newProgress = 5 + (elapsed / 500) * 25;
+          } else if (elapsed < 5000) {
+            // Next 4.5 seconds: 30-80%
+            const midpointElapsed = elapsed - 500;
+            newProgress = 30 + (midpointElapsed / 4500) * 50;
+          } else if (elapsed < animationDuration) {
+            // Last 3 seconds: 80-95%
+            const finalElapsed = elapsed - 5000;
+            newProgress = 80 + (finalElapsed / 3000) * 15;
+          } else {
+            newProgress = 95;
+          }
+
+          setProgress(Math.min(newProgress, 95));
+        }, 50);
+
         // Mark project as loading
         setProjects(prev =>
           prev.map(p => (p.id === projectId ? { ...p, isLoading: true, error: null } : p))
@@ -221,22 +270,33 @@ export default function HomePage() {
 
         const data = await fetchAnalytics(project.developers, project.id, project.path);
 
-        // Update project data
-        setProjects(prev =>
-          prev.map(p =>
-            p.id === projectId
-              ? {
-                  ...p,
-                  data,
-                  isLoading: false,
-                  lastUpdated: new Date(),
-                  error: null,
-                }
-              : p
-          )
-        );
+        // Complete progress
+        clearInterval(progressInterval);
+        setProgress(100);
+
+        // Update project data after a small delay to show completed progress
+        setTimeout(() => {
+          setProjects(prev =>
+            prev.map(p =>
+              p.id === projectId
+                ? {
+                    ...p,
+                    data,
+                    isLoading: false,
+                    lastUpdated: new Date(),
+                    error: null,
+                  }
+                : p
+            )
+          );
+          setProgress(0);
+        }, 300);
       } catch (err) {
         console.error(`Error loading data for project ${projectId}:`, err);
+
+        // Clear progress on error
+        setProgress(0);
+
         setProjects(prev =>
           prev.map(p =>
             p.id === projectId
@@ -253,12 +313,25 @@ export default function HomePage() {
         );
       }
     },
-    [projects, isInitialized, hasToken, isLoading]
+    [projects, isInitialized, hasToken]
   );
 
   // Auto-refresh data every 5 minutes when enabled
   useEffect(() => {
-    if (!autoRefresh || !isInitialized || !hasToken || projects.length === 0) {
+    // Clear any existing timer when dependencies change
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    if (
+      !autoRefresh ||
+      !isInitialized ||
+      !hasToken ||
+      projects.length === 0 ||
+      isLoadingRef.current
+    ) {
+      // Don't schedule a refresh if already loading or other conditions aren't met
       setNextAutoRefresh(null);
       return;
     }
@@ -268,30 +341,43 @@ export default function HomePage() {
     nextRefresh.setMinutes(nextRefresh.getMinutes() + 5);
     setNextAutoRefresh(nextRefresh);
 
+    console.log(`Auto-refresh scheduled for ${nextRefresh.toLocaleTimeString()}`);
+
     const timeUntilRefresh = nextRefresh.getTime() - new Date().getTime();
 
-    const interval = setTimeout(() => {
-      if (!isLoading) {
-        loadAllData();
-      }
+    refreshTimerRef.current = setTimeout(() => {
+      console.log('Auto-refresh timer triggered');
+      loadAllData();
     }, timeUntilRefresh);
 
-    return () => clearTimeout(interval);
-  }, [autoRefresh, isInitialized, loadAllData, isLoading, hasToken, projects.length]);
-
-  // Load data on initial component mount
-  useEffect(() => {
-    let _mounted = true;
-
-    // Only load if initialized with token and we have projects
-    if (isInitialized && hasToken && projects.length > 0 && !isLoading) {
-      loadAllData();
-    }
-
     return () => {
-      _mounted = false;
+      console.log('Clearing auto-refresh timer');
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+      setNextAutoRefresh(null);
     };
-  }, [isInitialized, hasToken, projects.length, isLoading, loadAllData]);
+  }, [autoRefresh, isInitialized, hasToken, loadAllData]);
+
+  // Load data on initial component mount only once
+  useEffect(() => {
+    // Prevent duplicate initial loads
+    if (
+      isInitialized &&
+      hasToken &&
+      projects.length > 0 &&
+      !isLoadingRef.current &&
+      !hasLoadedInitialData.current
+    ) {
+      console.log('Initial data load triggered with projects:', projects.length);
+      hasLoadedInitialData.current = true;
+      // Small delay to ensure UI is ready
+      setTimeout(() => {
+        loadAllData();
+      }, 100);
+    }
+  }, [isInitialized, hasToken, projects, loadAllData]);
 
   if (!isInitialized) {
     return (
@@ -336,7 +422,7 @@ export default function HomePage() {
 
   return (
     <>
-      {isLoading && progress > 0 && (
+      {progress > 0 && (
         <div className="fixed top-0 left-0 right-0 z-50">
           <Progress value={progress} className="h-1 rounded-none" />
         </div>
