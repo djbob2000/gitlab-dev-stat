@@ -4,14 +4,6 @@ import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
 import { decrypt } from '@/src/lib/crypto';
 import { headers } from 'next/headers';
 
-// Environment variables validation
-const requiredEnvVars = ['GITLAB_PROJECT_ID', 'GITLAB_BASE_URL', 'GITLAB_PROJECT_PATH'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-if (missingEnvVars.length > 0) {
-  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
-}
-
 // Validation schema for GET request
 const getStatisticsSchema = z.object({
   usernames: z
@@ -22,15 +14,43 @@ const getStatisticsSchema = z.object({
     .string()
     .transform(str => str.split(',').map(Number))
     .nullish(),
-  projectId: z.string().optional(),
+  projectId: z.string(),
+  projectPath: z.string().optional(),
 });
 
 export async function GET(request: Request) {
   try {
-    // Пытаемся получить токен из заголовка
+    // Environment variables validation
+    const requiredEnvVars = ['GITLAB_BASE_URL'];
+    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+    if (missingEnvVars.length > 0) {
+      return NextResponse.json(
+        { error: `Missing required environment variables: ${missingEnvVars.join(', ')}` },
+        { status: 500 }
+      );
+    }
+
+    // Try to get token from the header or cookie
     const headersList = await headers();
 
-    const encryptedToken = headersList.get('x-gitlab-token-encrypted');
+    // Get the token from cookies if the header is just a flag
+    let encryptedToken = headersList.get('x-gitlab-token-encrypted');
+
+    if (encryptedToken === 'true') {
+      // If header is just the flag 'true', get the real token from cookies
+      const cookiesList = await headers();
+      const tokenCookie = cookiesList
+        .get('cookie')
+        ?.split(';')
+        .find(c => c.trim().startsWith('gitlab-token='));
+
+      if (tokenCookie) {
+        encryptedToken = decodeURIComponent(tokenCookie.split('=')[1]);
+      } else {
+        encryptedToken = null;
+      }
+    }
 
     if (!encryptedToken) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -39,20 +59,26 @@ export async function GET(request: Request) {
     try {
       const token = await decrypt(encryptedToken);
 
-      const gitlabClient = createGitLabClient({
-        baseUrl: process.env.GITLAB_BASE_URL!,
-        token,
-        projectPath: process.env.GITLAB_PROJECT_PATH!,
-      });
-
       const { searchParams } = new URL(request.url);
       const validatedData = getStatisticsSchema.parse({
         usernames: searchParams.get('usernames'),
         userIds: searchParams.get('userIds'),
-        projectId: process.env.GITLAB_PROJECT_ID,
+        projectId: searchParams.get('projectId') || process.env.GITLAB_PROJECT_ID,
+        projectPath: searchParams.get('projectPath') || process.env.GITLAB_PROJECT_PATH,
       });
 
       const projectId = Number(validatedData.projectId);
+      const projectPath = validatedData.projectPath;
+
+      if (!projectPath) {
+        return NextResponse.json({ error: 'Project path is required' }, { status: 400 });
+      }
+
+      const gitlabClient = createGitLabClient({
+        baseUrl: process.env.GITLAB_BASE_URL!,
+        token,
+        projectPath,
+      });
 
       const issues = await gitlabClient.getProjectIssues(
         projectId,
@@ -112,7 +138,7 @@ export async function GET(request: Request) {
               return {
                 mrIid: mr.iid,
                 labels: mr.labels,
-                url: `${process.env.GITLAB_BASE_URL}/${process.env.GITLAB_PROJECT_PATH}/-/merge_requests/${mr.iid}`,
+                url: `${process.env.GITLAB_BASE_URL}/${projectPath}/-/merge_requests/${mr.iid}`,
                 title: mr.title,
                 actionRequiredLabelTime,
               };
@@ -140,7 +166,7 @@ export async function GET(request: Request) {
             totalTimeFromStart,
             mergeRequests: mergeRequestLabels,
             actionRequiredTime,
-            url: `${process.env.GITLAB_BASE_URL}/${process.env.GITLAB_PROJECT_PATH}/-/issues/${issue.iid}`,
+            url: `${process.env.GITLAB_BASE_URL}/${projectPath}/-/issues/${issue.iid}`,
           };
         })
       );

@@ -43,6 +43,7 @@ interface DataTableProps<TData, TValue> {
   onAutoRefreshChange?: (value: boolean) => void;
   nextRefreshTime?: Date | null;
   tableId?: string;
+  projectName?: string;
 }
 
 export function DataTable<TData, TValue>({
@@ -58,6 +59,7 @@ export function DataTable<TData, TValue>({
   onAutoRefreshChange,
   nextRefreshTime,
   tableId = 'developer-stats',
+  projectName,
 }: DataTableProps<TData, TValue>) {
   // States for sorting and resizing
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'username', desc: false }]);
@@ -162,7 +164,7 @@ export function DataTable<TData, TValue>({
   return (
     <div className="rounded-lg shadow-md bg-white dark:bg-gray-800">
       <TableHeader
-        title="Developer Statistics"
+        title={projectName || 'Developer Statistics'}
         lastUpdated={lastUpdated}
         isLoading={isLoading}
         autoRefresh={autoRefresh}

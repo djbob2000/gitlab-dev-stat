@@ -20,13 +20,8 @@ interface GitLabMember {
   expires_at: string | null;
 }
 
-// Environment variables validation
-const requiredEnvVars = ['GITLAB_BASE_URL', 'GITLAB_PROJECT_ID'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-if (missingEnvVars.length > 0) {
-  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
-}
+// Environment variables validation - moved inside the GET handler
+// This prevents build-time errors when environment variables aren't available
 
 /**
  * Validates a GitLab token by making a request to the GitLab API
@@ -56,12 +51,17 @@ async function validateGitLabToken(token: string): Promise<boolean> {
  * Fetches project members directly from GitLab API
  * Handles pagination to get all members
  */
-async function fetchProjectMembers(token: string): Promise<GitLabMember[]> {
+async function fetchProjectMembers(
+  token: string,
+  requestedProjectId?: string
+): Promise<GitLabMember[]> {
   // We need to use a project ID for getting project members
-  const projectId = process.env.GITLAB_PROJECT_ID;
+  const projectId = requestedProjectId || process.env.GITLAB_PROJECT_ID;
 
   if (!projectId) {
-    throw new Error('GITLAB_PROJECT_ID environment variable is not defined');
+    throw new Error(
+      'Project ID is not provided and GITLAB_PROJECT_ID environment variable is not defined'
+    );
   }
 
   // Array to store all members from all pages
@@ -82,7 +82,7 @@ async function fetchProjectMembers(token: string): Promise<GitLabMember[]> {
 
       if (response.status === 404) {
         throw new Error(
-          `Project with ID ${projectId} not found. Please check your GITLAB_PROJECT_ID environment variable.`
+          `Project with ID ${projectId} not found. Please check your Project ID or GITLAB_PROJECT_ID environment variable.`
         );
       }
 
@@ -106,55 +106,53 @@ async function fetchProjectMembers(token: string): Promise<GitLabMember[]> {
   return allMembers;
 }
 
-type ApiResponse = {
-  developers: GitLabMember[];
-  count: number;
-  message: string;
-};
-
 type ApiErrorResponse = {
   error: string;
   detail?: string;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Environment variables validation
+    const requiredEnvVars = ['GITLAB_BASE_URL'];
+    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+    if (missingEnvVars.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Missing required environment variables: ${missingEnvVars.join(', ')}`,
+        } as ApiErrorResponse,
+        { status: 500 }
+      );
+    }
+
+    // Get the URL parameters
+    const { searchParams } = new URL(request.url);
+    const projectId = searchParams.get('projectId');
+
     // Get token from header
     const headersList = await headers();
     const encryptedToken = headersList.get('x-gitlab-token-encrypted');
 
     if (!encryptedToken) {
-      return NextResponse.json({ error: 'GitLab token is required' } as ApiErrorResponse, {
-        status: 401,
-      });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
-      // Decrypt the token
       const token = await decrypt(encryptedToken);
 
-      // Validate the token
-      const isValid = await validateGitLabToken(token);
-
-      if (!isValid) {
-        return NextResponse.json(
-          {
-            error: 'Invalid token',
-            detail: 'Token validation with GitLab API failed',
-          } as ApiErrorResponse,
-          { status: 401 }
-        );
+      if (!(await validateGitLabToken(token))) {
+        return NextResponse.json({ error: 'Invalid GitLab token' }, { status: 401 });
       }
 
-      // Fetch the project members with the validated token
-      const developers = await fetchProjectMembers(token);
+      // Fetch developers from GitLab
+      const developers = await fetchProjectMembers(token, projectId || undefined);
 
-      // Return the developers with a count
       return NextResponse.json({
         developers,
         count: developers.length,
-        message: 'Successfully retrieved project members',
-      } as ApiResponse);
+        message: 'Successfully fetched developers',
+      });
     } catch (error) {
       return NextResponse.json(
         {
