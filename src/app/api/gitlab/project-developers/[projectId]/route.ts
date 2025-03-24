@@ -25,6 +25,7 @@ interface GitLabProject {
   id: number;
   name: string;
   name_with_namespace: string;
+  path_with_namespace: string;
 }
 
 /**
@@ -58,7 +59,7 @@ async function validateGitLabToken(token: string): Promise<boolean> {
 async function fetchProjectMembers(
   token: string,
   projectId: string
-): Promise<{ developers: GitLabDeveloper[]; projectName: string }> {
+): Promise<{ developers: GitLabDeveloper[]; projectName: string; projectPath: string }> {
   if (!process.env.GITLAB_BASE_URL) {
     throw new Error(GITLAB_API_ERROR.MISSING_URL);
   }
@@ -66,6 +67,7 @@ async function fetchProjectMembers(
   // Array to store all members
   let allMembers: GitLabDeveloper[] = [];
   let projectName = '';
+  let projectPath = '';
 
   // First, get the project details to get the name
   try {
@@ -79,7 +81,8 @@ async function fetchProjectMembers(
     if (projectResponse.ok) {
       const projectData = (await projectResponse.json()) as GitLabProject;
       projectName = projectData.name;
-      console.log(`Found project name: ${projectName}`);
+      projectPath = projectData.path_with_namespace;
+      console.log(`Found project name: ${projectName}, path: ${projectPath}`);
     } else {
       console.log('Failed to fetch project details');
     }
@@ -127,7 +130,7 @@ async function fetchProjectMembers(
   }
 
   console.log(`Total developers fetched: ${allMembers.length}`);
-  return { developers: allMembers, projectName };
+  return { developers: allMembers, projectName, projectPath };
 }
 
 type ApiResponse = {
@@ -135,6 +138,7 @@ type ApiResponse = {
   count: number;
   message: string;
   projectName?: string;
+  projectPath?: string;
 };
 
 type ApiErrorResponse = {
@@ -186,8 +190,10 @@ export async function GET(request: Request, { params }: { params: { projectId: s
 
       // Fetch the project members with the validated token
       console.log('Fetching project members...');
-      const { developers, projectName } = await fetchProjectMembers(token, projectId);
-      console.log(`Found ${developers.length} developers for project "${projectName}"`);
+      const { developers, projectName, projectPath } = await fetchProjectMembers(token, projectId);
+      console.log(
+        `Found ${developers.length} developers for project "${projectName}" (${projectPath})`
+      );
 
       // Return the developers with a count
       const response = {
@@ -195,6 +201,7 @@ export async function GET(request: Request, { params }: { params: { projectId: s
         count: developers.length,
         message: 'Successfully retrieved project members',
         projectName,
+        projectPath,
       } as ApiResponse;
 
       return NextResponse.json(response);

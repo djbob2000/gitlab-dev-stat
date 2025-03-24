@@ -37,6 +37,7 @@ interface ApiResponse {
   count: number;
   message: string;
   projectName?: string;
+  projectPath?: string;
 }
 
 export default function ProjectDevelopersPage({
@@ -139,6 +140,10 @@ export default function ProjectDevelopersPage({
         if (data.projectName) {
           setProjectName(data.projectName);
           localStorage.setItem(`project-name-${projectId}`, data.projectName);
+        }
+
+        if (data.projectPath) {
+          localStorage.setItem(`project-path-${projectId}`, data.projectPath);
         }
 
         const developersWithSelection = data.developers.map(dev => ({

@@ -46,9 +46,7 @@ export function ProjectCard({ project, onToggleSelect, onViewDevelopers }: Proje
               </div>
               {project.name}
             </CardTitle>
-            <CardDescription className="mt-1">
-              {project.description || 'No description'}
-            </CardDescription>
+            <CardDescription className="mt-1">{project.description || ''}</CardDescription>
           </div>
           <Button
             variant="ghost"
@@ -63,9 +61,7 @@ export function ProjectCard({ project, onToggleSelect, onViewDevelopers }: Proje
       </CardHeader>
       <CardContent className="pb-4">
         <div className="text-sm text-muted-foreground">
-          <p>Last activity: {new Date(project.last_activity_at).toLocaleDateString()}</p>
-          <p className="mt-1">Stars: {project.star_count}</p>
-          <div className="mt-3 pt-3 border-t border-border flex justify-between items-center">
+          <div className="border-t border-border flex justify-between items-center pt-3">
             <a
               href={project.web_url}
               target="_blank"

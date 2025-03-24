@@ -52,7 +52,6 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<GitLabProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [responseInfo, setResponseInfo] = useState<string | null>(null);
   const [origin, setOrigin] = useState<string>('');
   const { hasToken, isInitialized: isTokenInitialized } = useGitLabToken();
   const router = useRouter();
@@ -108,7 +107,6 @@ export default function ProjectsPage() {
     console.log('Starting fetchProjects function');
     setIsLoading(true);
     setErrorMsg(null);
-    setResponseInfo(null);
     try {
       console.log('Making API request to /api/gitlab/projects');
 
@@ -116,7 +114,6 @@ export default function ProjectsPage() {
 
       const url = `${origin}/api/gitlab/projects`;
       console.log('Full URL:', url);
-      setResponseInfo(`Requesting: ${url}`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -133,7 +130,6 @@ export default function ProjectsPage() {
         clearTimeout(timeoutId);
 
         console.log('Response status:', response.status);
-        setResponseInfo(prev => `${prev || ''}\nStatus: ${response.status}`);
 
         if (!response.ok) {
           const errorText = `API request failed with status ${response.status}`;
@@ -150,7 +146,6 @@ export default function ProjectsPage() {
         }
 
         console.log('Raw response length:', responseText.length);
-        setResponseInfo(prev => `${prev || ''}\nResponse size: ${responseText.length} bytes`);
 
         let data: ApiResponse;
         try {
@@ -166,7 +161,6 @@ export default function ProjectsPage() {
 
         if (data && Array.isArray(data.projects)) {
           console.log(`Received ${data.projects.length} projects`);
-          setResponseInfo(prev => `${prev || ''}\nReceived ${data.projects.length} projects`);
           const projectsWithSelection = data.projects.map(project => ({
             ...project,
             selected: !!selectedProjects[project.id],
@@ -178,7 +172,6 @@ export default function ProjectsPage() {
           setErrorMsg(errorText);
         }
       } catch (fetchError) {
-        clearTimeout(timeoutId);
         if (fetchError instanceof Error && fetchError.name === 'AbortError') {
           setErrorMsg('Request timed out after 15 seconds');
         } else {
@@ -217,6 +210,7 @@ export default function ProjectsPage() {
     const project = projects.find(p => p.id === projectId);
     if (project) {
       localStorage.setItem(`project-name-${projectId}`, project.name);
+      localStorage.setItem(`project-path-${projectId}`, project.path_with_namespace);
     }
 
     router.push(`/project-developers/${projectId}`);
@@ -238,22 +232,6 @@ export default function ProjectsPage() {
     return (
       <div className="container py-8">
         <h1 className="text-3xl font-bold mb-6">Your GitLab Projects</h1>
-        <div className="bg-yellow-100 dark:bg-yellow-900/30 p-4 rounded mb-4">
-          <h2 className="font-bold">Debug Info:</h2>
-          <p>isLoading: {String(isLoading)}</p>
-          <p>isTokenInitialized: {String(isTokenInitialized)}</p>
-          <p>hasToken: {String(hasToken)}</p>
-          <p>Origin: {origin}</p>
-          {errorMsg && <p className="text-red-500">Error: {errorMsg}</p>}
-          {responseInfo && (
-            <pre className="whitespace-pre-wrap bg-gray-100 dark:bg-gray-800 p-2 rounded mt-2">
-              {responseInfo}
-            </pre>
-          )}
-          <button onClick={fetchProjects} className="mt-2 px-4 py-2 bg-blue-500 text-white rounded">
-            Retry Fetch
-          </button>
-        </div>
         {Array.from({ length: 6 }).map((_, i) => (
           <Card key={i} className="mb-4">
             <CardHeader className="pb-2">
@@ -306,12 +284,6 @@ export default function ProjectsPage() {
       {errorMsg && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           {errorMsg}
-        </div>
-      )}
-
-      {responseInfo && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded mb-4">
-          {responseInfo}
         </div>
       )}
 

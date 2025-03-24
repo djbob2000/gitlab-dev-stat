@@ -5,7 +5,7 @@ import { decrypt } from '@/src/lib/crypto';
 import { headers } from 'next/headers';
 
 // Environment variables validation
-const requiredEnvVars = ['GITLAB_PROJECT_ID', 'GITLAB_BASE_URL', 'GITLAB_PROJECT_PATH'];
+const requiredEnvVars = ['GITLAB_BASE_URL'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
 if (missingEnvVars.length > 0) {
@@ -22,7 +22,8 @@ const getStatisticsSchema = z.object({
     .string()
     .transform(str => str.split(',').map(Number))
     .nullish(),
-  projectId: z.string().optional(),
+  projectId: z.string(),
+  projectPath: z.string().optional(),
 });
 
 export async function GET(request: Request) {
@@ -39,20 +40,26 @@ export async function GET(request: Request) {
     try {
       const token = await decrypt(encryptedToken);
 
-      const gitlabClient = createGitLabClient({
-        baseUrl: process.env.GITLAB_BASE_URL!,
-        token,
-        projectPath: process.env.GITLAB_PROJECT_PATH!,
-      });
-
       const { searchParams } = new URL(request.url);
       const validatedData = getStatisticsSchema.parse({
         usernames: searchParams.get('usernames'),
         userIds: searchParams.get('userIds'),
-        projectId: process.env.GITLAB_PROJECT_ID,
+        projectId: searchParams.get('projectId') || process.env.GITLAB_PROJECT_ID,
+        projectPath: searchParams.get('projectPath') || process.env.GITLAB_PROJECT_PATH,
       });
 
       const projectId = Number(validatedData.projectId);
+      const projectPath = validatedData.projectPath;
+
+      if (!projectPath) {
+        return NextResponse.json({ error: 'Project path is required' }, { status: 400 });
+      }
+
+      const gitlabClient = createGitLabClient({
+        baseUrl: process.env.GITLAB_BASE_URL!,
+        token,
+        projectPath,
+      });
 
       const issues = await gitlabClient.getProjectIssues(
         projectId,
@@ -112,7 +119,7 @@ export async function GET(request: Request) {
               return {
                 mrIid: mr.iid,
                 labels: mr.labels,
-                url: `${process.env.GITLAB_BASE_URL}/${process.env.GITLAB_PROJECT_PATH}/-/merge_requests/${mr.iid}`,
+                url: `${process.env.GITLAB_BASE_URL}/${projectPath}/-/merge_requests/${mr.iid}`,
                 title: mr.title,
                 actionRequiredLabelTime,
               };
@@ -140,7 +147,7 @@ export async function GET(request: Request) {
             totalTimeFromStart,
             mergeRequests: mergeRequestLabels,
             actionRequiredTime,
-            url: `${process.env.GITLAB_BASE_URL}/${process.env.GITLAB_PROJECT_PATH}/-/issues/${issue.iid}`,
+            url: `${process.env.GITLAB_BASE_URL}/${projectPath}/-/issues/${issue.iid}`,
           };
         })
       );

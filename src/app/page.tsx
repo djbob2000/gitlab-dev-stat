@@ -8,14 +8,26 @@ import { ThemeToggle } from '@/src/components/common/theme-toggle';
 import { Settings, Server } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import Link from 'next/link';
-import { useTrackedDevelopers } from '@/src/hooks/use-tracked-developers';
 import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
 import { Progress } from '@/src/components/ui/progress';
 import { fetchWithToken } from '@/src/lib/api';
 import { toast } from 'sonner';
 
+interface ProjectData {
+  id: number;
+  name: string;
+  path: string;
+  developers: { userId: number; username: string }[];
+  data: IssueStatistics[];
+  isLoading: boolean;
+  error: string | null;
+  lastUpdated?: Date;
+}
+
 async function fetchAnalytics(
-  developers: { userId: number; username: string }[]
+  developers: { userId: number; username: string }[],
+  projectId: number,
+  projectPath: string
 ): Promise<IssueStatistics[]> {
   if (developers.length === 0) {
     return [];
@@ -34,26 +46,78 @@ async function fetchAnalytics(
     params.append('usernames', usernames.join(','));
   }
 
+  // Add project ID and path to the parameters
+  params.append('projectId', projectId.toString());
+  params.append('projectPath', projectPath);
+
   return fetchWithToken(`/api/statistics?${params.toString()}`);
 }
 
 export default function HomePage() {
-  const { developers, isInitialized } = useTrackedDevelopers();
-  const { hasToken, isInitialized: isTokenInitialized } = useGitLabToken();
-  const [data, setData] = useState<IssueStatistics[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { hasToken, isInitialized } = useGitLabToken();
+  const [projects, setProjects] = useState<ProjectData[]>([]);
   const [progress, setProgress] = useState(0);
-  const [lastUpdated, setLastUpdated] = useState<Date>();
+  const [lastActionRequiredUpdate, setLastActionRequiredUpdate] = useState<Date>(new Date());
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [nextAutoRefresh, setNextAutoRefresh] = useState<Date | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Add a state to track when we last updated the actionRequiredTime
-  // This will be used to force re-renders without changing the data
-  const [lastActionRequiredUpdate, setLastActionRequiredUpdate] = useState<Date>(new Date());
+  // Update the actionRequiredTime every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLastActionRequiredUpdate(new Date());
+    }, 60000); // Update every minute
 
-  const loadData = useCallback(async () => {
+    return () => clearInterval(interval);
+  }, []);
+
+  // Load all projects that have tracked developers
+  useEffect(() => {
     if (!isInitialized || !hasToken) return;
+
+    // Get all project IDs from localStorage
+    const projectIds: number[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('selected-developers-')) {
+        const projectId = parseInt(key.replace('selected-developers-', ''), 10);
+        if (!isNaN(projectId)) {
+          projectIds.push(projectId);
+        }
+      }
+    }
+
+    // Initialize projects array with empty data
+    const initialProjects = projectIds.map(id => {
+      const projectName = localStorage.getItem(`project-name-${id}`) || `Project ${id}`;
+      const projectPath =
+        localStorage.getItem(`project-path-${id}`) ||
+        projectName.toLowerCase().replace(/\s+/g, '-');
+      const developersJSON = localStorage.getItem(`selected-developers-${id}`);
+      const developers = developersJSON
+        ? JSON.parse(developersJSON).map((dev: any) => ({
+            userId: dev.id,
+            username: dev.username,
+          }))
+        : [];
+
+      return {
+        id,
+        name: projectName,
+        path: projectPath,
+        developers,
+        data: [],
+        isLoading: false,
+        error: null,
+      };
+    });
+
+    setProjects(initialProjects.filter(p => p.developers.length > 0));
+  }, [isInitialized, hasToken]);
+
+  // Load data for all projects
+  const loadAllData = useCallback(async () => {
+    if (!isInitialized || !hasToken || projects.length === 0 || isLoading) return;
 
     try {
       setIsLoading(true);
@@ -88,8 +152,37 @@ export default function HomePage() {
         setProgress(Math.min(newProgress, 95));
       }, 50);
 
-      const selectedDevelopers = developers.filter(dev => dev.selected);
-      const newData = await fetchAnalytics(selectedDevelopers);
+      // Mark all projects as loading
+      setProjects(prev =>
+        prev.map(project => ({
+          ...project,
+          isLoading: true,
+          error: null,
+        }))
+      );
+
+      // Fetch data for each project in parallel
+      const updatedProjects = await Promise.all(
+        projects.map(async project => {
+          try {
+            const data = await fetchAnalytics(project.developers, project.id, project.path);
+            return {
+              ...project,
+              data,
+              isLoading: false,
+              lastUpdated: new Date(),
+              error: null,
+            };
+          } catch (err) {
+            console.error(`Error loading data for project ${project.id}:`, err);
+            return {
+              ...project,
+              isLoading: false,
+              error: err instanceof Error ? err.message : 'Failed to fetch data',
+            };
+          }
+        })
+      );
 
       // Clear interval and complete progress
       clearInterval(progressInterval);
@@ -97,33 +190,75 @@ export default function HomePage() {
 
       // Small delay to show completed progress
       setTimeout(() => {
-        setData(newData);
-        setLastUpdated(new Date());
-        setError(null);
+        setProjects(updatedProjects);
         setIsLoading(false);
         setProgress(0);
       }, 300);
     } catch (err) {
       console.error('Error loading data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch data');
       setIsLoading(false);
       setProgress(0);
       toast.error('Failed to load data. Please check your GitLab token.');
     }
-  }, [developers, isInitialized, hasToken]);
+  }, [projects, isInitialized, hasToken, isLoading]);
 
-  // Update the actionRequiredTime every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLastActionRequiredUpdate(new Date());
-    }, 60000); // Update every minute
+  // Load data for a specific project
+  const loadProjectData = useCallback(
+    async (projectId: number) => {
+      if (!isInitialized || !hasToken || isLoading) return;
 
-    return () => clearInterval(interval);
-  }, []);
+      const projectIndex = projects.findIndex(p => p.id === projectId);
+      if (projectIndex === -1) return;
+
+      const project = projects[projectIndex];
+      if (project.isLoading) return;
+
+      try {
+        // Mark project as loading
+        setProjects(prev =>
+          prev.map(p => (p.id === projectId ? { ...p, isLoading: true, error: null } : p))
+        );
+
+        const data = await fetchAnalytics(project.developers, project.id, project.path);
+
+        // Update project data
+        setProjects(prev =>
+          prev.map(p =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  data,
+                  isLoading: false,
+                  lastUpdated: new Date(),
+                  error: null,
+                }
+              : p
+          )
+        );
+      } catch (err) {
+        console.error(`Error loading data for project ${projectId}:`, err);
+        setProjects(prev =>
+          prev.map(p =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  isLoading: false,
+                  error: err instanceof Error ? err.message : 'Failed to fetch data',
+                }
+              : p
+          )
+        );
+        toast.error(
+          `Failed to load data for ${projects[projectIndex].name}. Please check your GitLab token.`
+        );
+      }
+    },
+    [projects, isInitialized, hasToken, isLoading]
+  );
 
   // Auto-refresh data every 5 minutes when enabled
   useEffect(() => {
-    if (!autoRefresh || !isInitialized || !hasToken) {
+    if (!autoRefresh || !isInitialized || !hasToken || projects.length === 0) {
       setNextAutoRefresh(null);
       return;
     }
@@ -137,24 +272,28 @@ export default function HomePage() {
 
     const interval = setTimeout(() => {
       if (!isLoading) {
-        loadData();
+        loadAllData();
       }
     }, timeUntilRefresh);
 
     return () => clearTimeout(interval);
-  }, [autoRefresh, isInitialized, loadData, isLoading, lastUpdated, hasToken]);
+  }, [autoRefresh, isInitialized, loadAllData, isLoading, hasToken, projects.length]);
 
-  // We don't need a separate effect to update the data
-  // The component will re-render when lastActionRequiredUpdate changes
-  // and the column renderer will calculate the new elapsed time
-
+  // Load data on initial component mount
   useEffect(() => {
-    if (isInitialized && hasToken) {
-      loadData();
-    }
-  }, [isInitialized, loadData, hasToken]);
+    let mounted = true;
 
-  if (!isInitialized || !isTokenInitialized) {
+    // Only load if initialized with token and we have projects
+    if (isInitialized && hasToken && projects.length > 0 && !isLoading) {
+      loadAllData();
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [isInitialized, hasToken, projects.length]);
+
+  if (!isInitialized) {
     return (
       <div className="container py-10">
         <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
@@ -172,6 +311,22 @@ export default function HomePage() {
           <div className="mt-4">
             <Button asChild>
               <Link href="/settings">Go to Settings</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (projects.length === 0) {
+    return (
+      <div className="container py-10">
+        <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
+          No projects with tracked developers found. Please select developers to track in the
+          projects section.
+          <div className="mt-4">
+            <Button asChild>
+              <Link href="/projects">Go to Projects</Link>
             </Button>
           </div>
         </div>
@@ -202,24 +357,24 @@ export default function HomePage() {
         </Button>
       </div>
       <div className="container py-10">
-        {error && (
-          <div className="mb-4 p-4 text-red-700 bg-red-100 dark:bg-red-900/30 dark:text-red-400 rounded-lg">
-            {error}
+        {projects.map(project => (
+          <div key={project.id} className="mb-10">
+            <DataTable
+              columns={columns}
+              data={project.data}
+              error={project.error}
+              onRefresh={() => loadProjectData(project.id)}
+              lastUpdated={project.lastUpdated}
+              actionRequiredUpdateTime={lastActionRequiredUpdate}
+              isLoading={project.isLoading}
+              autoRefresh={autoRefresh}
+              onAutoRefreshChange={setAutoRefresh}
+              nextRefreshTime={nextAutoRefresh}
+              tableId={`project-${project.id}`}
+              projectName={project.name}
+            />
           </div>
-        )}
-        <DataTable
-          columns={columns}
-          data={data}
-          error={error}
-          onRefresh={loadData}
-          lastUpdated={lastUpdated}
-          // Pass lastActionRequiredUpdate to force re-renders
-          actionRequiredUpdateTime={lastActionRequiredUpdate}
-          isLoading={isLoading}
-          autoRefresh={autoRefresh}
-          onAutoRefreshChange={setAutoRefresh}
-          nextRefreshTime={nextAutoRefresh}
-        />
+        ))}
       </div>
     </>
   );
