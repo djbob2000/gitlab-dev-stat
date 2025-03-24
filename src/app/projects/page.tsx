@@ -221,10 +221,12 @@ export default function ProjectsPage() {
 
     if (selectedCount === 0) {
       toast.error('Пожалуйста, выберите хотя бы один проект для отслеживания');
+      toast.error('Please select at least one project to track');
       return;
     }
 
     toast.success(`Выбрано ${selectedCount} проектов для отслеживания`);
+    toast.success(`Selected ${selectedCount} projects for tracking`);
     router.push('/');
   };
 

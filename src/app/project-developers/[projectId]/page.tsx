@@ -45,7 +45,7 @@ export default function ProjectDevelopersPage({
 }: {
   params: Promise<{ projectId: string }>;
 }) {
-  // Получаем параметры с помощью React.use()
+  // Get parameters using React.use()
   const resolvedParams = React.use(params);
   const projectIdStr = resolvedParams.projectId;
   const projectId = Number(projectIdStr);
@@ -179,16 +179,16 @@ export default function ProjectDevelopersPage({
     }));
   };
 
-  // Автоматическое сохранение при изменении selectedDevelopers
+  // Automatic saving when selectedDevelopers changes
   useEffect(() => {
-    // Пропускаем первоначальную загрузку, когда selectedDevelopers пустой
+    // Skip initial loading when selectedDevelopers is empty
     if (Object.keys(selectedDevelopers).length === 0 || developers.length === 0) return;
 
     const selectedDevs = developers.filter(dev => selectedDevelopers[dev.id]);
 
     try {
       localStorage.setItem(`selected-developers-${projectId}`, JSON.stringify(selectedDevs));
-      // Избегаем частых уведомлений - уведомляем пользователя только при явном нажатии на кнопку Save
+      // Avoid frequent notifications - notify the user only when explicitly clicking the Save button
     } catch (error) {
       console.error('Error auto-saving to localStorage:', error);
       toast.error('Failed to save selection');

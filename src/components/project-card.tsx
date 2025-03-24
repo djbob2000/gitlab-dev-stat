@@ -12,6 +12,7 @@ import { Checkbox } from '@/src/components/ui/checkbox';
 import { Check, Users } from 'lucide-react';
 
 // Тип для проекта GitLab
+// Type for GitLab project
 interface GitLabProject {
   id: number;
   name: string;

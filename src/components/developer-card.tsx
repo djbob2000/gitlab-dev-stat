@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/ca
 import { Checkbox } from '@/src/components/ui/checkbox';
 
 // Тип для разработчика GitLab
+// Type for GitLab developer
 interface GitLabDeveloper {
   id: number;
   username: string;

@@ -29,6 +29,7 @@ const getStatisticsSchema = z.object({
 export async function GET(request: Request) {
   try {
     // Пытаемся получить токен из заголовка
+    // Try to get token from the header
     const headersList = await headers();
 
     const encryptedToken = headersList.get('x-gitlab-token-encrypted');

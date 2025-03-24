@@ -68,8 +68,8 @@ async function fetchUserProjects(token: string): Promise<GitLabProject[]> {
   let page = 1;
   const perPage = 100; // Maximum allowed by GitLab API
 
-  // Ограничиваем запрос только первой страницей (100 проектов)
-  // В будущем можно реализовать пагинацию на frontend
+  // Limit the request to only the first page (100 projects)
+  // In the future, pagination can be implemented on the frontend
   const maxPages = 1;
 
   console.log(
@@ -81,9 +81,9 @@ async function fetchUserProjects(token: string): Promise<GitLabProject[]> {
     const url = `${process.env.GITLAB_BASE_URL}/api/v4/projects?page=${page}&per_page=${perPage}&order_by=last_activity_at&sort=desc&visibility=private`;
     console.log(`Fetching GitLab projects, page ${page}:`, url);
 
-    // Создаем контроллер AbortController для таймаута
+    // Create AbortController for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
 
     try {
       const response = await fetch(url, {
@@ -91,7 +91,7 @@ async function fetchUserProjects(token: string): Promise<GitLabProject[]> {
         signal: controller.signal,
       });
 
-      // Очищаем таймаут после завершения запроса
+      // Clear timeout after the request completes
       clearTimeout(timeoutId);
 
       if (!response.ok) {
@@ -116,7 +116,7 @@ async function fetchUserProjects(token: string): Promise<GitLabProject[]> {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
         console.error('Request timed out after 10 seconds');
-        // Если истек таймаут, прекращаем попытки
+        // If timeout expired, stop attempts
         break;
       } else {
         throw error;
@@ -139,7 +139,7 @@ type ApiErrorResponse = {
   detail?: string;
 };
 
-// Next.js 14/15 использует именованные экспорты для API роутов
+// Next.js 14/15 uses named exports for API routes
 export async function GET(request: Request) {
   console.log('API endpoint /api/gitlab/projects called with Next.js 14/15 handler');
   try {
@@ -156,9 +156,8 @@ export async function GET(request: Request) {
     }
 
     try {
-      // Decrypt the token
+      // Decode token as it's URL-encoded in the cookie
       console.log('Decrypting token...');
-      // Декодируем токен, так как он закодирован в URL-формате в cookie
       const decodedToken = decodeURIComponent(encryptedToken);
       console.log('Token decoded successfully');
       const token = await decrypt(decodedToken);
@@ -198,7 +197,7 @@ export async function GET(request: Request) {
         message: 'Successfully retrieved user projects',
       } as ApiResponse;
 
-      // Логируем полный ответ (лимитированный для экономии места в логах)
+      // Log the full response (limited to save space in logs)
       console.log('Sending response:', JSON.stringify(response).substring(0, 200) + '...');
 
       return NextResponse.json(response, {

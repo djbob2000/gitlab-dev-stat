@@ -166,7 +166,7 @@ export async function GET(request: Request, { params }: { params: { projectId: s
     try {
       // Decrypt the token
       console.log('Decrypting token...');
-      // Декодируем токен, так как он закодирован в URL-формате в cookie
+      // Decode token as it's URL-encoded in the cookie
       const decodedToken = decodeURIComponent(encryptedToken);
       console.log('Token decoded successfully');
       const token = await decrypt(decodedToken);
