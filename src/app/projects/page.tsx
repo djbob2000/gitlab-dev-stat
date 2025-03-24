@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,15 +10,10 @@ import {
   CardTitle,
 } from '@/src/components/ui/card';
 import { Skeleton } from '@/src/components/ui/skeleton';
-import { Badge } from '@/src/components/ui/badge';
 import { toast } from 'sonner';
 import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
-import { fetchWithToken } from '@/src/lib/api';
-import { Checkbox } from '@/src/components/ui/checkbox';
 import { Button } from '@/src/components/ui/button';
-import { Eye, Users, Check } from 'lucide-react';
 import { ProjectCard } from '@/src/components/project-card';
-import { Input } from '@/src/components/ui/input';
 
 interface GitLabProject {
   id: number;
@@ -53,67 +48,17 @@ export default function ProjectsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [origin, setOrigin] = useState<string>('');
+  const [searchQuery, _setSearchQuery] = useState<string>('');
   const { hasToken, isInitialized: isTokenInitialized } = useGitLabToken();
   const router = useRouter();
 
   const [selectedProjects, setSelectedProjects] = useState<Record<number, boolean>>({});
 
-  useEffect(() => {
-    setOrigin(window.location.origin);
-
-    const savedProjects = localStorage.getItem('selectedProjects');
-    if (savedProjects) {
-      try {
-        setSelectedProjects(JSON.parse(savedProjects));
-      } catch (e) {
-        console.error('Error loading saved projects:', e);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    console.log('Component state:', {
-      isTokenInitialized,
-      hasToken,
-      isLoading,
-      projectsCount: projects.length,
-    });
-  }, [isTokenInitialized, hasToken, isLoading, projects]);
-
-  useEffect(() => {
-    if (isTokenInitialized && !hasToken) {
-      console.log('No token, redirecting to settings');
-      router.push('/settings');
-      return;
-    }
-
-    if (isTokenInitialized && hasToken) {
-      console.log('Token initialized and present, fetching projects');
-      fetchProjects();
-    }
-  }, [isTokenInitialized, hasToken, router]);
-
-  useEffect(() => {
-    if (projects.length > 0 && Object.keys(selectedProjects).length > 0) {
-      const updatedProjects = projects.map(project => ({
-        ...project,
-        selected: !!selectedProjects[project.id],
-      }));
-      setProjects(updatedProjects);
-    }
-  }, [selectedProjects]);
-
-  async function fetchProjects() {
-    console.log('Starting fetchProjects function');
+  const fetchProjects = useCallback(async () => {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      console.log('Making API request to /api/gitlab/projects');
-
-      console.log('Base URL:', origin);
-
       const url = `${origin}/api/gitlab/projects`;
-      console.log('Full URL:', url);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -129,8 +74,6 @@ export default function ProjectsPage() {
 
         clearTimeout(timeoutId);
 
-        console.log('Response status:', response.status);
-
         if (!response.ok) {
           const errorText = `API request failed with status ${response.status}`;
           setErrorMsg(errorText);
@@ -145,8 +88,6 @@ export default function ProjectsPage() {
           return;
         }
 
-        console.log('Raw response length:', responseText.length);
-
         let data: ApiResponse;
         try {
           data = JSON.parse(responseText) as ApiResponse;
@@ -157,10 +98,7 @@ export default function ProjectsPage() {
           return;
         }
 
-        console.log('API response received, parsing data...');
-
         if (data && Array.isArray(data.projects)) {
-          console.log(`Received ${data.projects.length} projects`);
           const projectsWithSelection = data.projects.map(project => ({
             ...project,
             selected: !!selectedProjects[project.id],
@@ -185,14 +123,53 @@ export default function ProjectsPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [origin, selectedProjects]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+  useEffect(() => {
+    setOrigin(window.location.origin);
+
+    const savedProjects = localStorage.getItem('selectedProjects');
+    if (savedProjects) {
+      try {
+        setSelectedProjects(JSON.parse(savedProjects));
+      } catch (e) {
+        console.error('Error loading saved projects:', e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isTokenInitialized && !hasToken) {
+      router.push('/settings');
+      return;
+    }
+
+    if (isTokenInitialized && hasToken) {
+      fetchProjects();
+    }
+  }, [isTokenInitialized, hasToken, router, fetchProjects]);
+
+  useEffect(() => {
+    if (projects.length > 0 && Object.keys(selectedProjects).length > 0) {
+      const updatedProjects = projects.map(project => ({
+        ...project,
+        selected: !!selectedProjects[project.id],
+      }));
+      setProjects(updatedProjects);
+    }
+  }, [selectedProjects, projects]);
+
+  const _filteredProjects = searchQuery
+    ? projects.filter(
+        project =>
+          project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          project.path_with_namespace.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : projects;
+
+  const _formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
   };
 
   const toggleProjectSelection = (projectId: number) => {
@@ -216,17 +193,17 @@ export default function ProjectsPage() {
     router.push(`/project-developers/${projectId}`);
   };
 
-  const saveAndGoToAnalytics = () => {
-    const selectedCount = Object.values(selectedProjects).filter(Boolean).length;
+  const _saveAndGoToAnalytics = () => {
+    const selectedProjs = projects.filter(project => selectedProjects[project.id]);
 
-    if (selectedCount === 0) {
+    if (selectedProjs.length === 0) {
       toast.error('Пожалуйста, выберите хотя бы один проект для отслеживания');
       toast.error('Please select at least one project to track');
       return;
     }
 
-    toast.success(`Выбрано ${selectedCount} проектов для отслеживания`);
-    toast.success(`Selected ${selectedCount} projects for tracking`);
+    toast.success(`Выбрано ${selectedProjs.length} проектов для отслеживания`);
+    toast.success(`Selected ${selectedProjs.length} projects for tracking`);
     router.push('/');
   };
 

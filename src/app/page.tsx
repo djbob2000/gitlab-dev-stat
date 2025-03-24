@@ -95,7 +95,7 @@ export default function HomePage() {
         projectName.toLowerCase().replace(/\s+/g, '-');
       const developersJSON = localStorage.getItem(`selected-developers-${id}`);
       const developers = developersJSON
-        ? JSON.parse(developersJSON).map((dev: any) => ({
+        ? JSON.parse(developersJSON).map((dev: { id: number; username: string }) => ({
             userId: dev.id,
             username: dev.username,
           }))
@@ -281,7 +281,7 @@ export default function HomePage() {
 
   // Load data on initial component mount
   useEffect(() => {
-    let mounted = true;
+    let _mounted = true;
 
     // Only load if initialized with token and we have projects
     if (isInitialized && hasToken && projects.length > 0 && !isLoading) {
@@ -289,9 +289,9 @@ export default function HomePage() {
     }
 
     return () => {
-      mounted = false;
+      _mounted = false;
     };
-  }, [isInitialized, hasToken, projects.length]);
+  }, [isInitialized, hasToken, projects.length, isLoading, loadAllData]);
 
   if (!isInitialized) {
     return (

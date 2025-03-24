@@ -139,8 +139,8 @@ type ApiErrorResponse = {
   detail?: string;
 };
 
-export async function GET(request: Request, context: { params: Promise<{ projectId: string }> }) {
-  const { projectId } = await context.params;
+export async function GET(request: Request, context: { params: { projectId: string } }) {
+  const projectId = context.params.projectId;
 
   try {
     // Get token from header

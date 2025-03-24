@@ -72,14 +72,9 @@ async function fetchUserProjects(token: string): Promise<GitLabProject[]> {
   // In the future, pagination can be implemented on the frontend
   const maxPages = 1;
 
-  console.log(
-    `Limiting projects to first ${maxPages} page(s) (max ${maxPages * perPage} projects)`
-  );
-
   // Fetch pages
   while (page <= maxPages) {
     const url = `${process.env.GITLAB_BASE_URL}/api/v4/projects?page=${page}&per_page=${perPage}&order_by=last_activity_at&sort=desc&visibility=private`;
-    console.log(`Fetching GitLab projects, page ${page}:`, url);
 
     // Create AbortController for timeout
     const controller = new AbortController();
@@ -101,7 +96,6 @@ async function fetchUserProjects(token: string): Promise<GitLabProject[]> {
 
       // Get the current page of projects
       const projects = (await response.json()) as GitLabProject[];
-      console.log(`Received ${projects.length} projects on page ${page}`);
 
       // Add projects to our result array
       allProjects = [...allProjects, ...projects];
@@ -124,7 +118,6 @@ async function fetchUserProjects(token: string): Promise<GitLabProject[]> {
     }
   }
 
-  console.log(`Total projects fetched: ${allProjects.length}`);
   return allProjects;
 }
 
@@ -140,16 +133,13 @@ type ApiErrorResponse = {
 };
 
 // Next.js 14/15 uses named exports for API routes
-export async function GET(request: Request) {
-  console.log('API endpoint /api/gitlab/projects called with Next.js 14/15 handler');
+export async function GET(_request: Request) {
   try {
     // Get token from header
     const headersList = await headers();
     const encryptedToken = headersList.get('x-gitlab-token-encrypted');
-    console.log('Encrypted token present:', !!encryptedToken);
 
     if (!encryptedToken) {
-      console.log('No token found in headers');
       return NextResponse.json({ error: 'GitLab token is required' } as ApiErrorResponse, {
         status: 401,
       });
@@ -157,19 +147,13 @@ export async function GET(request: Request) {
 
     try {
       // Decode token as it's URL-encoded in the cookie
-      console.log('Decrypting token...');
       const decodedToken = decodeURIComponent(encryptedToken);
-      console.log('Token decoded successfully');
       const token = await decrypt(decodedToken);
-      console.log('Token decrypted successfully');
 
       // Validate the token
-      console.log('Validating token...');
       const isValid = await validateGitLabToken(token);
-      console.log('Token validation result:', isValid);
 
       if (!isValid) {
-        console.log('Token validation failed');
         return NextResponse.json(
           {
             error: 'Invalid token',
@@ -180,15 +164,7 @@ export async function GET(request: Request) {
       }
 
       // Fetch the projects with the validated token
-      console.log('Fetching projects...');
       const projects = await fetchUserProjects(token);
-      console.log(`Found ${projects.length} projects`);
-
-      if (projects.length === 0) {
-        console.log('No projects were found - returning empty array');
-      } else {
-        console.log('First project:', JSON.stringify(projects[0]));
-      }
 
       // Return the projects with a count
       const response = {
@@ -196,9 +172,6 @@ export async function GET(request: Request) {
         count: projects.length,
         message: 'Successfully retrieved user projects',
       } as ApiResponse;
-
-      // Log the full response (limited to save space in logs)
-      console.log('Sending response:', JSON.stringify(response).substring(0, 200) + '...');
 
       return NextResponse.json(response, {
         headers: {

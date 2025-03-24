@@ -1,7 +1,16 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
+import React from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/src/components/ui/card';
 import { Checkbox } from '@/src/components/ui/checkbox';
+import { Badge } from '@/src/components/ui/badge';
+import Image from 'next/image';
 
 // Тип для разработчика GitLab
 // Type for GitLab developer
@@ -23,53 +32,51 @@ interface DeveloperCardProps {
 }
 
 export function DeveloperCard({ developer, onToggleSelect }: DeveloperCardProps) {
+  const handleToggle = () => {
+    onToggleSelect(developer.id);
+  };
+
   return (
     <Card className={developer.selected ? 'border-2 border-primary' : ''}>
       <CardHeader className="pb-2">
-        <div className="flex items-center space-x-3">
-          <div className="flex-shrink-0">
-            <img
-              src={developer.avatar_url || '/placeholder-avatar.png'}
-              alt={developer.name}
-              className="h-10 w-10 rounded-full"
-            />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="relative w-10 h-10 overflow-hidden rounded-full">
+              <Image
+                src={developer.avatar_url || '/placeholder-avatar.jpg'}
+                alt={developer.name}
+                fill
+                className="object-cover"
+                sizes="40px"
+              />
+            </div>
+            <div>
+              <CardTitle className="text-base">{developer.name}</CardTitle>
+              <CardDescription className="text-xs">@{developer.username}</CardDescription>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-base">{developer.name}</CardTitle>
-            <div className="text-sm text-muted-foreground">@{developer.username}</div>
-          </div>
+          <Checkbox
+            id={`developer-${developer.id}`}
+            checked={developer.selected}
+            onCheckedChange={handleToggle}
+          />
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-xs text-muted-foreground">
-              {developer.access_level && (
-                <div className="mt-1">Access Level: {developer.access_level}</div>
-              )}
-            </div>
-            <a
-              href={developer.web_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-primary hover:underline mt-2 inline-block"
-            >
-              GitLab Profile
-            </a>
-          </div>
-          <div className="flex items-center">
-            <Checkbox
-              id={`dev-${developer.id}`}
-              checked={!!developer.selected}
-              onCheckedChange={() => onToggleSelect(developer.id)}
-            />
-            <label
-              htmlFor={`dev-${developer.id}`}
-              className="ml-2 text-sm font-medium cursor-pointer"
-            >
-              Track
-            </label>
-          </div>
+        <div className="text-xs text-muted-foreground mb-2">
+          <a
+            href={developer.web_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline"
+          >
+            View on GitLab
+          </a>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          <Badge variant={developer.state === 'active' ? 'default' : 'secondary'}>
+            {developer.state}
+          </Badge>
         </div>
       </CardContent>
     </Card>

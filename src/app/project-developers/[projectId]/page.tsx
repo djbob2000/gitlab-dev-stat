@@ -1,21 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/src/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/src/components/ui/card';
 import { Skeleton } from '@/src/components/ui/skeleton';
-import { Checkbox } from '@/src/components/ui/checkbox';
 import { Button } from '@/src/components/ui/button';
 import { toast } from 'sonner';
 import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
-import { ArrowLeft, Check, Search, Save } from 'lucide-react';
+import { ArrowLeft, Search, Save } from 'lucide-react';
 import { Input } from '@/src/components/ui/input';
 import { DeveloperCard } from '@/src/components/developer-card';
 import React from 'react';
@@ -60,62 +52,11 @@ export default function ProjectDevelopersPage({
   const [origin, setOrigin] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  useEffect(() => {
-    setOrigin(window.location.origin);
-    const savedProjectName = localStorage.getItem(`project-name-${projectId}`);
-    if (savedProjectName) {
-      setProjectName(savedProjectName);
-    } else {
-      setProjectName(`Project ${projectId}`);
-    }
-
-    try {
-      const savedDevelopersJSON = localStorage.getItem(`selected-developers-${projectId}`);
-      if (savedDevelopersJSON) {
-        const savedDevelopers = JSON.parse(savedDevelopersJSON);
-
-        const savedSelections: Record<number, boolean> = {};
-        savedDevelopers.forEach((dev: GitLabDeveloper) => {
-          savedSelections[dev.id] = true;
-        });
-
-        setSelectedDevelopers(savedSelections);
-      }
-    } catch (error) {
-      console.error('Error loading saved developers:', error);
-    }
-
-    fetchDevelopers();
-  }, [projectId]);
-
-  useEffect(() => {
-    if (isTokenInitialized && !hasToken) {
-      router.push('/settings');
-      return;
-    }
-
-    if (isTokenInitialized && hasToken && !isNaN(projectId)) {
-      fetchDevelopers();
-    }
-  }, [isTokenInitialized, hasToken, projectId, router]);
-
-  useEffect(() => {
-    if (developers.length > 0 && Object.keys(selectedDevelopers).length > 0) {
-      const updatedDevelopers = developers.map(dev => ({
-        ...dev,
-        selected: !!selectedDevelopers[dev.id],
-      }));
-      setDevelopers(updatedDevelopers);
-    }
-  }, [selectedDevelopers]);
-
-  async function fetchDevelopers() {
+  const fetchDevelopers = useCallback(async () => {
     setIsLoading(true);
     setErrorMsg(null);
 
     try {
-      console.log(`Fetching developers for project ${projectId}...`);
-
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
@@ -133,8 +74,6 @@ export default function ProjectDevelopersPage({
       }
 
       const data = (await response.json()) as ApiResponse;
-
-      console.log(`Received ${data.count} developers`);
 
       if (Array.isArray(data.developers)) {
         if (data.projectName) {
@@ -170,7 +109,56 @@ export default function ProjectDevelopersPage({
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [origin, projectId, selectedDevelopers]);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    const savedProjectName = localStorage.getItem(`project-name-${projectId}`);
+    if (savedProjectName) {
+      setProjectName(savedProjectName);
+    } else {
+      setProjectName(`Project ${projectId}`);
+    }
+
+    try {
+      const savedDevelopersJSON = localStorage.getItem(`selected-developers-${projectId}`);
+      if (savedDevelopersJSON) {
+        const savedDevelopers = JSON.parse(savedDevelopersJSON);
+
+        const savedSelections: Record<number, boolean> = {};
+        savedDevelopers.forEach((dev: GitLabDeveloper) => {
+          savedSelections[dev.id] = true;
+        });
+
+        setSelectedDevelopers(savedSelections);
+      }
+    } catch (error) {
+      console.error('Error loading saved developers:', error);
+    }
+
+    fetchDevelopers();
+  }, [projectId, fetchDevelopers]);
+
+  useEffect(() => {
+    if (isTokenInitialized && !hasToken) {
+      router.push('/settings');
+      return;
+    }
+
+    if (isTokenInitialized && hasToken && !isNaN(projectId)) {
+      fetchDevelopers();
+    }
+  }, [isTokenInitialized, hasToken, projectId, router, fetchDevelopers]);
+
+  useEffect(() => {
+    if (developers.length > 0 && Object.keys(selectedDevelopers).length > 0) {
+      const updatedDevelopers = developers.map(dev => ({
+        ...dev,
+        selected: !!selectedDevelopers[dev.id],
+      }));
+      setDevelopers(updatedDevelopers);
+    }
+  }, [selectedDevelopers, developers]);
 
   const toggleDeveloperSelection = (developerId: number) => {
     setSelectedDevelopers(prev => ({
@@ -179,23 +167,7 @@ export default function ProjectDevelopersPage({
     }));
   };
 
-  // Automatic saving when selectedDevelopers changes
-  useEffect(() => {
-    // Skip initial loading when selectedDevelopers is empty
-    if (Object.keys(selectedDevelopers).length === 0 || developers.length === 0) return;
-
-    const selectedDevs = developers.filter(dev => selectedDevelopers[dev.id]);
-
-    try {
-      localStorage.setItem(`selected-developers-${projectId}`, JSON.stringify(selectedDevs));
-      // Avoid frequent notifications - notify the user only when explicitly clicking the Save button
-    } catch (error) {
-      console.error('Error auto-saving to localStorage:', error);
-      toast.error('Failed to save selection');
-    }
-  }, [selectedDevelopers, developers, projectId]);
-
-  const saveSelectedDevelopers = () => {
+  const _saveSelectedDevelopers = () => {
     const selectedDevs = developers.filter(dev => selectedDevelopers[dev.id]);
 
     try {

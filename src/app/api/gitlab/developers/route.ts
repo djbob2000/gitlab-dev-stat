@@ -20,13 +20,8 @@ interface GitLabMember {
   expires_at: string | null;
 }
 
-// Environment variables validation
-const requiredEnvVars = ['GITLAB_BASE_URL', 'GITLAB_PROJECT_ID'];
-const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-
-if (missingEnvVars.length > 0) {
-  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
-}
+// Environment variables validation - moved inside the GET handler
+// This prevents build-time errors when environment variables aren't available
 
 /**
  * Validates a GitLab token by making a request to the GitLab API
@@ -111,12 +106,6 @@ async function fetchProjectMembers(
   return allMembers;
 }
 
-type ApiResponse = {
-  developers: GitLabMember[];
-  count: number;
-  message: string;
-};
-
 type ApiErrorResponse = {
   error: string;
   detail?: string;
@@ -124,6 +113,19 @@ type ApiErrorResponse = {
 
 export async function GET(request: Request) {
   try {
+    // Environment variables validation
+    const requiredEnvVars = ['GITLAB_BASE_URL'];
+    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+    if (missingEnvVars.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Missing required environment variables: ${missingEnvVars.join(', ')}`,
+        } as ApiErrorResponse,
+        { status: 500 }
+      );
+    }
+
     // Get the URL parameters
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
