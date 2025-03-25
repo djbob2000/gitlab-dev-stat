@@ -111,6 +111,7 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     columnResizeMode,
     enableColumnResizing: true,
+    enableMultiSort: true,
     state: {
       sorting,
       columnSizing,
