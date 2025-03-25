@@ -14,8 +14,7 @@ export async function fetchWithToken<T = unknown>(
     credentials: 'same-origin', // This ensures cookies are sent with the request
     headers: {
       'Content-Type': 'application/json',
-      // Add a custom header to inform the API routes that we're using an encrypted token
-      'x-gitlab-token-encrypted': 'true',
+      // The middleware will read the token from cookies and add it to headers
       ...options.headers,
     },
   });

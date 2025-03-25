@@ -10,10 +10,13 @@ export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
 
   // Get the encrypted token from client cookies
-  const encryptedToken = request.cookies.get('gitlab-token-encrypted')?.value;
+  const encryptedToken = request.cookies.get('gitlab-token')?.value;
 
   // Add encrypted token to the headers if it exists
   if (encryptedToken) {
+    console.log('Middleware called for path:', request.nextUrl.pathname);
+    console.log('Token present:', encryptedToken ? 'true' : 'false');
+    console.log('Added encrypted token to headers');
     requestHeaders.set('x-gitlab-token-encrypted', encryptedToken);
   }
 

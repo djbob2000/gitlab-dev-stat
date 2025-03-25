@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
 import { Button } from '@/src/components/ui/button';
 import { ProjectCard } from '@/src/components/project-card';
+import { fetchWithToken } from '@/src/lib/api';
 
 interface GitLabProject {
   id: number;
@@ -64,39 +65,11 @@ export default function ProjectsPage() {
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
-        const response = await fetch(url, {
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        const data = await fetchWithToken<ApiResponse>(url, {
           signal: controller.signal,
         });
 
         clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errorText = `API request failed with status ${response.status}`;
-          setErrorMsg(errorText);
-          throw new Error(errorText);
-        }
-
-        const responseText = await response.text();
-
-        if (!responseText || responseText.trim() === '') {
-          setErrorMsg('Empty response received from server');
-          setIsLoading(false);
-          return;
-        }
-
-        let data: ApiResponse;
-        try {
-          data = JSON.parse(responseText) as ApiResponse;
-        } catch (parseError) {
-          console.error('Failed to parse JSON:', parseError);
-          setErrorMsg('Failed to parse response JSON');
-          setIsLoading(false);
-          return;
-        }
 
         if (data && Array.isArray(data.projects)) {
           const projectsWithSelection = data.projects.map(project => ({
@@ -157,7 +130,7 @@ export default function ProjectsPage() {
       }));
       setProjects(updatedProjects);
     }
-  }, [selectedProjects, projects]);
+  }, [selectedProjects]);
 
   const _filteredProjects = searchQuery
     ? projects.filter(
