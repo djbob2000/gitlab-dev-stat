@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/src/components/ui/card';
-import { Skeleton } from '@/src/components/ui/skeleton';
+import { LoadingProgress } from '@/src/components/common/loading-progress';
 import { toast } from 'sonner';
 import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
 import { Button } from '@/src/components/ui/button';
@@ -38,6 +38,18 @@ interface GitLabProject {
   selected?: boolean;
 }
 
+interface GitLabDeveloper {
+  id: number;
+  username: string;
+  name: string;
+  state: string;
+  avatar_url: string;
+  web_url: string;
+  access_level?: number;
+  expires_at?: string | null;
+  selected?: boolean;
+}
+
 interface ApiResponse {
   projects: GitLabProject[];
   count: number;
@@ -54,6 +66,9 @@ export default function ProjectsPage() {
   const router = useRouter();
 
   const [selectedProjects, setSelectedProjects] = useState<Record<number, boolean>>({});
+  const [selectedDevelopers, setSelectedDevelopers] = useState<Record<number, GitLabDeveloper[]>>(
+    {}
+  );
 
   const fetchProjects = useCallback(async () => {
     setIsLoading(true);
@@ -109,6 +124,35 @@ export default function ProjectsPage() {
         console.error('Error loading saved projects:', e);
       }
     }
+
+    // Load selected developers for each project
+    const loadSelectedDevelopers = async () => {
+      const devsByProject: Record<number, GitLabDeveloper[]> = {};
+
+      // Get all project IDs from localStorage keys that match 'project-name-*'
+      const projectKeys = Object.keys(localStorage).filter(key => key.startsWith('project-name-'));
+
+      for (const key of projectKeys) {
+        const projectId = Number(key.replace('project-name-', ''));
+        if (isNaN(projectId)) continue;
+
+        const savedDevsJSON = localStorage.getItem(`selected-developers-${projectId}`);
+        if (savedDevsJSON) {
+          try {
+            const savedDevs = JSON.parse(savedDevsJSON);
+            if (Array.isArray(savedDevs) && savedDevs.length > 0) {
+              devsByProject[projectId] = savedDevs;
+            }
+          } catch (error) {
+            console.error(`Error loading developers for project ${projectId}:`, error);
+          }
+        }
+      }
+
+      setSelectedDevelopers(devsByProject);
+    };
+
+    loadSelectedDevelopers();
   }, []);
 
   useEffect(() => {
@@ -122,15 +166,17 @@ export default function ProjectsPage() {
     }
   }, [isTokenInitialized, hasToken, router, fetchProjects]);
 
+  // Update selected status when selectedProjects changes
   useEffect(() => {
-    if (projects.length > 0 && Object.keys(selectedProjects).length > 0) {
-      const updatedProjects = projects.map(project => ({
-        ...project,
-        selected: !!selectedProjects[project.id],
-      }));
-      setProjects(updatedProjects);
+    if (projects.length > 0) {
+      setProjects(prevProjects =>
+        prevProjects.map(project => ({
+          ...project,
+          selected: !!selectedProjects[project.id],
+        }))
+      );
     }
-  }, [selectedProjects]);
+  }, [selectedProjects, projects.length]);
 
   const _filteredProjects = searchQuery
     ? projects.filter(
@@ -152,7 +198,6 @@ export default function ProjectsPage() {
     };
 
     setSelectedProjects(newSelectedProjects);
-
     localStorage.setItem('selectedProjects', JSON.stringify(newSelectedProjects));
   };
 
@@ -170,32 +215,22 @@ export default function ProjectsPage() {
     const selectedProjs = projects.filter(project => selectedProjects[project.id]);
 
     if (selectedProjs.length === 0) {
-      toast.error('Пожалуйста, выберите хотя бы один проект для отслеживания');
       toast.error('Please select at least one project to track');
       return;
     }
 
-    toast.success(`Выбрано ${selectedProjs.length} проектов для отслеживания`);
-    toast.success(`Selected ${selectedProjs.length} projects for tracking`);
+    toast.success(`${selectedProjs.length} projects selected for tracking`);
     router.push('/');
   };
 
   if (isLoading || !isTokenInitialized) {
     return (
       <div className="container py-8">
+        <LoadingProgress isLoading={true} duration={10000} />
         <h1 className="text-3xl font-bold mb-6">Your GitLab Projects</h1>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} className="mb-4">
-            <CardHeader className="pb-2">
-              <Skeleton className="h-6 w-1/3 mb-2" />
-              <Skeleton className="h-4 w-full" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-4 w-2/3 mb-2" />
-              <Skeleton className="h-4 w-1/4" />
-            </CardContent>
-          </Card>
-        ))}
+        <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
+          Loading your GitLab projects...
+        </div>
       </div>
     );
   }
@@ -226,10 +261,16 @@ export default function ProjectsPage() {
 
   return (
     <div className="container mx-auto py-6">
+      <LoadingProgress isLoading={isLoading} duration={10000} />
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">GitLab Projects</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => router.push('/')}>
+            Back
+          </Button>
+          <h1 className="text-2xl font-bold">GitLab Projects</h1>
+        </div>
         <Button onClick={fetchProjects} disabled={isLoading}>
-          Retry Fetch
+          Refresh
         </Button>
       </div>
 
@@ -239,11 +280,7 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      {isLoading ? (
-        <div className="flex justify-center my-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      ) : projects.length === 0 ? (
+      {projects.length === 0 ? (
         <div className="text-center my-8">
           <p className="text-gray-600">
             No projects found. Please check your GitLab token permissions.
@@ -257,6 +294,7 @@ export default function ProjectsPage() {
               project={project}
               onToggleSelect={toggleProjectSelection}
               onViewDevelopers={goToProjectDevelopers}
+              selectedDevelopers={selectedDevelopers[project.id] || []}
             />
           ))}
         </div>

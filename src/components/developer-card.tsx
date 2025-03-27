@@ -12,7 +12,6 @@ import { Checkbox } from '@/src/components/ui/checkbox';
 import { Badge } from '@/src/components/ui/badge';
 import Image from 'next/image';
 
-// Тип для разработчика GitLab
 // Type for GitLab developer
 interface GitLabDeveloper {
   id: number;
@@ -29,9 +28,14 @@ interface GitLabDeveloper {
 interface DeveloperCardProps {
   developer: GitLabDeveloper;
   onToggleSelect: (developerId: number) => void;
+  selectedDevelopers?: GitLabDeveloper[];
 }
 
-export function DeveloperCard({ developer, onToggleSelect }: DeveloperCardProps) {
+export function DeveloperCard({
+  developer,
+  onToggleSelect,
+  selectedDevelopers = [],
+}: DeveloperCardProps) {
   const handleToggle = () => {
     onToggleSelect(developer.id);
   };
@@ -78,6 +82,19 @@ export function DeveloperCard({ developer, onToggleSelect }: DeveloperCardProps)
             {developer.state}
           </Badge>
         </div>
+
+        {selectedDevelopers.length > 0 && (
+          <div className="mt-3 border-t pt-2">
+            <p className="text-sm font-medium mb-1">Selected Developers:</p>
+            <ol className="pl-5 text-xs space-y-1">
+              {selectedDevelopers.map((dev, index) => (
+                <li key={dev.id}>
+                  {index + 1}. {dev.name}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

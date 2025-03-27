@@ -9,7 +9,7 @@ import { Settings, Server } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import Link from 'next/link';
 import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
-import { Progress } from '@/src/components/ui/progress';
+import { LoadingProgress } from '@/src/components/common/loading-progress';
 import { fetchWithToken } from '@/src/lib/api';
 import { toast } from 'sonner';
 
@@ -56,7 +56,7 @@ async function fetchAnalytics(
 export default function HomePage() {
   const { hasToken, isInitialized } = useGitLabToken();
   const [projects, setProjects] = useState<ProjectData[]>([]);
-  const [progress, setProgress] = useState(0);
+  const [_progress, setProgress] = useState(0);
   const [lastActionRequiredUpdate, setLastActionRequiredUpdate] = useState<Date>(new Date());
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [nextAutoRefresh, setNextAutoRefresh] = useState<Date | null>(null);
@@ -124,7 +124,7 @@ export default function HomePage() {
   const loadAllData = useCallback(async () => {
     // Use the ref to prevent concurrent loading
     if (!isInitialized || !hasToken || isLoadingRef.current) {
-      console.log('Skipping loadAllData due to conditions:', {
+      console.warn('Skipping loadAllData due to conditions:', {
         isInitialized,
         hasToken,
         isLoading: isLoadingRef.current,
@@ -134,7 +134,7 @@ export default function HomePage() {
     }
 
     try {
-      console.log('Starting data load for all projects');
+      console.warn('Starting data load for all projects');
       setIsLoading(true);
       isLoadingRef.current = true;
       setProgress(5); // Start with visible progress
@@ -232,7 +232,11 @@ export default function HomePage() {
       if (project.isLoading) return;
 
       try {
-        console.log(`Starting data load for project ${projectId}`);
+        console.warn(`Starting data load for project ${projectId}`);
+
+        // Set main loading state to true
+        setIsLoading(true);
+        isLoadingRef.current = true;
 
         // Set up progress bar
         setProgress(5); // Start with visible progress
@@ -290,12 +294,16 @@ export default function HomePage() {
             )
           );
           setProgress(0);
+          setIsLoading(false);
+          isLoadingRef.current = false;
         }, 300);
       } catch (err) {
         console.error(`Error loading data for project ${projectId}:`, err);
 
         // Clear progress on error
         setProgress(0);
+        setIsLoading(false);
+        isLoadingRef.current = false;
 
         setProjects(prev =>
           prev.map(p =>
@@ -318,51 +326,31 @@ export default function HomePage() {
 
   // Auto-refresh data every 5 minutes when enabled
   useEffect(() => {
-    // Clear any existing timer when dependencies change
-    if (refreshTimerRef.current) {
-      clearTimeout(refreshTimerRef.current);
-      refreshTimerRef.current = null;
+    if (autoRefresh && !refreshTimerRef.current && !isLoadingRef.current) {
+      const nextRefresh = new Date();
+      nextRefresh.setMinutes(nextRefresh.getMinutes() + 5);
+      setNextAutoRefresh(nextRefresh);
+      console.warn(`Auto-refresh scheduled for ${nextRefresh.toLocaleTimeString()}`);
+
+      const timeUntilRefresh = nextRefresh.getTime() - new Date().getTime();
+
+      refreshTimerRef.current = setTimeout(() => {
+        console.warn('Auto-refresh timer triggered');
+        loadAllData();
+      }, timeUntilRefresh);
+
+      return () => {
+        console.warn('Clearing auto-refresh timer');
+        if (refreshTimerRef.current) {
+          clearTimeout(refreshTimerRef.current);
+          refreshTimerRef.current = null;
+        }
+      };
     }
+  }, [autoRefresh, isInitialized, hasToken, loadAllData, projects.length]);
 
-    if (
-      !autoRefresh ||
-      !isInitialized ||
-      !hasToken ||
-      projects.length === 0 ||
-      isLoadingRef.current
-    ) {
-      // Don't schedule a refresh if already loading or other conditions aren't met
-      setNextAutoRefresh(null);
-      return;
-    }
-
-    // Set the next refresh time to 5 minutes from now
-    const nextRefresh = new Date();
-    nextRefresh.setMinutes(nextRefresh.getMinutes() + 5);
-    setNextAutoRefresh(nextRefresh);
-
-    console.log(`Auto-refresh scheduled for ${nextRefresh.toLocaleTimeString()}`);
-
-    const timeUntilRefresh = nextRefresh.getTime() - new Date().getTime();
-
-    refreshTimerRef.current = setTimeout(() => {
-      console.log('Auto-refresh timer triggered');
-      loadAllData();
-    }, timeUntilRefresh);
-
-    return () => {
-      console.log('Clearing auto-refresh timer');
-      if (refreshTimerRef.current) {
-        clearTimeout(refreshTimerRef.current);
-        refreshTimerRef.current = null;
-      }
-      setNextAutoRefresh(null);
-    };
-  }, [autoRefresh, isInitialized, hasToken, loadAllData]);
-
-  // Load data on initial component mount only once
+  // Load data when the app first loads
   useEffect(() => {
-    // Prevent duplicate initial loads
     if (
       isInitialized &&
       hasToken &&
@@ -370,14 +358,17 @@ export default function HomePage() {
       !isLoadingRef.current &&
       !hasLoadedInitialData.current
     ) {
-      console.log('Initial data load triggered with projects:', projects.length);
+      console.warn('Initial data load triggered with projects:', projects.length);
       hasLoadedInitialData.current = true;
       // Small delay to ensure UI is ready
       setTimeout(() => {
         loadAllData();
-      }, 100);
+      }, 500);
     }
-  }, [isInitialized, hasToken, projects, loadAllData]);
+  }, [isInitialized, hasToken, loadAllData, projects.length]);
+
+  // Check if any project is loading
+  const anyProjectLoading = projects.some(project => project.isLoading);
 
   if (!isInitialized) {
     return (
@@ -422,11 +413,7 @@ export default function HomePage() {
 
   return (
     <>
-      {progress > 0 && (
-        <div className="fixed top-0 left-0 right-0 z-50">
-          <Progress value={progress} className="h-1 rounded-none" />
-        </div>
-      )}
+      <LoadingProgress isLoading={isLoading || anyProjectLoading} />
       <div className="fixed right-4 flex items-center gap-2">
         <ThemeToggle />
         <Button variant="ghost" size="icon" asChild>

@@ -10,6 +10,7 @@ import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
 import { ArrowLeft, Search, Save } from 'lucide-react';
 import { Input } from '@/src/components/ui/input';
 import { DeveloperCard } from '@/src/components/developer-card';
+import { LoadingProgress } from '@/src/components/common/loading-progress';
 import React from 'react';
 
 interface GitLabDeveloper {
@@ -151,20 +152,34 @@ export default function ProjectDevelopersPage({
   }, [isTokenInitialized, hasToken, projectId, router, fetchDevelopers]);
 
   useEffect(() => {
-    if (developers.length > 0 && Object.keys(selectedDevelopers).length > 0) {
-      const updatedDevelopers = developers.map(dev => ({
-        ...dev,
-        selected: !!selectedDevelopers[dev.id],
-      }));
-      setDevelopers(updatedDevelopers);
+    if (developers.length > 0) {
+      setDevelopers(prevDevelopers =>
+        prevDevelopers.map(dev => ({
+          ...dev,
+          selected: !!selectedDevelopers[dev.id],
+        }))
+      );
     }
-  }, [selectedDevelopers, developers]);
+  }, [selectedDevelopers, developers.length]);
 
   const toggleDeveloperSelection = (developerId: number) => {
-    setSelectedDevelopers(prev => ({
-      ...prev,
-      [developerId]: !prev[developerId],
-    }));
+    setSelectedDevelopers(prev => {
+      const newSelections = {
+        ...prev,
+        [developerId]: !prev[developerId],
+      };
+
+      // Save to localStorage after toggling
+      const selectedDevs = developers.filter(dev => newSelections[dev.id]);
+      try {
+        localStorage.setItem(`selected-developers-${projectId}`, JSON.stringify(selectedDevs));
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+        toast.error('Failed to save selection');
+      }
+
+      return newSelections;
+    });
   };
 
   const _saveSelectedDevelopers = () => {
@@ -194,6 +209,7 @@ export default function ProjectDevelopersPage({
   if (isLoading || !isTokenInitialized) {
     return (
       <div className="container mx-auto py-6">
+        <LoadingProgress isLoading={true} duration={10000} />
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
             <Button variant="ghost" onClick={goBackToProjects} className="mr-2">
@@ -235,15 +251,17 @@ export default function ProjectDevelopersPage({
               <CardHeader className="pb-2">
                 <div className="flex items-center space-x-3">
                   <Skeleton className="h-10 w-10 rounded-full" />
-                  <div className="space-y-1">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-16" />
+                  <div>
+                    <Skeleton className="h-4 w-24 mb-1" />
+                    <Skeleton className="h-3 w-20" />
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <Skeleton className="h-3 w-full mb-2" />
-                <Skeleton className="h-3 w-3/4" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <div className="flex justify-end">
+                  <Skeleton className="h-8 w-16" />
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -254,6 +272,7 @@ export default function ProjectDevelopersPage({
 
   return (
     <div className="container mx-auto py-6">
+      <LoadingProgress isLoading={isLoading} duration={10000} />
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center">
           <Button variant="ghost" onClick={goBackToProjects} className="mr-2">
@@ -262,12 +281,20 @@ export default function ProjectDevelopersPage({
           </Button>
           <h1 className="text-2xl font-bold">{projectName} Developers</h1>
         </div>
-
-        <div className="flex items-center space-x-2">
-          <div className="text-xs text-muted-foreground bg-muted dark:bg-slate-800 py-1 px-3 rounded-md flex items-center mr-2">
-            <Save className="h-3 w-3 mr-1" />
-            Auto-saving enabled
-          </div>
+        <div className="flex items-center gap-2">
+          <Button onClick={fetchDevelopers} variant="outline" size="sm" disabled={isLoading}>
+            Refresh
+          </Button>
+          <Button
+            onClick={() => router.push('/')}
+            variant="default"
+            size="sm"
+            className="ml-2"
+            disabled={isLoading}
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Go to Analytics
+          </Button>
         </div>
       </div>
 
@@ -281,10 +308,6 @@ export default function ProjectDevelopersPage({
             className="pl-8"
           />
         </div>
-
-        <Button variant="ghost" onClick={fetchDevelopers} disabled={isLoading} className="ml-2">
-          Refresh
-        </Button>
       </div>
 
       {errorMsg && (
@@ -328,6 +351,7 @@ export default function ProjectDevelopersPage({
               key={developer.id}
               developer={developer}
               onToggleSelect={toggleDeveloperSelection}
+              selectedDevelopers={filteredDevelopers.filter(dev => dev.selected)}
             />
           ))}
         </div>

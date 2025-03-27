@@ -25,13 +25,32 @@ interface GitLabProject {
   selected?: boolean;
 }
 
+// Type for GitLab developer
+interface GitLabDeveloper {
+  id: number;
+  username: string;
+  name: string;
+  state: string;
+  avatar_url: string;
+  web_url: string;
+  access_level?: number;
+  expires_at?: string | null;
+  selected?: boolean;
+}
+
 interface ProjectCardProps {
   project: GitLabProject;
   onToggleSelect: (projectId: number) => void;
   onViewDevelopers: (projectId: number, projectName: string) => void;
+  selectedDevelopers?: GitLabDeveloper[];
 }
 
-export function ProjectCard({ project, onToggleSelect, onViewDevelopers }: ProjectCardProps) {
+export function ProjectCard({
+  project,
+  onToggleSelect,
+  onViewDevelopers,
+  selectedDevelopers = [],
+}: ProjectCardProps) {
   return (
     <Card className={`overflow-hidden ${project.selected ? 'border-2 border-primary' : ''}`}>
       <CardHeader className="pb-3">
@@ -78,6 +97,19 @@ export function ProjectCard({ project, onToggleSelect, onViewDevelopers }: Proje
               </div>
             )}
           </div>
+
+          {project.selected && selectedDevelopers.length > 0 && (
+            <div className="mt-3 border-t pt-2">
+              <p className="text-sm font-medium mb-1">Selected Developers:</p>
+              <ol className="pl-5 text-xs space-y-1">
+                {selectedDevelopers.map((dev, index) => (
+                  <li key={dev.id}>
+                    {index + 1}. {dev.username}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

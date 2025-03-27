@@ -14,9 +14,6 @@ export function middleware(request: NextRequest) {
 
   // Add encrypted token to the headers if it exists
   if (encryptedToken) {
-    console.log('Middleware called for path:', request.nextUrl.pathname);
-    console.log('Token present:', encryptedToken ? 'true' : 'false');
-    console.log('Added encrypted token to headers');
     requestHeaders.set('x-gitlab-token-encrypted', encryptedToken);
   }
 
