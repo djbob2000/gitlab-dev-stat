@@ -6,6 +6,7 @@ import type { IssueStatistics } from '@/src/types/types';
 import { LabelPill } from './label-pill';
 import { priorityColors, statusColors, mrLabelColors } from './color-config';
 import { getPriority, getStatusPriority, getActionRequiredPriority } from './label-utils';
+import { LABELS, LabelType } from '@/src/constants/labels';
 
 /**
  * Column definitions for the data table
@@ -14,14 +15,14 @@ export const columns: ColumnDef<IssueStatistics>[] = [
   {
     accessorKey: 'assignee.username',
     id: 'username',
-    header: 'Developer',
+    header: 'Dev',
     enableSorting: true,
     enableResizing: true,
     size: 150,
   },
   {
     accessorKey: 'labels',
-    header: 'Prio',
+    header: 'Pr',
     enableSorting: true,
     enableResizing: true,
     size: 70,
@@ -51,7 +52,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     enableResizing: true,
     size: 100,
     sortingFn: (rowA, rowB) => {
-      const statusPriority = ['blocked', 'paused', 'review', 'in-progress', ''];
+      const statusPriority = [LABELS.BLOCKED, LABELS.PAUSED, LABELS.REVIEW, LABELS.IN_PROGRESS, ''];
       const statusA = getStatusPriority(rowA.original.labels);
       const statusB = getStatusPriority(rowB.original.labels);
       return statusPriority.indexOf(statusA) - statusPriority.indexOf(statusB);
@@ -82,9 +83,9 @@ export const columns: ColumnDef<IssueStatistics>[] = [
       // Sort by highest priority (action-required3 > action-required2 > action-required)
       const getPriorityValue = (action: ReturnType<typeof getActionRequiredPriority>) => {
         if (!action) return 0;
-        if (action.label === 'action-required3') return 3;
-        if (action.label === 'action-required2') return 2;
-        if (action.label === 'action-required') return 1;
+        if (action.label === LABELS.ACTION_REQUIRED3) return 3;
+        if (action.label === LABELS.ACTION_REQUIRED2) return 2;
+        if (action.label === LABELS.ACTION_REQUIRED) return 1;
         return 0;
       };
       return getPriorityValue(actionB) - getPriorityValue(actionA);
@@ -97,13 +98,22 @@ export const columns: ColumnDef<IssueStatistics>[] = [
       return (
         <div className="leading-none space-y-1">
           {mrLabels.map(mr => {
+            const excludeLabels: LabelType[] = [
+              LABELS.REVIEW,
+              LABELS.IN_PROGRESS,
+              LABELS.CODE_REVIEW,
+              LABELS.TEAM1,
+              LABELS.TEAM2,
+              LABELS.BUG,
+            ];
+
             const filteredLabels = mr.labels.filter(
               label =>
-                !label.match(/^p[1-8]$/) && // exclude priority labels
-                !['review', 'in-progress', 'code-review', 'team1', 'team2', 'bug'].includes(label) // exclude specific labels
+                !label.match(/^p[1-9]$/) && // exclude priority labels
+                !excludeLabels.includes(label as LabelType) // exclude specific labels
             );
 
-            const isReview = row.original.labels?.includes('review');
+            const isReview = row.original.labels?.includes(LABELS.REVIEW);
             const hasNoLabels = filteredLabels.length === 0;
             const mrNumberClass =
               isReview && hasNoLabels
@@ -199,22 +209,22 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     enableResizing: true,
     size: 55,
     cell: ({ row }) => {
-      const hasTeam1 = row.original.labels?.includes('team1');
-      const hasTeam2 = row.original.labels?.includes('team2');
+      const hasTeam1 = row.original.labels?.includes(LABELS.TEAM1);
+      const hasTeam2 = row.original.labels?.includes(LABELS.TEAM2);
 
       return (
         <div className="leading-none flex items-center gap-2">
           {hasTeam1 && (
             <LabelPill
               text="1"
-              colorClass={mrLabelColors['team1'] || 'bg-gray-200 text-gray-800'}
+              colorClass={mrLabelColors[LABELS.TEAM1] || 'bg-gray-200 text-gray-800'}
               className="shrink-0"
             />
           )}
           {hasTeam2 && (
             <LabelPill
               text="2"
-              colorClass={mrLabelColors['team2'] || 'bg-gray-200 text-gray-800'}
+              colorClass={mrLabelColors[LABELS.TEAM2] || 'bg-gray-200 text-gray-800'}
               className="shrink-0"
             />
           )}

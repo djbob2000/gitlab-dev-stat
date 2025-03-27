@@ -86,12 +86,9 @@ export default function ProjectDevelopersPage({
           localStorage.setItem(`project-path-${projectId}`, data.projectPath);
         }
 
-        const developersWithSelection = data.developers.map(dev => ({
-          ...dev,
-          selected: !!selectedDevelopers[dev.id],
-        }));
-
-        setDevelopers(developersWithSelection);
+        // We're setting the developers directly without marking as selected
+        // Will compute selected status during render for better performance
+        setDevelopers(data.developers);
       } else {
         throw new Error('Invalid response format: developers not found in response');
       }
@@ -110,8 +107,9 @@ export default function ProjectDevelopersPage({
     } finally {
       setIsLoading(false);
     }
-  }, [origin, projectId, selectedDevelopers]);
+  }, [origin, projectId]);
 
+  // Initialize component
   useEffect(() => {
     setOrigin(window.location.origin);
     const savedProjectName = localStorage.getItem(`project-name-${projectId}`);
@@ -136,54 +134,69 @@ export default function ProjectDevelopersPage({
     } catch (error) {
       console.error('Error loading saved developers:', error);
     }
+  }, [projectId]);
 
-    fetchDevelopers();
-  }, [projectId, fetchDevelopers]);
-
+  // Handle authentication and initial data fetch
   useEffect(() => {
     if (isTokenInitialized && !hasToken) {
       router.push('/settings');
       return;
     }
 
-    if (isTokenInitialized && hasToken && !isNaN(projectId)) {
+    if (isTokenInitialized && hasToken && !isNaN(projectId) && origin) {
       fetchDevelopers();
     }
-  }, [isTokenInitialized, hasToken, projectId, router, fetchDevelopers]);
+  }, [isTokenInitialized, hasToken, projectId, router, fetchDevelopers, origin]);
 
-  useEffect(() => {
-    if (developers.length > 0) {
-      setDevelopers(prevDevelopers =>
-        prevDevelopers.map(dev => ({
-          ...dev,
-          selected: !!selectedDevelopers[dev.id],
-        }))
-      );
-    }
-  }, [selectedDevelopers, developers.length]);
+  // Memoize the toggle function
+  const toggleDeveloperSelection = useCallback(
+    (developerId: number) => {
+      setSelectedDevelopers(prev => {
+        const newSelections = {
+          ...prev,
+          [developerId]: !prev[developerId],
+        };
 
-  const toggleDeveloperSelection = (developerId: number) => {
-    setSelectedDevelopers(prev => {
-      const newSelections = {
-        ...prev,
-        [developerId]: !prev[developerId],
-      };
+        // Save to localStorage after toggling
+        const selectedDevs = developers.filter(dev => newSelections[dev.id]);
+        try {
+          localStorage.setItem(`selected-developers-${projectId}`, JSON.stringify(selectedDevs));
+        } catch (error) {
+          console.error('Error saving to localStorage:', error);
+          toast.error('Failed to save selection');
+        }
 
-      // Save to localStorage after toggling
-      const selectedDevs = developers.filter(dev => newSelections[dev.id]);
-      try {
-        localStorage.setItem(`selected-developers-${projectId}`, JSON.stringify(selectedDevs));
-      } catch (error) {
-        console.error('Error saving to localStorage:', error);
-        toast.error('Failed to save selection');
-      }
+        return newSelections;
+      });
+    },
+    [developers, projectId]
+  );
 
-      return newSelections;
-    });
-  };
+  // Memoize filtered developers calculation to avoid recalculating on every render
+  const filteredDevelopers = React.useMemo(() => {
+    // First apply the search filter
+    const filtered = searchQuery
+      ? developers.filter(
+          dev =>
+            dev.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            dev.username.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : developers;
 
-  const _saveSelectedDevelopers = () => {
-    const selectedDevs = developers.filter(dev => selectedDevelopers[dev.id]);
+    // Then annotate with selected status
+    return filtered.map(dev => ({
+      ...dev,
+      selected: !!selectedDevelopers[dev.id],
+    }));
+  }, [developers, searchQuery, selectedDevelopers]);
+
+  // Calculate selected developers for display
+  const currentSelectedDevelopers = React.useMemo(() => {
+    return filteredDevelopers.filter(dev => dev.selected);
+  }, [filteredDevelopers]);
+
+  const _saveSelectedDevelopers = useCallback(() => {
+    const selectedDevs = filteredDevelopers.filter(dev => dev.selected);
 
     try {
       localStorage.setItem(`selected-developers-${projectId}`, JSON.stringify(selectedDevs));
@@ -192,19 +205,11 @@ export default function ProjectDevelopersPage({
       console.error('Error saving to localStorage:', error);
       toast.error('Failed to save selections');
     }
-  };
+  }, [filteredDevelopers, projectId]);
 
-  const goBackToProjects = () => {
+  const goBackToProjects = useCallback(() => {
     router.push('/projects');
-  };
-
-  const filteredDevelopers = searchQuery
-    ? developers.filter(
-        dev =>
-          dev.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          dev.username.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : developers;
+  }, [router]);
 
   if (isLoading || !isTokenInitialized) {
     return (
@@ -351,7 +356,7 @@ export default function ProjectDevelopersPage({
               key={developer.id}
               developer={developer}
               onToggleSelect={toggleDeveloperSelection}
-              selectedDevelopers={filteredDevelopers.filter(dev => dev.selected)}
+              selectedDevelopers={currentSelectedDevelopers}
             />
           ))}
         </div>

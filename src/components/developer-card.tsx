@@ -82,19 +82,6 @@ export function DeveloperCard({
             {developer.state}
           </Badge>
         </div>
-
-        {selectedDevelopers.length > 0 && (
-          <div className="mt-3 border-t pt-2">
-            <p className="text-sm font-medium mb-1">Selected Developers:</p>
-            <ol className="pl-5 text-xs space-y-1">
-              {selectedDevelopers.map((dev, index) => (
-                <li key={dev.id}>
-                  {index + 1}. {dev.name}
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
 import { decrypt } from '@/src/lib/crypto';
 import { headers } from 'next/headers';
+import { LABELS } from '@/src/constants/labels';
 
 // Validation schema for GET request
 const getStatisticsSchema = z.object({
@@ -100,8 +101,11 @@ export async function GET(request: Request) {
           const mergeRequestLabelsPromises = mergeRequests
             .filter(mr => mr.state === 'opened')
             .map(async mr => {
-              const actionRequiredLabels = mr.labels.filter(label =>
-                label.toLowerCase().includes('action-required')
+              const actionRequiredLabels = mr.labels.filter(
+                label =>
+                  label === LABELS.ACTION_REQUIRED ||
+                  label === LABELS.ACTION_REQUIRED2 ||
+                  label === LABELS.ACTION_REQUIRED3
               );
 
               let actionRequiredLabelTime: number | undefined = undefined;

@@ -2,6 +2,7 @@
 export * from './time-calculation/index';
 
 import { IssueEvent, IssueWithEvents } from './gitlab-api.task';
+import { LABELS } from '@/src/constants/labels';
 
 export interface TimeInterval {
   start: Date;
@@ -90,7 +91,7 @@ const extractInProgressIntervals = (events: IssueEvent[]): TimeInterval[] => {
   );
 
   for (const event of sortedEvents) {
-    if (event.label?.name === 'in-progress') {
+    if (event.label?.name === LABELS.IN_PROGRESS) {
       if (event.action === 'add' && !currentInterval) {
         currentInterval = {
           start: parseDate(event.created_at),

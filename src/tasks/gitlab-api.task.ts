@@ -1,3 +1,5 @@
+import { LABELS } from '@/src/constants/labels';
+
 // Types for our module
 export interface GitLabConfig {
   baseUrl: string;
@@ -340,7 +342,7 @@ export const createGitLabClient = ({
       }
 
       if (event.label) {
-        if (event.label.name === 'in-progress') {
+        if (event.label.name === LABELS.IN_PROGRESS) {
           if (event.action === 'add') {
             lastInProgressStart = event.created_at;
             lastPausedStart = null;
@@ -356,7 +358,7 @@ export const createGitLabClient = ({
 
             lastInProgressStart = null;
           }
-        } else if (event.label.name === 'paused') {
+        } else if (event.label.name === LABELS.PAUSED) {
           if (event.action === 'add' && lastInProgressStart) {
             const startDate = new Date(lastInProgressStart);
             const endDate = new Date(event.created_at);
