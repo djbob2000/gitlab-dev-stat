@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader } from '@/src/components/ui/card';
 import { Skeleton } from '@/src/components/ui/skeleton';
@@ -10,7 +10,7 @@ import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
 import { ArrowLeft, Search, Save } from 'lucide-react';
 import { Input } from '@/src/components/ui/input';
 import { DeveloperCard } from '@/src/components/developer-card';
-import { LoadingProgress } from '@/src/components/common/loading-progress';
+import { useTopLoader } from 'nextjs-toploader';
 import React from 'react';
 
 interface GitLabDeveloper {
@@ -52,9 +52,23 @@ export default function ProjectDevelopersPage({
   const [selectedDevelopers, setSelectedDevelopers] = useState<Record<number, boolean>>({});
   const [origin, setOrigin] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const loader = useTopLoader();
+
+  // Refs to track loading state and prevent multiple fetches
+  const isLoadingRef = useRef(false);
+  const hasFetchedData = useRef(false);
+  const hasInitialized = useRef(false);
 
   const fetchDevelopers = useCallback(async () => {
+    // Prevent concurrent fetches
+    if (isLoadingRef.current) {
+      console.warn('Already loading developers, skipping fetch');
+      return;
+    }
+
     setIsLoading(true);
+    isLoadingRef.current = true;
+    loader.start();
     setErrorMsg(null);
 
     try {
@@ -62,9 +76,7 @@ export default function ProjectDevelopersPage({
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       const response = await fetch(`${origin}/api/gitlab/project-developers/${projectId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        credentials: 'same-origin',
         signal: controller.signal,
       });
 
@@ -89,6 +101,7 @@ export default function ProjectDevelopersPage({
         // We're setting the developers directly without marking as selected
         // Will compute selected status during render for better performance
         setDevelopers(data.developers);
+        hasFetchedData.current = true;
       } else {
         throw new Error('Invalid response format: developers not found in response');
       }
@@ -106,11 +119,16 @@ export default function ProjectDevelopersPage({
       }
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
+      loader.done();
     }
-  }, [origin, projectId]);
+  }, [origin, projectId, loader]);
 
-  // Initialize component
+  // Initialize component once
   useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     setOrigin(window.location.origin);
     const savedProjectName = localStorage.getItem(`project-name-${projectId}`);
     if (savedProjectName) {
@@ -136,14 +154,22 @@ export default function ProjectDevelopersPage({
     }
   }, [projectId]);
 
-  // Handle authentication and initial data fetch
+  // Handle authentication and initial data fetch - with better dependency control
   useEffect(() => {
     if (isTokenInitialized && !hasToken) {
       router.push('/settings');
       return;
     }
 
-    if (isTokenInitialized && hasToken && !isNaN(projectId) && origin) {
+    if (
+      isTokenInitialized &&
+      hasToken &&
+      !isNaN(projectId) &&
+      origin &&
+      !hasFetchedData.current &&
+      !isLoadingRef.current
+    ) {
+      console.log('Fetching developers for project:', projectId);
       fetchDevelopers();
     }
   }, [isTokenInitialized, hasToken, projectId, router, fetchDevelopers, origin]);
@@ -214,7 +240,6 @@ export default function ProjectDevelopersPage({
   if (isLoading || !isTokenInitialized) {
     return (
       <div className="container mx-auto py-6">
-        <LoadingProgress isLoading={true} duration={10000} />
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
             <Button variant="ghost" onClick={goBackToProjects} className="mr-2">
@@ -276,8 +301,7 @@ export default function ProjectDevelopersPage({
   }
 
   return (
-    <div className="container mx-auto py-6">
-      <LoadingProgress isLoading={isLoading} duration={10000} />
+    <div className="container py-8">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center">
           <Button variant="ghost" onClick={goBackToProjects} className="mr-2">

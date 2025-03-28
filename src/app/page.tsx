@@ -9,7 +9,7 @@ import { Settings, Server } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import Link from 'next/link';
 import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
-import { LoadingProgress } from '@/src/components/common/loading-progress';
+import { useTopLoader } from 'nextjs-toploader';
 import { fetchWithToken } from '@/src/lib/api';
 import { toast } from 'sonner';
 
@@ -56,11 +56,11 @@ async function fetchAnalytics(
 export default function HomePage() {
   const { hasToken, isInitialized } = useGitLabToken();
   const [projects, setProjects] = useState<ProjectData[]>([]);
-  const [_progress, setProgress] = useState(0);
   const [lastActionRequiredUpdate, setLastActionRequiredUpdate] = useState<Date>(new Date());
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [nextAutoRefresh, setNextAutoRefresh] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const loader = useTopLoader();
 
   // Use refs to track state without causing re-renders
   const isLoadingRef = useRef(false);
@@ -137,36 +137,7 @@ export default function HomePage() {
       console.warn('Starting data load for all projects');
       setIsLoading(true);
       isLoadingRef.current = true;
-      setProgress(5); // Start with visible progress
-
-      // Start progress animation
-      const startTime = Date.now();
-      const animationDuration = 15000; // 15 seconds total animation
-      const midpointDuration = 10000; // 10 seconds in the middle (30-80%)
-
-      const progressInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        let newProgress = 0;
-
-        if (elapsed < 1000) {
-          // First second: 0-30%
-          newProgress = 5 + (elapsed / 1000) * 25;
-        } else if (elapsed < 1000 + midpointDuration) {
-          // Middle 10 seconds: 30-80%
-          const midpointElapsed = elapsed - 1000;
-          newProgress = 30 + (midpointElapsed / midpointDuration) * 50;
-        } else if (elapsed < animationDuration) {
-          // Last 4 seconds: 80-95%
-          const finalElapsed = elapsed - (1000 + midpointDuration);
-          const finalDuration = animationDuration - (1000 + midpointDuration);
-          newProgress = 80 + (finalElapsed / finalDuration) * 15;
-        } else {
-          // Cap at 95% until data is loaded
-          newProgress = 95;
-        }
-
-        setProgress(Math.min(newProgress, 95));
-      }, 50);
+      loader.start(); // Start loading bar animation
 
       // Mark all projects as loading
       setProjects(prev =>
@@ -200,25 +171,21 @@ export default function HomePage() {
         })
       );
 
-      // Clear interval and complete progress
-      clearInterval(progressInterval);
-      setProgress(100);
+      // Complete loading bar
+      loader.done();
 
-      // Small delay to show completed progress
-      setTimeout(() => {
-        setProjects(updatedProjects);
-        setIsLoading(false);
-        isLoadingRef.current = false;
-        setProgress(0);
-      }, 300);
+      // Update projects state
+      setProjects(updatedProjects);
+      setIsLoading(false);
+      isLoadingRef.current = false;
     } catch (err) {
       console.error('Error loading data:', err);
       setIsLoading(false);
       isLoadingRef.current = false;
-      setProgress(0);
+      loader.done(); // Complete loading bar even on error
       toast.error('Failed to load data. Please check your GitLab token.');
     }
-  }, [isInitialized, hasToken, projects]);
+  }, [isInitialized, hasToken, projects, loader]);
 
   // Load data for a specific project
   const loadProjectData = useCallback(
@@ -237,48 +204,17 @@ export default function HomePage() {
         // Set main loading state to true
         setIsLoading(true);
         isLoadingRef.current = true;
+        loader.start(); // Start loading bar animation
 
-        // Set up progress bar
-        setProgress(5); // Start with visible progress
-
-        // Start progress animation similar to loadAllData
-        const startTime = Date.now();
-        const animationDuration = 8000; // 8 seconds for single project load
-
-        const progressInterval = setInterval(() => {
-          const elapsed = Date.now() - startTime;
-          let newProgress = 0;
-
-          if (elapsed < 500) {
-            // First 0.5 second: 5-30%
-            newProgress = 5 + (elapsed / 500) * 25;
-          } else if (elapsed < 5000) {
-            // Next 4.5 seconds: 30-80%
-            const midpointElapsed = elapsed - 500;
-            newProgress = 30 + (midpointElapsed / 4500) * 50;
-          } else if (elapsed < animationDuration) {
-            // Last 3 seconds: 80-95%
-            const finalElapsed = elapsed - 5000;
-            newProgress = 80 + (finalElapsed / 3000) * 15;
-          } else {
-            newProgress = 95;
-          }
-
-          setProgress(Math.min(newProgress, 95));
-        }, 50);
-
-        // Mark project as loading
+        // Mark the specific project as loading
         setProjects(prev =>
           prev.map(p => (p.id === projectId ? { ...p, isLoading: true, error: null } : p))
         );
 
+        // Fetch data for this project
         const data = await fetchAnalytics(project.developers, project.id, project.path);
 
-        // Complete progress
-        clearInterval(progressInterval);
-        setProgress(100);
-
-        // Update project data after a small delay to show completed progress
+        // Set the updated project data
         setTimeout(() => {
           setProjects(prev =>
             prev.map(p =>
@@ -293,17 +229,16 @@ export default function HomePage() {
                 : p
             )
           );
-          setProgress(0);
+
           setIsLoading(false);
           isLoadingRef.current = false;
         }, 300);
+
+        // Complete loading bar
+        loader.done();
       } catch (err) {
         console.error(`Error loading data for project ${projectId}:`, err);
-
-        // Clear progress on error
-        setProgress(0);
-        setIsLoading(false);
-        isLoadingRef.current = false;
+        loader.done(); // Complete loading bar even on error
 
         setProjects(prev =>
           prev.map(p =>
@@ -316,12 +251,14 @@ export default function HomePage() {
               : p
           )
         );
-        toast.error(
-          `Failed to load data for ${projects[projectIndex].name}. Please check your GitLab token.`
-        );
+
+        toast.error(`Failed to load data for project ${project.name}.`);
+      } finally {
+        setIsLoading(false);
+        isLoadingRef.current = false;
       }
     },
-    [projects, isInitialized, hasToken]
+    [isInitialized, hasToken, projects, loader]
   );
 
   // Auto-refresh data every 5 minutes when enabled
@@ -367,7 +304,7 @@ export default function HomePage() {
     }
   }, [isInitialized, hasToken, loadAllData, projects.length]);
 
-  // Check if any project is loading
+  // Compute if any project is loading
   const anyProjectLoading = projects.some(project => project.isLoading);
 
   if (!isInitialized) {
@@ -413,7 +350,6 @@ export default function HomePage() {
 
   return (
     <>
-      <LoadingProgress isLoading={isLoading || anyProjectLoading} />
       <div className="fixed right-4 flex items-center gap-2">
         <ThemeToggle />
         <Button variant="ghost" size="icon" asChild>

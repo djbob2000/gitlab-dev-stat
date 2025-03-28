@@ -1,11 +1,11 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { encrypt, decrypt } from '@/src/lib/crypto';
 
 // GitLab API Error constants
 const GITLAB_API_ERROR = {
   MISSING_URL: 'GitLab base URL is not defined',
+  UNAUTHORIZED: 'Unauthorized or invalid token',
   UNKNOWN: 'Unknown GitLab API error',
 };
 
@@ -22,18 +22,16 @@ async function validateGitLabToken(token: string): Promise<boolean> {
       headers: { 'PRIVATE-TOKEN': token },
     });
 
-    if (!response.ok) {
-      const _errorData = await response.json().catch(() => ({ error: GITLAB_API_ERROR.UNKNOWN }));
-      return false;
-    }
-
-    return true;
+    return response.ok;
   } catch (_error) {
     return false;
   }
 }
 
-export async function validateAndSetToken(token: string) {
+/**
+ * Validates and stores a GitLab token in cookies
+ */
+export async function validateAndSetToken(token: string): Promise<{ success: boolean }> {
   try {
     const isValid = await validateGitLabToken(token);
 
@@ -41,16 +39,14 @@ export async function validateAndSetToken(token: string) {
       return { success: false };
     }
 
-    const encryptedToken = await encrypt(token);
-
-    // Set cookie on the server side
+    // Store token directly in cookie without encryption
     const cookieStore = await cookies();
-    cookieStore.set('gitlab-token', encryptedToken, {
+    cookieStore.set('gitlab-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 365, // 365 days
+      maxAge: 60 * 60 * 24 * 365, // 30 days
     });
 
     return { success: true };
@@ -59,23 +55,27 @@ export async function validateAndSetToken(token: string) {
   }
 }
 
-export async function removeToken() {
+/**
+ * Removes the GitLab token cookie
+ */
+export async function removeToken(): Promise<{ success: boolean }> {
   const cookieStore = await cookies();
   cookieStore.delete('gitlab-token');
   return { success: true };
 }
 
-export async function hasValidToken() {
+/**
+ * Checks if a valid token exists
+ */
+export async function hasValidToken(): Promise<{ hasToken: boolean }> {
   const cookieStore = await cookies();
-  const encryptedToken = cookieStore.get('gitlab-token')?.value;
+  const token = cookieStore.get('gitlab-token')?.value;
 
-  if (!encryptedToken) {
+  if (!token) {
     return { hasToken: false };
   }
 
   try {
-    const token = await decrypt(encryptedToken);
-
     const isValid = await validateGitLabToken(token);
 
     if (!isValid) {

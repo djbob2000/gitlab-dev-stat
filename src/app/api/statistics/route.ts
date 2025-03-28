@@ -32,34 +32,16 @@ export async function GET(request: Request) {
       );
     }
 
-    // Try to get token from the header or cookie
-    const headersList = await headers();
+    // Try to get token from the header
+    const headersList = headers();
+    const token = headersList.get('x-gitlab-token');
 
-    // Get the token from cookies if the header is just a flag
-    let encryptedToken = headersList.get('x-gitlab-token-encrypted');
-
-    if (encryptedToken === 'true') {
-      // If header is just the flag 'true', get the real token from cookies
-      const cookiesList = await headers();
-      const tokenCookie = cookiesList
-        .get('cookie')
-        ?.split(';')
-        .find(c => c.trim().startsWith('gitlab-token='));
-
-      if (tokenCookie) {
-        encryptedToken = decodeURIComponent(tokenCookie.split('=')[1]);
-      } else {
-        encryptedToken = null;
-      }
-    }
-
-    if (!encryptedToken) {
+    if (!token) {
+      console.error('API: No token found in headers');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
-      const token = await decrypt(encryptedToken);
-
       const { searchParams } = new URL(request.url);
       const validatedData = getStatisticsSchema.parse({
         usernames: searchParams.get('usernames'),
@@ -177,8 +159,8 @@ export async function GET(request: Request) {
 
       return NextResponse.json(issueStats);
     } catch (error) {
-      console.error('[API] Error decrypting token or fetching data:', error);
-      return NextResponse.json({ error: 'Invalid token or failed to fetch data' }, { status: 401 });
+      console.error('[API] Error fetching data:', error);
+      return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
     }
   } catch (error) {
     console.error('[API] Unhandled error:', error);

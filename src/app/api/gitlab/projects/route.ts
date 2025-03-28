@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { decrypt } from '@/src/lib/crypto';
 
 // GitLab API Error constants
 const GITLAB_API_ERROR = {
@@ -30,6 +29,12 @@ interface GitLabProject {
   visibility: string;
 }
 
+// API error response type
+interface ApiErrorResponse {
+  error: string;
+  detail?: string;
+}
+
 /**
  * Validates a GitLab token by making a request to the GitLab API
  */
@@ -43,12 +48,7 @@ async function validateGitLabToken(token: string): Promise<boolean> {
       headers: { 'PRIVATE-TOKEN': token },
     });
 
-    if (!response.ok) {
-      const _errorData = await response.json().catch(() => ({ error: GITLAB_API_ERROR.UNKNOWN }));
-      return false;
-    }
-
-    return true;
+    return response.ok;
   } catch (_error) {
     return false;
   }
@@ -78,7 +78,7 @@ async function fetchUserProjects(token: string): Promise<GitLabProject[]> {
 
     // Create AbortController for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 seconds timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
       const response = await fetch(url, {
@@ -127,29 +127,20 @@ type ApiResponse = {
   message: string;
 };
 
-type ApiErrorResponse = {
-  error: string;
-  detail?: string;
-};
-
 // Next.js 14/15 uses named exports for API routes
 export async function GET(_request: Request) {
   try {
-    // Get token from header
+    // Get token from header (added by middleware)
     const headersList = await headers();
-    const encryptedToken = headersList.get('x-gitlab-token-encrypted');
+    const token = headersList.get('X-GitLab-Token');
 
-    if (!encryptedToken) {
+    if (!token) {
       return NextResponse.json({ error: 'GitLab token is required' } as ApiErrorResponse, {
         status: 401,
       });
     }
 
     try {
-      // Decode token as it's URL-encoded in the cookie
-      const decodedToken = decodeURIComponent(encryptedToken);
-      const token = await decrypt(decodedToken);
-
       // Validate the token
       const isValid = await validateGitLabToken(token);
 

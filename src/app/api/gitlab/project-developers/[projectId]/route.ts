@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { decrypt } from '@/src/lib/crypto';
 
 // GitLab API Error constants
 const GITLAB_API_ERROR = {
@@ -20,12 +19,25 @@ interface GitLabDeveloper {
   expires_at: string | null;
 }
 
-// Define GitLab project type for name retrieval
+// Define the GitLab project type
 interface GitLabProject {
   id: number;
   name: string;
-  name_with_namespace: string;
   path_with_namespace: string;
+}
+
+// API response types
+interface ApiResponse {
+  developers: GitLabDeveloper[];
+  count: number;
+  message: string;
+  projectName: string;
+  projectPath: string;
+}
+
+interface ApiErrorResponse {
+  error: string;
+  detail?: string;
 }
 
 /**
@@ -41,12 +53,7 @@ async function validateGitLabToken(token: string): Promise<boolean> {
       headers: { 'PRIVATE-TOKEN': token },
     });
 
-    if (!response.ok) {
-      const _errorData = await response.json().catch(() => ({ error: GITLAB_API_ERROR.UNKNOWN }));
-      return false;
-    }
-
-    return true;
+    return response.ok;
   } catch (_error) {
     return false;
   }
@@ -91,74 +98,56 @@ async function fetchProjectMembers(
   const perPage = 100; // Maximum allowed by GitLab API
   let hasMorePages = true;
 
-  // Fetch all pages
   while (hasMorePages) {
     const url = `${process.env.GITLAB_BASE_URL}/api/v4/projects/${projectId}/members?page=${page}&per_page=${perPage}`;
 
-    const response = await fetch(url, {
-      headers: { 'PRIVATE-TOKEN': token },
-    });
+    try {
+      const response = await fetch(url, {
+        headers: { 'PRIVATE-TOKEN': token },
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: GITLAB_API_ERROR.UNKNOWN }));
-
-      if (response.status === 404) {
-        throw new Error(`Project with ID ${projectId} not found. Please check your project ID.`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: GITLAB_API_ERROR.UNKNOWN }));
+        throw new Error(`Failed to fetch members: ${errorData.message || 'Unknown error'}`);
       }
 
-      throw new Error(`Failed to fetch project members: ${errorData.message || 'Unknown error'}`);
-    }
+      const members = (await response.json()) as GitLabDeveloper[];
+      allMembers = [...allMembers, ...members];
 
-    // Get the current page of members
-    const members = (await response.json()) as GitLabDeveloper[];
-
-    // Add members to our result array
-    allMembers = [...allMembers, ...members];
-
-    // Check if we've reached the last page
-    if (members.length < perPage) {
+      // Check if we've reached the last page
+      if (members.length < perPage) {
+        hasMorePages = false;
+      } else {
+        page++;
+      }
+    } catch (error) {
+      console.error('Error fetching project members:', error);
       hasMorePages = false;
-    } else {
-      page++;
     }
   }
 
-  return { developers: allMembers, projectName, projectPath };
+  return {
+    developers: allMembers,
+    projectName,
+    projectPath,
+  };
 }
 
-type ApiResponse = {
-  developers: GitLabDeveloper[];
-  count: number;
-  message: string;
-  projectName?: string;
-  projectPath?: string;
-};
-
-type ApiErrorResponse = {
-  error: string;
-  detail?: string;
-};
-
-export async function GET(request: Request, context: { params: Promise<{ projectId: string }> }) {
-  const { projectId } = await context.params;
+export async function GET(request: Request, context: { params: { projectId: string } }) {
+  const projectId = context.params.projectId;
 
   try {
-    // Get token from header
+    // Get token from header (added by middleware)
     const headersList = await headers();
-    const encryptedToken = headersList.get('x-gitlab-token-encrypted');
+    const token = headersList.get('X-GitLab-Token');
 
-    if (!encryptedToken) {
+    if (!token) {
       return NextResponse.json({ error: 'GitLab token is required' } as ApiErrorResponse, {
         status: 401,
       });
     }
 
     try {
-      // Decrypt the token
-      // Decode token as it's URL-encoded in the cookie
-      const decodedToken = decodeURIComponent(encryptedToken);
-      const token = await decrypt(decodedToken);
-
       // Validate the token
       const isValid = await validateGitLabToken(token);
 
