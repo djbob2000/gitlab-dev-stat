@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
+import { createGitLabClient, IssueEvent } from '@/src/tasks/gitlab-api.task';
 import { decrypt } from '@/src/lib/crypto';
 import { headers } from 'next/headers';
 import { LABELS } from '@/src/constants/labels';
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     }
 
     // Try to get token from the header
-    const headersList = headers();
+    const headersList = await headers();
     const token = headersList.get('x-gitlab-token');
 
     if (!token) {
@@ -91,13 +91,20 @@ export async function GET(request: Request) {
               );
 
               let actionRequiredLabelTime: number | undefined = undefined;
+              let statusUpdateCommitCount: number | undefined = undefined;
 
+              // Only fetch label events if we actually need them
+              const needsLabelEvents =
+                actionRequiredLabels.length > 0 || mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT);
+
+              let labelEvents: IssueEvent[] = [];
+              if (needsLabelEvents) {
+                // Get label events for the MR
+                labelEvents = await gitlabClient.getMergeRequestLabelEvents(projectId, mr.iid);
+              }
+
+              // Calculate action required time
               if (actionRequiredLabels.length > 0) {
-                const labelEvents = await gitlabClient.getMergeRequestLabelEvents(
-                  projectId,
-                  mr.iid
-                );
-
                 let latestAddTime: number | undefined = undefined;
 
                 for (const label of actionRequiredLabels) {
@@ -121,12 +128,22 @@ export async function GET(request: Request) {
                 actionRequiredLabelTime = latestAddTime;
               }
 
+              // Calculate status-update-commit count
+              if (mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT)) {
+                const statusUpdateAddEvents = labelEvents.filter(
+                  event =>
+                    event.action === 'add' && event.label?.name === LABELS.STATUS_UPDATE_COMMIT
+                );
+                statusUpdateCommitCount = statusUpdateAddEvents.length;
+              }
+
               return {
                 mrIid: mr.iid,
                 labels: mr.labels,
                 url: `${process.env.GITLAB_BASE_URL}/${projectPath}/-/merge_requests/${mr.iid}`,
                 title: mr.title,
                 actionRequiredLabelTime,
+                statusUpdateCommitCount,
               };
             });
 

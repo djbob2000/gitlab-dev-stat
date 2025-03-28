@@ -75,3 +75,21 @@ export const getActionRequiredPriority = (mrLabels: MergeRequestLabels[] = []) =
 
   return null;
 };
+
+/**
+ * Gets the status-update-commit label info if present
+ */
+export const getStatusUpdateCommitInfo = (mr: MergeRequestLabels) => {
+  if (!mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT)) {
+    return null;
+  }
+
+  return {
+    label: LABELS.STATUS_UPDATE_COMMIT,
+    color: mrLabelColors[LABELS.STATUS_UPDATE_COMMIT],
+    count: mr.statusUpdateCommitCount || 0,
+    mrIid: mr.mrIid,
+    url: mr.url,
+    title: mr.title,
+  };
+};

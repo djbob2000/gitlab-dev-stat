@@ -5,7 +5,12 @@ import { formatDuration, formatHoursAndMinutes } from '@/src/tasks/time-calculat
 import type { IssueStatistics } from '@/src/types/types';
 import { LabelPill } from './label-pill';
 import { priorityColors, statusColors, mrLabelColors } from './color-config';
-import { getPriority, getStatusPriority, getActionRequiredPriority } from './label-utils';
+import {
+  getPriority,
+  getStatusPriority,
+  getActionRequiredPriority,
+  getStatusUpdateCommitInfo,
+} from './label-utils';
 import { LABELS, LabelType } from '@/src/constants/labels';
 
 /**
@@ -132,13 +137,29 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                 </a>
                 <span className="text-xs text-gray-500">:</span>
                 <div className="flex gap-1 flex-wrap">
-                  {filteredLabels.map((label, index) => (
-                    <LabelPill
-                      key={index}
-                      text={label}
-                      colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'}
-                    />
-                  ))}
+                  {filteredLabels.map((label, index) => {
+                    // Проверяем, является ли это меткой status-update-commit
+                    if (label === LABELS.STATUS_UPDATE_COMMIT) {
+                      const statusInfo = getStatusUpdateCommitInfo(mr);
+                      return (
+                        <LabelPill
+                          key={index}
+                          text={label}
+                          colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'}
+                          count={statusInfo?.count}
+                        />
+                      );
+                    }
+
+                    // Обычные метки без счётчика
+                    return (
+                      <LabelPill
+                        key={index}
+                        text={label}
+                        colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             );

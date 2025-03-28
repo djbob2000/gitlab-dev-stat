@@ -40,6 +40,7 @@ export interface MergeRequestLabels {
   url: string;
   title: string;
   actionRequiredLabelTime?: number; // Time when any action-required label was added
+  statusUpdateCommitCount?: number; // Count of how many times the status-update-commit label was applied
 }
 
 export interface IssueStatistics {
