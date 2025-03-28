@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -13,7 +13,6 @@ import { toast } from 'sonner';
 import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
 import { Button } from '@/src/components/ui/button';
 import { ProjectCard } from '@/src/components/project-card';
-import { fetchWithToken } from '@/src/lib/api';
 import { useTopLoader } from 'nextjs-toploader';
 
 interface GitLabProject {
@@ -65,89 +64,17 @@ export default function ProjectsPage() {
   const [selectedDevelopers, setSelectedDevelopers] = useState<Record<number, GitLabDeveloper[]>>(
     {}
   );
-
-  // Refs to prevent extra renders and track fetch state
-  const hasInitialized = useRef(false);
-  const isLoadingRef = useRef(false);
-  const hasFetchedProjects = useRef(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Hooks
   const { hasToken, isInitialized: isTokenInitialized } = useGitLabToken();
   const router = useRouter();
   const loader = useTopLoader();
 
-  // Fetch projects function - will be called manually
-  const fetchProjects = useCallback(async () => {
-    // Prevent concurrent fetches
-    if (isLoadingRef.current) {
-      console.warn('Already loading projects, skipping fetch');
-      return;
-    }
-
-    console.log('Starting to fetch projects');
-    setIsLoading(true);
-    isLoadingRef.current = true;
-    setErrorMsg(null);
-    loader.start();
-
-    try {
-      const url = `${window.location.origin}/api/gitlab/projects`;
-      console.log('Fetching from URL:', url);
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      const response = await fetch(url, {
-        credentials: 'same-origin', // Include cookies in the request
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        console.error('API response not OK:', response.status, response.statusText);
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('Received data:', data);
-
-      if (data && Array.isArray(data.projects)) {
-        console.log(`Found ${data.projects.length} projects`);
-        const projectsWithSelection = data.projects.map((project: GitLabProject) => ({
-          ...project,
-          selected: !!selectedProjects[project.id],
-        }));
-        setProjects(projectsWithSelection);
-        hasFetchedProjects.current = true;
-      } else {
-        console.error('Invalid response format:', data);
-        throw new Error('Invalid response format, missing projects array');
-      }
-    } catch (error) {
-      console.error('Failed to fetch projects:', error);
-      setErrorMsg(error instanceof Error ? error.message : String(error));
-
-      if (error instanceof Error && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
-      } else {
-        toast.error(
-          'Failed to load projects. Please check your GitLab token and network connection.'
-        );
-      }
-    } finally {
-      setIsLoading(false);
-      isLoadingRef.current = false;
-      loader.done();
-    }
-  }, [loader, selectedProjects]);
-
-  // Single initialization effect - run once
+  // Initialize data from localStorage
   useEffect(() => {
-    if (hasInitialized.current) return;
-    hasInitialized.current = true;
+    if (isInitialized) return;
 
-    // Initialize from localStorage
     try {
       // Load selected projects
       const savedProjects = localStorage.getItem('selectedProjects');
@@ -177,31 +104,79 @@ export default function ProjectsPage() {
       }
 
       setSelectedDevelopers(devsByProject);
+      setIsInitialized(true);
+
+      // Redirect if no token after initialization
+      if (isTokenInitialized && !hasToken) {
+        router.push('/settings');
+      }
     } catch (error) {
       console.error('Error initializing from localStorage:', error);
-    }
-  }, []);
-
-  // Trigger fetch after initialization
-  useEffect(() => {
-    // Only run once after component is fully mounted
-    if (isTokenInitialized && hasToken && !hasFetchedProjects.current) {
-      console.log('Setting up delayed fetch');
-      const timer = setTimeout(() => {
-        console.log('Executing delayed fetch');
-        fetchProjects();
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isTokenInitialized, hasToken, fetchProjects]);
-
-  // Redirect if no token
-  useEffect(() => {
-    if (isTokenInitialized && !hasToken) {
-      router.push('/settings');
+      setIsInitialized(true);
     }
   }, [isTokenInitialized, hasToken, router]);
+
+  // Fetch projects function
+  const fetchProjects = useCallback(async () => {
+    if (isLoading) {
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMsg(null);
+    loader.start();
+
+    try {
+      const url = `${window.location.origin}/api/gitlab/projects`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      const response = await fetch(url, {
+        credentials: 'same-origin',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data && Array.isArray(data.projects)) {
+        const projectsWithSelection = data.projects.map((project: GitLabProject) => ({
+          ...project,
+          selected: !!selectedProjects[project.id],
+        }));
+        setProjects(projectsWithSelection);
+      } else {
+        throw new Error('Invalid response format, missing projects array');
+      }
+    } catch (error) {
+      console.error('Failed to fetch projects:', error);
+      setErrorMsg(error instanceof Error ? error.message : String(error));
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        toast.error('Request timed out. Please try again.');
+      } else {
+        toast.error(
+          'Failed to load projects. Please check your GitLab token and network connection.'
+        );
+      }
+    } finally {
+      setIsLoading(false);
+      loader.done();
+    }
+  }, [isLoading, loader, selectedProjects]);
+
+  // Fetch projects when token is initialized and user has a token
+  useEffect(() => {
+    if (isInitialized && isTokenInitialized && hasToken && projects.length === 0 && !isLoading) {
+      fetchProjects();
+    }
+  }, [isInitialized, isTokenInitialized, hasToken, fetchProjects, projects.length, isLoading]);
 
   // Toggle project selection
   const toggleProjectSelection = useCallback((projectId: number) => {
@@ -214,21 +189,17 @@ export default function ProjectsPage() {
       // Save to localStorage
       localStorage.setItem('selectedProjects', JSON.stringify(newSelectedProjects));
 
+      // Update projects directly instead of using a separate effect
+      setProjects(currentProjects =>
+        currentProjects.map(project => ({
+          ...project,
+          selected: project.id === projectId ? !prev[projectId] : !!prev[project.id],
+        }))
+      );
+
       return newSelectedProjects;
     });
   }, []);
-
-  // Update projects selected state when selectedProjects changes
-  useEffect(() => {
-    if (projects.length > 0) {
-      setProjects(prev =>
-        prev.map(project => ({
-          ...project,
-          selected: !!selectedProjects[project.id],
-        }))
-      );
-    }
-  }, [selectedProjects, projects.length]);
 
   // Navigate to project developers page
   const goToProjectDevelopers = useCallback(
@@ -245,7 +216,7 @@ export default function ProjectsPage() {
   );
 
   // Render loading state
-  if (!hasInitialized.current || !isTokenInitialized) {
+  if (!isInitialized || !isTokenInitialized) {
     return (
       <div className="container py-8">
         <h1 className="text-3xl font-bold mb-6">Your GitLab Projects</h1>
