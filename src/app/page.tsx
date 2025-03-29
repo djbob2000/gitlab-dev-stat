@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { DataTable } from '@/src/components/common/data-table';
 import { columns } from '@/src/components/common/columns';
 import type { IssueStatistics } from '@/src/types/types';
@@ -12,7 +12,10 @@ import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
 import { useTopLoader } from 'nextjs-toploader';
 import { fetchWithToken } from '@/src/lib/api';
 import { toast } from 'sonner';
+import { cn } from '@/src/lib/utils';
+import { RefreshControls } from '@/src/components/common/refresh-controls';
 
+// Типы
 interface ProjectData {
   id: number;
   name: string;
@@ -24,6 +27,7 @@ interface ProjectData {
   lastUpdated?: Date;
 }
 
+// Выделенная функция API запроса
 async function fetchAnalytics(
   developers: { userId: number; username: string }[],
   projectId: number,
@@ -53,7 +57,11 @@ async function fetchAnalytics(
   return fetchWithToken(`/api/statistics?${params.toString()}`);
 }
 
+/**
+ * Главная страница приложения
+ */
 export default function HomePage() {
+  // Глобальное состояние и хуки
   const { hasToken, isInitialized } = useGitLabToken();
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [lastActionRequiredUpdate, setLastActionRequiredUpdate] = useState<Date>(new Date());
@@ -62,37 +70,38 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const loader = useTopLoader();
 
-  // Use refs to track state without causing re-renders
+  // Refs для предотвращения гонок состояний
   const isLoadingRef = useRef(false);
   const hasLoadedInitialData = useRef(false);
-  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update the actionRequiredTime every minute
+  // Ref для управления автообновлением
+  const autoRefreshState = useRef({
+    isEnabled: false,
+    timerId: null as NodeJS.Timeout | null,
+    nextRefreshTime: null as Date | null,
+  });
+
+  // Обновляем время для проверки действий каждую минуту
   useEffect(() => {
     const interval = setInterval(() => {
       setLastActionRequiredUpdate(new Date());
-    }, 60000); // Update every minute
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Load all projects that have tracked developers
+  // Загрузка проектов с отслеживаемыми разработчиками
   useEffect(() => {
     if (!isInitialized || !hasToken) return;
 
-    // Get all project IDs from localStorage
-    const projectIds: number[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('selected-developers-')) {
-        const projectId = parseInt(key.replace('selected-developers-', ''), 10);
-        if (!isNaN(projectId)) {
-          projectIds.push(projectId);
-        }
-      }
-    }
+    // Получаем ID проектов из localStorage
+    const projectIds = Array.from({ length: localStorage.length })
+      .map((_, i) => localStorage.key(i))
+      .filter(key => key?.startsWith('selected-developers-'))
+      .map(key => parseInt(key!.replace('selected-developers-', ''), 10))
+      .filter(id => !isNaN(id));
 
-    // Initialize projects array with empty data
+    // Инициализируем проекты с пустыми данными
     const initialProjects = projectIds.map(id => {
       const projectName = localStorage.getItem(`project-name-${id}`) || `Project ${id}`;
       const projectPath =
@@ -120,26 +129,20 @@ export default function HomePage() {
     setProjects(initialProjects.filter(p => p.developers.length > 0));
   }, [isInitialized, hasToken]);
 
-  // Load data for all projects
+  // Загрузка данных для всех проектов
   const loadAllData = useCallback(async () => {
-    // Use the ref to prevent concurrent loading
-    if (!isInitialized || !hasToken || isLoadingRef.current) {
-      console.warn('Skipping loadAllData due to conditions:', {
-        isInitialized,
-        hasToken,
-        isLoading: isLoadingRef.current,
-        projectsLength: projects.length,
-      });
+    // Предотвращаем параллельную загрузку
+    if (!isInitialized || !hasToken || isLoadingRef.current || projects.length === 0) {
       return;
     }
 
     try {
-      console.warn('Starting data load for all projects');
+      // Устанавливаем статус загрузки
       setIsLoading(true);
       isLoadingRef.current = true;
-      loader.start(); // Start loading bar animation
+      loader.start();
 
-      // Mark all projects as loading
+      // Помечаем все проекты как загружающиеся
       setProjects(prev =>
         prev.map(project => ({
           ...project,
@@ -148,7 +151,7 @@ export default function HomePage() {
         }))
       );
 
-      // Fetch data for each project in parallel
+      // Параллельно загружаем данные для каждого проекта
       const updatedProjects = await Promise.all(
         projects.map(async project => {
           try {
@@ -161,7 +164,6 @@ export default function HomePage() {
               error: null,
             };
           } catch (err) {
-            console.error(`Error loading data for project ${project.id}:`, err);
             return {
               ...project,
               isLoading: false,
@@ -171,23 +173,18 @@ export default function HomePage() {
         })
       );
 
-      // Complete loading bar
+      // Завершаем загрузку
       loader.done();
-
-      // Update projects state
       setProjects(updatedProjects);
-      setIsLoading(false);
-      isLoadingRef.current = false;
     } catch (err) {
-      console.error('Error loading data:', err);
+      toast.error('Failed to load data. Please check your GitLab token.');
+    } finally {
       setIsLoading(false);
       isLoadingRef.current = false;
-      loader.done(); // Complete loading bar even on error
-      toast.error('Failed to load data. Please check your GitLab token.');
     }
-  }, [isInitialized, hasToken, projects, loader]);
+  }, [isInitialized, hasToken, loader, projects]);
 
-  // Load data for a specific project
+  // Загрузка данных для конкретного проекта
   const loadProjectData = useCallback(
     async (projectId: number) => {
       if (!isInitialized || !hasToken || isLoadingRef.current) return;
@@ -199,47 +196,37 @@ export default function HomePage() {
       if (project.isLoading) return;
 
       try {
-        console.warn(`Starting data load for project ${projectId}`);
-
-        // Set main loading state to true
+        // Устанавливаем загрузку
         setIsLoading(true);
         isLoadingRef.current = true;
-        loader.start(); // Start loading bar animation
+        loader.start();
 
-        // Mark the specific project as loading
+        // Помечаем проект как загружающийся
         setProjects(prev =>
           prev.map(p => (p.id === projectId ? { ...p, isLoading: true, error: null } : p))
         );
 
-        // Fetch data for this project
+        // Загружаем данные
         const data = await fetchAnalytics(project.developers, project.id, project.path);
 
-        // Set the updated project data
-        setTimeout(() => {
-          setProjects(prev =>
-            prev.map(p =>
-              p.id === projectId
-                ? {
-                    ...p,
-                    data,
-                    isLoading: false,
-                    lastUpdated: new Date(),
-                    error: null,
-                  }
-                : p
-            )
-          );
+        // Обновляем данные проекта
+        setProjects(prev =>
+          prev.map(p =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  data,
+                  isLoading: false,
+                  lastUpdated: new Date(),
+                  error: null,
+                }
+              : p
+          )
+        );
 
-          setIsLoading(false);
-          isLoadingRef.current = false;
-        }, 300);
-
-        // Complete loading bar
         loader.done();
       } catch (err) {
-        console.error(`Error loading data for project ${projectId}:`, err);
-        loader.done(); // Complete loading bar even on error
-
+        loader.done();
         setProjects(prev =>
           prev.map(p =>
             p.id === projectId
@@ -251,7 +238,6 @@ export default function HomePage() {
               : p
           )
         );
-
         toast.error(`Failed to load data for project ${project.name}.`);
       } finally {
         setIsLoading(false);
@@ -261,32 +247,107 @@ export default function HomePage() {
     [isInitialized, hasToken, projects, loader]
   );
 
-  // Auto-refresh data every 5 minutes when enabled
-  useEffect(() => {
-    if (autoRefresh && !refreshTimerRef.current && !isLoadingRef.current) {
-      const nextRefresh = new Date();
-      nextRefresh.setMinutes(nextRefresh.getMinutes() + 5);
+  // Обработчик изменения состояния автообновления
+  const handleAutoRefreshChange = useCallback((enabled: boolean) => {
+    if (enabled === autoRefreshState.current.isEnabled) return;
+
+    if (enabled) {
+      // Включаем автообновление
+      const nextRefresh = new Date(Date.now() + 5 * 60 * 1000);
+
+      // Обновляем состояние
+      autoRefreshState.current.nextRefreshTime = nextRefresh;
       setNextAutoRefresh(nextRefresh);
-      console.warn(`Auto-refresh scheduled for ${nextRefresh.toLocaleTimeString()}`);
 
-      const timeUntilRefresh = nextRefresh.getTime() - new Date().getTime();
+      // Обновляем флаг после установки времени
+      autoRefreshState.current.isEnabled = true;
+      setAutoRefresh(true);
 
-      refreshTimerRef.current = setTimeout(() => {
-        console.warn('Auto-refresh timer triggered');
-        loadAllData();
-      }, timeUntilRefresh);
+      // Планируем обновление
+      scheduleNextRefresh();
+    } else {
+      // Выключаем автообновление
+      autoRefreshState.current.isEnabled = false;
+      setAutoRefresh(false);
 
-      return () => {
-        console.warn('Clearing auto-refresh timer');
-        if (refreshTimerRef.current) {
-          clearTimeout(refreshTimerRef.current);
-          refreshTimerRef.current = null;
-        }
-      };
+      // Очищаем таймер
+      if (autoRefreshState.current.timerId) {
+        clearTimeout(autoRefreshState.current.timerId);
+        autoRefreshState.current.timerId = null;
+      }
+
+      // Очищаем время
+      autoRefreshState.current.nextRefreshTime = null;
+      setNextAutoRefresh(null);
     }
-  }, [autoRefresh, isInitialized, hasToken, loadAllData, projects.length]);
+  }, []);
 
-  // Load data when the app first loads
+  // Функция планирования следующего обновления
+  const scheduleNextRefresh = useCallback(() => {
+    // Очищаем предыдущий таймер
+    if (autoRefreshState.current.timerId) {
+      clearTimeout(autoRefreshState.current.timerId);
+      autoRefreshState.current.timerId = null;
+    }
+
+    // Если автообновление выключено, выходим
+    if (!autoRefreshState.current.isEnabled) return;
+
+    // Устанавливаем время следующего обновления если не задано
+    if (!autoRefreshState.current.nextRefreshTime) {
+      const nextRefresh = new Date(Date.now() + 5 * 60 * 1000);
+      autoRefreshState.current.nextRefreshTime = nextRefresh;
+      setNextAutoRefresh(nextRefresh);
+    }
+
+    // Вычисляем оставшееся время
+    const timeUntilRefresh = autoRefreshState.current.nextRefreshTime.getTime() - Date.now();
+
+    // Если времени не осталось, обновляем сейчас
+    if (timeUntilRefresh <= 1000) {
+      if (autoRefreshState.current.isEnabled && !isLoadingRef.current) {
+        loadAllData().finally(() => {
+          autoRefreshState.current.nextRefreshTime = null;
+          if (autoRefreshState.current.isEnabled) {
+            scheduleNextRefresh();
+          }
+        });
+      }
+      return;
+    }
+
+    // Устанавливаем таймер
+    autoRefreshState.current.timerId = setTimeout(() => {
+      autoRefreshState.current.timerId = null;
+
+      if (autoRefreshState.current.isEnabled && !isLoadingRef.current) {
+        loadAllData().finally(() => {
+          autoRefreshState.current.nextRefreshTime = null;
+          if (autoRefreshState.current.isEnabled) {
+            scheduleNextRefresh();
+          }
+        });
+      }
+    }, timeUntilRefresh);
+  }, [loadAllData]);
+
+  // Синхронизация состояния автообновления при монтировании
+  useEffect(() => {
+    autoRefreshState.current.isEnabled = autoRefresh;
+
+    if (autoRefresh && !autoRefreshState.current.timerId && !isLoadingRef.current) {
+      scheduleNextRefresh();
+    }
+
+    return () => {
+      if (autoRefreshState.current.timerId) {
+        clearTimeout(autoRefreshState.current.timerId);
+        autoRefreshState.current.timerId = null;
+      }
+    };
+  }, [autoRefresh, scheduleNextRefresh]);
+
+  // Первоначальная загрузка данных
   useEffect(() => {
     if (
       isInitialized &&
@@ -295,18 +356,35 @@ export default function HomePage() {
       !isLoadingRef.current &&
       !hasLoadedInitialData.current
     ) {
-      console.warn('Initial data load triggered with projects:', projects.length);
       hasLoadedInitialData.current = true;
-      // Small delay to ensure UI is ready
-      setTimeout(() => {
-        loadAllData();
-      }, 500);
+      // Небольшая задержка для готовности UI
+      setTimeout(loadAllData, 500);
     }
   }, [isInitialized, hasToken, loadAllData, projects.length]);
 
-  // Compute if any project is loading
-  const anyProjectLoading = projects.some(project => project.isLoading);
+  // Определяем, загружается ли какой-либо проект
+  const anyProjectLoading = useMemo(() => projects.some(project => project.isLoading), [projects]);
 
+  // Мемоизация списка проектов для предотвращения перерисовок
+  const projectsList = useMemo(() => {
+    return projects.map(project => (
+      <div key={project.id} className="mb-10">
+        <DataTable
+          columns={columns}
+          data={project.data}
+          error={project.error}
+          onRefresh={() => loadProjectData(project.id)}
+          lastUpdated={project.lastUpdated}
+          actionRequiredUpdateTime={lastActionRequiredUpdate}
+          isLoading={project.isLoading}
+          tableId={`project-${project.id}`}
+          projectName={project.name}
+        />
+      </div>
+    ));
+  }, [projects, columns, lastActionRequiredUpdate, loadProjectData]);
+
+  // Пока не инициализированы, показываем загрузку
   if (!isInitialized) {
     return (
       <div className="container py-10">
@@ -317,6 +395,7 @@ export default function HomePage() {
     );
   }
 
+  // Если нет токена, просим добавить
   if (!hasToken) {
     return (
       <div className="container py-10">
@@ -332,6 +411,7 @@ export default function HomePage() {
     );
   }
 
+  // Если нет проектов, предлагаем добавить
   if (projects.length === 0) {
     return (
       <div className="container py-10">
@@ -348,9 +428,17 @@ export default function HomePage() {
     );
   }
 
+  // Основной контент
   return (
     <>
-      <div className="fixed right-4 flex items-center gap-2">
+      <div className="flex justify-end items-center p-4 gap-2">
+        <RefreshControls
+          isLoading={anyProjectLoading}
+          autoRefresh={autoRefresh}
+          nextRefreshTime={nextAutoRefresh}
+          onRefresh={loadAllData}
+          onAutoRefreshChange={handleAutoRefreshChange}
+        />
         <ThemeToggle />
         <Button variant="ghost" size="icon" asChild>
           <Link href="/projects">
@@ -365,26 +453,7 @@ export default function HomePage() {
           </Link>
         </Button>
       </div>
-      <div className="container py-10">
-        {projects.map(project => (
-          <div key={project.id} className="mb-10">
-            <DataTable
-              columns={columns}
-              data={project.data}
-              error={project.error}
-              onRefresh={() => loadProjectData(project.id)}
-              lastUpdated={project.lastUpdated}
-              actionRequiredUpdateTime={lastActionRequiredUpdate}
-              isLoading={project.isLoading}
-              autoRefresh={autoRefresh}
-              onAutoRefreshChange={setAutoRefresh}
-              nextRefreshTime={nextAutoRefresh}
-              tableId={`project-${project.id}`}
-              projectName={project.name}
-            />
-          </div>
-        ))}
-      </div>
+      <div className="container py-10">{projectsList}</div>
     </>
   );
 }
