@@ -1,97 +1,67 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 
+const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000;
+
 /**
- * Custom hook for handling auto-refresh functionality
+ * Custom hook for handling auto-refresh functionality with 5-minute intervals
  */
 export function useAutoRefresh(onRefresh: () => Promise<void>, isLoading: boolean) {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [nextAutoRefresh, setNextAutoRefresh] = useState<Date | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Handle auto-refresh state change
-  const handleAutoRefreshChange = useCallback(
-    (enabled: boolean) => {
-      if (enabled === autoRefresh) return;
+  // Toggle auto-refresh state
+  const handleAutoRefreshChange = useCallback((enabled: boolean) => {
+    setAutoRefresh(enabled);
+  }, []);
 
-      setAutoRefresh(enabled);
-
-      if (enabled) {
-        // Set next refresh time
-        const nextRefresh = new Date(Date.now() + 5 * 60 * 1000);
-        setNextAutoRefresh(nextRefresh);
-      } else {
-        // Clear timer and refresh time
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
-          timerRef.current = null;
-        }
-        setNextAutoRefresh(null);
-      }
-    },
-    [autoRefresh]
-  );
-
-  // Function to schedule next refresh
-  const scheduleNextRefresh = useCallback(() => {
+  // Main effect handling the auto-refresh logic
+  useEffect(() => {
+    // Clear any existing timer
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
 
-    if (!autoRefresh) return;
-
-    // Set next refresh time if not set
-    if (!nextAutoRefresh) {
-      const nextRefresh = new Date(Date.now() + 5 * 60 * 1000);
-      setNextAutoRefresh(nextRefresh);
-    }
-
-    // Calculate time until refresh
-    const timeUntilRefresh = nextAutoRefresh
-      ? nextAutoRefresh.getTime() - Date.now()
-      : 5 * 60 * 1000;
-
-    // If time is up, refresh now
-    if (timeUntilRefresh <= 1000) {
-      if (autoRefresh && !isLoading) {
-        onRefresh().finally(() => {
-          setNextAutoRefresh(null);
-          if (autoRefresh) {
-            scheduleNextRefresh();
-          }
-        });
-      }
+    // If auto-refresh is disabled, clear next refresh time and return
+    if (!autoRefresh) {
+      setNextAutoRefresh(null);
       return;
     }
 
-    // Set timer
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-
-      if (autoRefresh && !isLoading) {
-        onRefresh().finally(() => {
-          setNextAutoRefresh(null);
-          if (autoRefresh) {
-            scheduleNextRefresh();
-          }
-        });
-      }
-    }, timeUntilRefresh);
-  }, [autoRefresh, nextAutoRefresh, isLoading, onRefresh]);
-
-  // Handle auto-refresh effect
-  useEffect(() => {
-    if (autoRefresh && !timerRef.current && !isLoading) {
-      scheduleNextRefresh();
+    // Set initial next refresh time if not already set
+    if (!nextAutoRefresh) {
+      setNextAutoRefresh(new Date(Date.now() + AUTO_REFRESH_INTERVAL));
     }
 
+    // Schedule refresh
+    const timeUntilRefresh = nextAutoRefresh
+      ? Math.max(nextAutoRefresh.getTime() - Date.now(), 0)
+      : AUTO_REFRESH_INTERVAL;
+
+    timerRef.current = setTimeout(async () => {
+      // Only refresh if not already loading
+      if (!isLoading) {
+        try {
+          await onRefresh();
+        } finally {
+          // Set next refresh time after current refresh completes
+          setNextAutoRefresh(new Date(Date.now() + AUTO_REFRESH_INTERVAL));
+        }
+      } else {
+        // If we're loading, just update the next refresh time
+        setNextAutoRefresh(new Date(Date.now() + AUTO_REFRESH_INTERVAL));
+      }
+    }, timeUntilRefresh);
+
+    // Clean up on unmount or when dependencies change
     return () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
     };
-  }, [autoRefresh, scheduleNextRefresh, isLoading]);
+  }, [autoRefresh, nextAutoRefresh, isLoading, onRefresh]);
 
   return { autoRefresh, nextAutoRefresh, handleAutoRefreshChange };
 }
