@@ -125,6 +125,11 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                 ? 'text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 font-bold'
                 : 'text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200';
 
+            // Check if MR title starts with the issue number
+            const issueNumber = row.original.iid;
+            const mrTitlePrefix = mr.title ? mr.title.match(/^(\d+)/)?.[1] : null;
+            const mrNumberMismatch = mrTitlePrefix && mrTitlePrefix !== issueNumber.toString();
+
             return (
               <div key={mr.mrIid} className="flex gap-1 items-center">
                 <a
@@ -133,6 +138,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                   rel="noopener noreferrer"
                   className={mrNumberClass}
                 >
+                  {mrNumberMismatch ? '?' : ''}
                   {mr.mrIid}
                 </a>
                 <span className="text-xs text-gray-500">:</span>
