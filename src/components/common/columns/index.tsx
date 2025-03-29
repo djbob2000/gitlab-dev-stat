@@ -141,12 +141,14 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                     // Проверяем, является ли это меткой status-update-commit
                     if (label === LABELS.STATUS_UPDATE_COMMIT) {
                       const statusInfo = getStatusUpdateCommitInfo(mr);
+                      const count = statusInfo?.count || 0;
                       return (
                         <LabelPill
                           key={index}
-                          text={label}
+                          //cut the last 10 characters status-update-commit
+                          text={label.slice(0, -10)}
                           colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'}
-                          count={statusInfo?.count}
+                          count={count >= 2 ? count : undefined}
                         />
                       );
                     }

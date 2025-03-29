@@ -19,6 +19,7 @@ export const LABELS = {
   NOT_READY: 'not-ready',
   QA_PRE_CHECK: 'qa-pre-check',
   STATUS_UPDATE_COMMIT: 'status-update-commit',
+  TEST: 'test',
 } as const;
 
 export type LabelType = (typeof LABELS)[keyof typeof LABELS];
