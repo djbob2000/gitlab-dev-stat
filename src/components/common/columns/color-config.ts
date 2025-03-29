@@ -4,14 +4,15 @@
 import { LABELS } from '@/src/constants/labels';
 
 export const priorityColors: Record<string, string> = {
-  p1: 'bg-[#db3b21] text-white',
-  p2: 'bg-[#cc338b] text-white',
-  p3: 'bg-[#fc9403] text-black',
-  p4: 'bg-[#f4c404] text-black',
-  p5: 'bg-[#1f7e23] text-white',
-  p6: 'bg-[#2da160] text-white',
-  p7: 'bg-[#2da160] text-white',
-  p8: 'bg-[#aaaaaa] text-black',
+  p1: 'bg-[#FF0000] text-white',
+  p2: 'bg-[#D10069] text-white',
+  p3: 'bg-[#FACC15] text-black',
+  p4: 'bg-[#FEF08A] text-black',
+  p5: 'bg-[#0f766e] text-white',
+  p6: 'bg-[#2dd4bf] text-black',
+  p7: 'bg-[#99f6e4] text-black',
+  p8: 'bg-[#dcfce7] text-black',
+  p9: 'bg-[#f0fdf4] text-black',
 };
 
 export const statusColors: Record<string, string> = {
