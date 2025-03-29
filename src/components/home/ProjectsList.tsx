@@ -1,5 +1,5 @@
 import React from 'react';
-import { DataTable } from '@/src/components/common/data-table';
+import { DataTable } from '@/src/components/common/data-table/index';
 import { columns } from '@/src/components/common/columns';
 import { ProjectData, PROJECT_TABLE_ID_PREFIX } from '@/src/types/project-types';
 
