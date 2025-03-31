@@ -102,17 +102,29 @@ export const createGitLabClient = ({
     }
 
     const url = `${baseUrl}/api/v4${endpoint}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    const response = await fetch(url, {
-      headers: {
-        'PRIVATE-TOKEN': token,
-      },
-    });
 
-    if (!response.ok) {
-      throw new Error(`GitLab API error: ${response.status} ${response.statusText}`);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(url, {
+        headers: {
+          'PRIVATE-TOKEN': token,
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`GitLab API error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw error;
     }
-
-    return response.json();
   };
 
   const getIssueEvents = async (projectId: number, issueIid: number): Promise<IssueEvent[]> => {
@@ -257,14 +269,33 @@ export const createGitLabClient = ({
    * Limited to a maximum of 8 working hours per day
    */
   const calculateWorkingTime = (startDate: Date, endDate: Date): number => {
+    // Check for valid dates
+    if (startDate > endDate) {
+      return 0;
+    }
+
     let totalMinutes = 0;
     const currentDate = new Date(startDate);
     const endDay = new Date(endDate);
 
+    // Normalize the end date to end of day
+    endDay.setUTCHours(23, 59, 59, 999);
+
+    // Infinite loop protection - maximum 365 days
+    const maxDays = 365;
+    let daysProcessed = 0;
+
     while (currentDate.getTime() <= endDay.getTime()) {
+      // Protection against infinite loop
+      daysProcessed++;
+      if (daysProcessed > maxDays) {
+        break;
+      }
+
       const isWeekendDay = isWeekend(currentDate);
 
       if (isWeekendDay) {
+        // Important: increment date by 1 day and reset time
         currentDate.setDate(currentDate.getDate() + 1);
         currentDate.setUTCHours(0, 0, 0, 0);
         continue;
@@ -280,9 +311,9 @@ export const createGitLabClient = ({
 
       let dayEnd;
       if (
-        currentDate.getFullYear() === endDay.getFullYear() &&
-        currentDate.getMonth() === endDay.getMonth() &&
-        currentDate.getDate() === endDay.getDate()
+        currentDate.getUTCFullYear() === endDay.getUTCFullYear() &&
+        currentDate.getUTCMonth() === endDay.getUTCMonth() &&
+        currentDate.getUTCDate() === endDay.getUTCDate()
       ) {
         dayEnd = new Date(endDate);
       } else {
@@ -290,14 +321,20 @@ export const createGitLabClient = ({
         dayEnd.setUTCHours(WORK_END_HOUR_UTC, 0, 0, 0);
       }
 
-      // Calculate minutes for this day
       const dayMinutes = getWorkingMinutesInDay(dayStart, dayEnd);
-
-      // Cap the daily minutes to MAX_WORKING_HOURS_PER_DAY (in minutes)
       totalMinutes += Math.min(dayMinutes, MAX_WORKING_HOURS_PER_DAY * 60);
 
-      currentDate.setDate(currentDate.getDate() + 1);
-      currentDate.setUTCHours(0, 0, 0, 0);
+      // Important: correctly increment date to the next day
+      const nextDate = new Date(currentDate);
+      nextDate.setDate(nextDate.getDate() + 1);
+      nextDate.setUTCHours(0, 0, 0, 0);
+
+      // Check that the date actually changed
+      if (nextDate.getTime() === currentDate.getTime()) {
+        break;
+      }
+
+      currentDate.setTime(nextDate.getTime());
     }
 
     return totalMinutes * 60 * 1000;
@@ -313,8 +350,6 @@ export const createGitLabClient = ({
     let activeTime = 0;
     let lastInProgressStart: string | null = null;
     let lastPausedStart: string | null = null;
-
-    // Object for tracking time by days
     const dailyWorkTimeMs: Record<string, number> = {};
 
     const sortedEvents = [...events].sort(
@@ -336,7 +371,6 @@ export const createGitLabClient = ({
 
     // Only process "in-progress" events that happened after assignment
     for (const event of sortedEvents) {
-      // Skip events that happened before assignment to the current assignee
       if (assignmentTime && event.created_at < assignmentTime) {
         continue;
       }
@@ -350,12 +384,9 @@ export const createGitLabClient = ({
             const startDate = new Date(lastInProgressStart);
             const endDate = new Date(event.created_at);
 
-            // Calculate working time for this period
             const periodWorkTime = calculateWorkingTime(startDate, endDate);
 
-            // Distribute this time by days
             distributeTimeByDays(startDate, endDate, periodWorkTime, dailyWorkTimeMs);
-
             lastInProgressStart = null;
           }
         } else if (event.label.name === LABELS.PAUSED) {
@@ -363,12 +394,9 @@ export const createGitLabClient = ({
             const startDate = new Date(lastInProgressStart);
             const endDate = new Date(event.created_at);
 
-            // Calculate working time for this period
             const periodWorkTime = calculateWorkingTime(startDate, endDate);
 
-            // Distribute this time by days
             distributeTimeByDays(startDate, endDate, periodWorkTime, dailyWorkTimeMs);
-
             lastInProgressStart = null;
             lastPausedStart = event.created_at;
           }
@@ -381,10 +409,8 @@ export const createGitLabClient = ({
     if (lastInProgressStart && !lastPausedStart) {
       const startDate = new Date(lastInProgressStart);
 
-      // Calculate working time for this period
       const periodWorkTime = calculateWorkingTime(startDate, now);
 
-      // Distribute this time by days
       distributeTimeByDays(startDate, now, periodWorkTime, dailyWorkTimeMs);
     }
 
@@ -422,7 +448,9 @@ export const createGitLabClient = ({
 
       while (currentDate <= endDay) {
         if (!isWeekend(currentDate)) {
-          const dayKey = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, '0')}-${String(currentDate.getUTCDate()).padStart(2, '0')}`;
+          const dayKey = `${currentDate.getUTCFullYear()}-${String(
+            currentDate.getUTCMonth() + 1
+          ).padStart(2, '0')}-${String(currentDate.getUTCDate()).padStart(2, '0')}`;
 
           if (!dailyTimeMap[dayKey]) {
             dailyTimeMap[dayKey] = 0;
@@ -436,8 +464,10 @@ export const createGitLabClient = ({
 
     // Restrict time for each day to 8 hours and sum up
     for (const day in dailyWorkTimeMs) {
-      const maxDailyTimeMs = MAX_WORKING_HOURS_PER_DAY * 60 * 60 * 1000; // 8 hours in milliseconds
-      activeTime += Math.min(dailyWorkTimeMs[day], maxDailyTimeMs);
+      const maxDailyTimeMs = MAX_WORKING_HOURS_PER_DAY * 60 * 60 * 1000;
+      const originalTime = dailyWorkTimeMs[day];
+      const restrictedTime = Math.min(originalTime, maxDailyTimeMs);
+      activeTime += restrictedTime;
     }
 
     const startTime = assignmentTime || issueCreatedAt;
@@ -503,7 +533,6 @@ export const createGitLabClient = ({
     assigneeUsernames?: string[],
     assigneeIds?: number[]
   ): Promise<IssueWithEvents[]> => {
-    // If neither usernames nor IDs are provided, return empty array
     if (
       (!assigneeUsernames || assigneeUsernames.length === 0) &&
       (!assigneeIds || assigneeIds.length === 0)
@@ -512,14 +541,18 @@ export const createGitLabClient = ({
     }
 
     let allIssues: Issue[] = [];
+    const MAX_ISSUES = 50;
 
-    // If we have user IDs, use them directly
     if (assigneeIds && assigneeIds.length > 0) {
       for (const userId of assigneeIds) {
         let page = 1;
-        const perPage = 100;
+        const perPage = Math.min(MAX_ISSUES, 100);
 
         while (true) {
+          if (allIssues.length >= MAX_ISSUES) {
+            break;
+          }
+
           const issues = await fetchFromGitLab(`/projects/${projectId}/issues`, {
             assignee_id: userId,
             state: 'opened',
@@ -529,32 +562,32 @@ export const createGitLabClient = ({
 
           if (issues.length === 0) break;
 
-          allIssues = [...allIssues, ...issues];
+          allIssues = [...allIssues, ...issues].slice(0, MAX_ISSUES);
           if (issues.length < perPage) break;
 
           page++;
         }
       }
-    }
-    // Otherwise use usernames
-    else if (assigneeUsernames && assigneeUsernames.length > 0) {
-      // Get user IDs for the usernames
+    } else if (assigneeUsernames && assigneeUsernames.length > 0) {
       const usernameToIdMap = await getUserIdsByUsernames(projectId, assigneeUsernames);
 
-      // Fetch issues for each assignee using their ID instead of username
       for (const username of assigneeUsernames) {
+        if (allIssues.length >= MAX_ISSUES) {
+          break;
+        }
+
         const userId = usernameToIdMap.get(username);
 
-        // If we couldn't find the user ID, skip this username
         if (!userId) {
-          console.warn(`Could not find user ID for username: ${username}`);
           continue;
         }
 
         let page = 1;
-        const perPage = 100;
+        const perPage = Math.min(MAX_ISSUES, 100);
 
         while (true) {
+          if (allIssues.length >= MAX_ISSUES) break;
+
           const issues = await fetchFromGitLab(`/projects/${projectId}/issues`, {
             assignee_id: userId,
             state: 'opened',
@@ -564,7 +597,7 @@ export const createGitLabClient = ({
 
           if (issues.length === 0) break;
 
-          allIssues = [...allIssues, ...issues];
+          allIssues = [...allIssues, ...issues].slice(0, MAX_ISSUES);
           if (issues.length < perPage) break;
 
           page++;
@@ -572,12 +605,23 @@ export const createGitLabClient = ({
       }
     }
 
-    // Get events for each issue
-    const issuesWithEvents = await Promise.all(
+    const issuesWithEvents = await Promise.allSettled(
       allIssues
         .filter((issue): issue is Issue => typeof issue.iid === 'number')
-        .map(issue => getIssueWithEvents(projectId, issue.iid))
-    );
+        .map(async issue => {
+          try {
+            const result = await getIssueWithEvents(projectId, issue.iid);
+            return result;
+          } catch (error) {
+            throw error;
+          }
+        })
+    ).then(results => {
+      const fulfilled = results.filter(
+        (result): result is PromiseFulfilledResult<IssueWithEvents> => result.status === 'fulfilled'
+      );
+      return fulfilled.map(result => result.value);
+    });
 
     return issuesWithEvents;
   };
