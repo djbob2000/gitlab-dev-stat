@@ -215,23 +215,6 @@ export default function ProjectDevelopersPage({
     }));
   }, [developers, searchQuery, selectedDevelopers]);
 
-  // Calculate selected developers for display
-  const currentSelectedDevelopers = React.useMemo(() => {
-    return filteredDevelopers.filter(dev => dev.selected);
-  }, [filteredDevelopers]);
-
-  const _saveSelectedDevelopers = useCallback(() => {
-    const selectedDevs = filteredDevelopers.filter(dev => dev.selected);
-
-    try {
-      localStorage.setItem(`selected-developers-${projectId}`, JSON.stringify(selectedDevs));
-      toast.success(`${selectedDevs.length} developers selected for tracking`);
-    } catch (error) {
-      console.error('Error saving to localStorage:', error);
-      toast.error('Failed to save selections');
-    }
-  }, [filteredDevelopers, projectId]);
-
   const goBackToProjects = useCallback(() => {
     router.push('/projects');
   }, [router]);

@@ -134,13 +134,11 @@ async function fetchProjectMembers(
 }
 
 // Define the route handler for GET requests
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ projectId: string }> | { projectId: string } }
-): Promise<Response> {
-  // Await params to fix the Next.js error about sync dynamic APIs
-  const params = 'then' in context.params ? await context.params : context.params;
-  const projectId = params.projectId;
+export async function GET(request: Request) {
+  // Extract projectId from the URL
+  const url = new URL(request.url);
+  const pathSegments = url.pathname.split('/');
+  const projectId = pathSegments[pathSegments.length - 1];
 
   try {
     // Get token from header (added by middleware)

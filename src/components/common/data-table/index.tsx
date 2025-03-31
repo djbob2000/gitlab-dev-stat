@@ -36,8 +36,6 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   error?: string | null;
   lastUpdated?: Date;
-  _onRefresh?: () => void;
-  _actionRequiredUpdateTime?: Date;
   isLoading?: boolean;
   tableId?: string;
   projectName?: string;
@@ -47,10 +45,7 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   error,
-  _onRefresh,
   lastUpdated,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _actionRequiredUpdateTime,
   isLoading = false,
   tableId = 'developer-stats',
   projectName,

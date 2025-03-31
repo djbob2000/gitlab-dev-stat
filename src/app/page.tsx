@@ -16,10 +16,10 @@ import { useAutoRefresh } from '@/src/hooks/use-auto-refresh';
  */
 export default function HomePage() {
   const { hasToken, isInitialized } = useGitLabToken();
-  const [lastActionRequiredUpdate, setLastActionRequiredUpdate] = useState<Date>(new Date());
+  const [_lastActionRequiredUpdate, setLastActionRequiredUpdate] = useState<Date>(new Date());
 
   // Custom hooks
-  const { projects, isLoading, loadProjectData, loadAllData } = useProjects();
+  const { projects, isLoading, loadProjectData: _loadProjectData, loadAllData } = useProjects();
   const { autoRefresh, nextAutoRefresh, handleAutoRefreshChange } = useAutoRefresh(
     loadAllData,
     isLoading
@@ -89,11 +89,7 @@ export default function HomePage() {
         onAutoRefreshChange={handleAutoRefreshChange}
       />
       <div className="container py-10 pt-0">
-        <ProjectsList
-          projects={projects}
-          lastActionRequiredUpdate={lastActionRequiredUpdate}
-          onRefreshProject={loadProjectData}
-        />
+        <ProjectsList projects={projects} />
       </div>
     </>
   );
