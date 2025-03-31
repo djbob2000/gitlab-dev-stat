@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createGitLabClient, IssueEvent } from '@/src/tasks/gitlab-api.task';
-import { decrypt } from '@/src/lib/crypto';
 import { headers } from 'next/headers';
 import { LABELS } from '@/src/constants/labels';
 

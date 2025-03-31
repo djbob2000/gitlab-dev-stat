@@ -28,14 +28,9 @@ interface GitLabDeveloper {
 interface DeveloperCardProps {
   developer: GitLabDeveloper;
   onToggleSelect: (developerId: number) => void;
-  selectedDevelopers?: GitLabDeveloper[];
 }
 
-export function DeveloperCard({
-  developer,
-  onToggleSelect,
-  selectedDevelopers = [],
-}: DeveloperCardProps) {
+export function DeveloperCard({ developer, onToggleSelect }: DeveloperCardProps) {
   const handleToggle = () => {
     onToggleSelect(developer.id);
   };

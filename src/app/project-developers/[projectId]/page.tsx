@@ -169,7 +169,6 @@ export default function ProjectDevelopersPage({
       !hasFetchedData.current &&
       !isLoadingRef.current
     ) {
-      console.log('Fetching developers for project:', projectId);
       fetchDevelopers();
     }
   }, [isTokenInitialized, hasToken, projectId, router, fetchDevelopers, origin]);
@@ -380,7 +379,6 @@ export default function ProjectDevelopersPage({
               key={developer.id}
               developer={developer}
               onToggleSelect={toggleDeveloperSelection}
-              selectedDevelopers={currentSelectedDevelopers}
             />
           ))}
         </div>

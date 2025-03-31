@@ -15,6 +15,10 @@ import { Button } from '@/src/components/ui/button';
 import { ProjectCard } from '@/src/components/project-card';
 import { useTopLoader } from 'nextjs-toploader';
 
+const SELECTED_DEVELOPERS_PREFIX = 'selected-developers-';
+const PROJECT_NAME_PREFIX = 'project-name-';
+const PROJECT_PATH_PREFIX = 'project-path-';
+
 interface GitLabProject {
   id: number;
   name: string;
@@ -47,12 +51,6 @@ interface GitLabDeveloper {
   access_level?: number;
   expires_at?: string | null;
   selected?: boolean;
-}
-
-interface ApiResponse {
-  projects: GitLabProject[];
-  count: number;
-  message: string;
 }
 
 export default function ProjectsPage() {
@@ -114,7 +112,7 @@ export default function ProjectsPage() {
       console.error('Error initializing from localStorage:', error);
       setIsInitialized(true);
     }
-  }, [isTokenInitialized, hasToken, router]);
+  }, [isTokenInitialized, hasToken, router, isInitialized]);
 
   // Fetch projects function
   const fetchProjects = useCallback(async () => {
@@ -172,11 +170,12 @@ export default function ProjectsPage() {
   }, [isLoading, loader, selectedProjects]);
 
   // Fetch projects when token is initialized and user has a token
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isInitialized && isTokenInitialized && hasToken && projects.length === 0 && !isLoading) {
       fetchProjects();
     }
-  }, [isInitialized, isTokenInitialized, hasToken, fetchProjects, projects.length, isLoading]);
+  }, [isTokenInitialized, hasToken, fetchProjects, projects.length, isLoading, isInitialized]);
 
   // Toggle project selection
   const toggleProjectSelection = useCallback((projectId: number) => {
@@ -214,6 +213,52 @@ export default function ProjectsPage() {
     },
     [projects, router]
   );
+
+  // Load projects from localStorage
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!isInitialized || !hasToken) return;
+
+    // Get project IDs from localStorage
+    const projectIds = Array.from({ length: localStorage.length })
+      .map((_, i) => localStorage.key(i))
+      .filter(key => key?.startsWith(SELECTED_DEVELOPERS_PREFIX))
+      .map(key => parseInt(key!.replace(SELECTED_DEVELOPERS_PREFIX, ''), 10))
+      .filter(id => !isNaN(id));
+
+    // Initialize projects with empty data
+    const initialProjects = projectIds.map(id => {
+      const projectName = localStorage.getItem(`${PROJECT_NAME_PREFIX}${id}`) || `Project ${id}`;
+      const projectPath =
+        localStorage.getItem(`${PROJECT_PATH_PREFIX}${id}`) ||
+        projectName.toLowerCase().replace(/\s+/g, '-');
+
+      return {
+        id,
+        name: projectName,
+        name_with_namespace: projectName,
+        path: projectPath,
+        path_with_namespace: projectPath,
+        description: '',
+        web_url: '',
+        avatar_url: null,
+        star_count: 0,
+        last_activity_at: new Date().toISOString(),
+        namespace: {
+          id: 0,
+          name: '',
+          path: '',
+          kind: '',
+          full_path: '',
+        },
+        visibility: 'private',
+        selected: true,
+      } satisfies GitLabProject;
+    });
+
+    // Only set projects that are selected
+    setProjects(initialProjects.filter(p => p.selected));
+  }, [hasToken, isInitialized]);
 
   // Render loading state
   if (!isInitialized || !isTokenInitialized) {

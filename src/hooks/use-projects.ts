@@ -102,7 +102,7 @@ export function useProjects() {
 
       loader.done();
       setProjects(updatedProjects);
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to load data. Please check your GitLab token.');
     } finally {
       setIsLoading(false);
