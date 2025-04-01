@@ -57,7 +57,14 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     enableResizing: true,
     size: 100,
     sortingFn: (rowA, rowB) => {
-      const statusPriority = [LABELS.BLOCKED, LABELS.PAUSED, LABELS.REVIEW, LABELS.IN_PROGRESS, ''];
+      const statusPriority = [
+        LABELS.BLOCKED,
+        LABELS.PAUSED,
+        LABELS.REVIEW,
+        LABELS.IN_PROGRESS,
+        LABELS.NOT_READY,
+        '',
+      ];
       const statusA = getStatusPriority(rowA.original.labels);
       const statusB = getStatusPriority(rowB.original.labels);
       return statusPriority.indexOf(statusA) - statusPriority.indexOf(statusB);

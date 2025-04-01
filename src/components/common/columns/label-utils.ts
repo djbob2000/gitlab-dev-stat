@@ -20,7 +20,13 @@ export const getStatusPriority = (labels: string[]) => {
   if (!labels || labels.length === 0) return '';
 
   // Define priority order
-  const statusPriority = [LABELS.BLOCKED, LABELS.PAUSED, LABELS.REVIEW, LABELS.IN_PROGRESS];
+  const statusPriority = [
+    LABELS.BLOCKED,
+    LABELS.PAUSED,
+    LABELS.REVIEW,
+    LABELS.IN_PROGRESS,
+    LABELS.NOT_READY,
+  ];
 
   // Return the first matching status
   for (const status of statusPriority) {
