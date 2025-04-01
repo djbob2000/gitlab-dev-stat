@@ -120,10 +120,21 @@ export const columns: ColumnDef<IssueStatistics>[] = [
 
             const isReview = row.original.labels?.includes(LABELS.REVIEW);
             const hasNoLabels = filteredLabels.length === 0;
-            const mrNumberClass =
-              isReview && hasNoLabels
-                ? 'text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 font-bold'
-                : 'text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200';
+            const hasApprovedLabel = mr.labels.includes(LABELS.APPROVED);
+
+            let mrNumberClass = '';
+
+            if (hasApprovedLabel) {
+              // Use a green text color for approved MRs, similar to the label's color
+              mrNumberClass =
+                'text-xs text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200';
+            } else if (isReview && hasNoLabels) {
+              mrNumberClass =
+                'text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 font-bold';
+            } else {
+              mrNumberClass =
+                'text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200';
+            }
 
             // Check if MR title starts with the issue number
             const issueNumber = row.original.iid;
