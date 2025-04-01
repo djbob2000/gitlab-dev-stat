@@ -1,6 +1,7 @@
 import { IssueEvent, IssueWithEvents } from '../gitlab-api.task';
 import { parseDate, mergeIntervals, calculateTotalDuration } from './interval-utils';
 import { TimeInterval, IssueTimeStats } from './types';
+import { LABELS } from '@/src/constants/labels';
 
 /**
  * Extracts intervals when an issue was in progress
@@ -16,7 +17,7 @@ export const extractInProgressIntervals = (events: IssueEvent[]): TimeInterval[]
   let currentInterval: TimeInterval | null = null;
 
   for (const event of sortedEvents) {
-    if (event.action === 'add' && event.label?.name === 'in-progress') {
+    if (event.action === 'add' && event.label?.name === LABELS.IN_PROGRESS) {
       // Start tracking in-progress interval
       currentInterval = {
         start: parseDate(event.created_at),
@@ -25,7 +26,7 @@ export const extractInProgressIntervals = (events: IssueEvent[]): TimeInterval[]
     } else if (
       currentInterval &&
       event.action === 'remove' &&
-      event.label?.name === 'in-progress'
+      event.label?.name === LABELS.IN_PROGRESS
     ) {
       // End the current in-progress interval
       currentInterval.end = parseDate(event.created_at);

@@ -13,7 +13,6 @@ import {
 import { useColumnSizing } from './use-column-sizing';
 import { useColumnOrder } from './use-column-order';
 import { TableHeader } from './table-header';
-import { useCountdownTimer } from './use-countdown-timer';
 // Import components from dnd-kit
 import {
   DndContext,
@@ -29,43 +28,32 @@ import {
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableHeader } from './sortable-header';
 import { GripVertical } from 'lucide-react';
+import { cn } from '@/src/lib/utils';
 
 // Version with column resizing and dragging
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   error?: string | null;
-  onRefresh?: () => void;
   lastUpdated?: Date;
-  actionRequiredUpdateTime?: Date;
   isLoading?: boolean;
-  autoRefresh?: boolean;
-  onAutoRefreshChange?: (value: boolean) => void;
-  nextRefreshTime?: Date | null;
   tableId?: string;
+  projectName?: string;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   error,
-  onRefresh,
   lastUpdated,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  actionRequiredUpdateTime,
   isLoading = false,
-  autoRefresh = false,
-  onAutoRefreshChange,
-  nextRefreshTime,
   tableId = 'developer-stats',
+  projectName,
 }: DataTableProps<TData, TValue>) {
   // States for sorting and resizing
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'username', desc: false }]);
   const [columnResizeMode] = React.useState<ColumnResizeMode>('onChange');
   const [activeId, setActiveId] = React.useState<string | null>(null);
-
-  // Use hook for countdown timer
-  const timeRemaining = useCountdownTimer(autoRefresh, nextRefreshTime || null);
 
   // Normalize columns (only for ID)
   const normalizedColumns = React.useMemo(() => {
@@ -109,6 +97,7 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     columnResizeMode,
     enableColumnResizing: true,
+    enableMultiSort: true,
     state: {
       sorting,
       columnSizing,
@@ -161,15 +150,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="rounded-lg shadow-md bg-white dark:bg-gray-800">
-      <TableHeader
-        title="Developer Statistics"
-        lastUpdated={lastUpdated}
-        isLoading={isLoading}
-        autoRefresh={autoRefresh}
-        timeRemaining={timeRemaining}
-        onRefresh={onRefresh}
-        onAutoRefreshChange={onAutoRefreshChange}
-      />
+      <TableHeader title={projectName || 'Developer Statistics'} lastUpdated={lastUpdated} />
 
       {error && (
         <div className="bg-red-50 dark:bg-red-900 p-3 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-200 rounded m-2">
@@ -205,15 +186,14 @@ export function DataTable<TData, TValue>({
             <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map(row => {
-                  // Simplified logic for rows
                   const isEvenRow = parseInt(row.id, 10) % 2 === 0;
-
                   return (
                     <tr
                       key={row.id}
-                      className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                      className={cn(
+                        'hover:bg-gray-50 dark:hover:bg-gray-700',
                         isEvenRow ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'
-                      }`}
+                      )}
                     >
                       {row.getVisibleCells().map(cell => (
                         <td

@@ -2,7 +2,7 @@
 
 import { ThemeProvider } from 'next-themes';
 import { type ReactNode } from 'react';
-import { Toaster } from '@/components/ui/sonner';
+import { Toaster } from 'sonner';
 
 export function Providers({ children }: { children: ReactNode }) {
   return (

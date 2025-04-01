@@ -1,45 +1,100 @@
-import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'crypto';
+/**
+ * Cryptography utility using Web Crypto API for secure token encryption/decryption
+ */
 
-const ALGORITHM = 'aes-256-cbc';
-const IV_LENGTH = 16;
+// Constants
+const ALGORITHM = 'AES-GCM';
+const KEY_LENGTH = 256;
+const ENCODING = 'utf-8';
 
-// Function to get or generate a consistent encryption key
-function getEncryptionKey(): Buffer {
-  const envKey = process.env.ENCRYPTION_KEY;
-  if (envKey) {
-    // If env key is provided, hash it to ensure correct length
-    return createHash('sha256').update(String(envKey)).digest();
-  }
-  // Generate a static key if not provided
-  return createHash('sha256').update('default-key-do-not-use-in-production').digest();
-}
+// Generate a secure encryption key based on environment secret
+async function getEncryptionKey(): Promise<CryptoKey> {
+  // In production, ENCRYPTION_KEY must be set
+  const isDev = process.env.NODE_ENV !== 'production';
+  const secretBase = process.env.ENCRYPTION_KEY;
 
-const ENCRYPTION_KEY = getEncryptionKey();
-
-export async function encrypt(text: string): Promise<string> {
-  const iv = randomBytes(IV_LENGTH);
-  const cipher = createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
-  const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
-  const result = `${iv.toString('hex')}:${encrypted.toString('hex')}`;
-  return result;
-}
-
-export async function decrypt(text: string): Promise<string> {
-  try {
-    const [ivHex, encryptedHex] = text.split(':');
-
-    if (!ivHex || !encryptedHex) {
-      console.error('[Crypto] Invalid encrypted text format');
-      throw new Error('Invalid encrypted text format');
+  if (!secretBase) {
+    if (!isDev) {
+      throw new Error('ENCRYPTION_KEY environment variable is not set in production environment');
     }
 
-    const iv = Buffer.from(ivHex, 'hex');
-    const encrypted = Buffer.from(encryptedHex, 'hex');
-    const decipher = createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
-    const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
-    return decrypted.toString();
+    console.warn('⚠️ WARNING: Using default encryption key. This is not secure for production!');
+    // Only use default in development
+    const devDefault = 'default-secret-change-in-production-env-not-secure';
+    return generateKeyFromSecret(devDefault);
+  }
+
+  return generateKeyFromSecret(secretBase);
+}
+
+// Helper function to generate key from a string secret
+async function generateKeyFromSecret(secret: string): Promise<CryptoKey> {
+  // Convert the string to an ArrayBuffer
+  const encoder = new TextEncoder();
+  const secretData = encoder.encode(secret);
+
+  // Create a key using the secret
+  const keyMaterial = await crypto.subtle.digest('SHA-256', secretData);
+
+  // Import the key for AES-GCM
+  return crypto.subtle.importKey(
+    'raw',
+    keyMaterial,
+    { name: ALGORITHM, length: KEY_LENGTH },
+    false, // Not extractable
+    ['encrypt', 'decrypt']
+  );
+}
+
+/**
+ * Encrypts a string value using AES-GCM
+ */
+export async function encrypt(value: string): Promise<string> {
+  if (!value) return '';
+
+  const key = await getEncryptionKey();
+  const encoder = new TextEncoder();
+  const data = encoder.encode(value);
+
+  // Generate a random IV for each encryption
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  // Encrypt the data
+  const encryptedData = await crypto.subtle.encrypt({ name: ALGORITHM, iv }, key, data);
+
+  // Combine IV and encrypted data for storage
+  const result = new Uint8Array(iv.length + new Uint8Array(encryptedData).length);
+  result.set(iv);
+  result.set(new Uint8Array(encryptedData), iv.length);
+
+  // Convert to base64 for storage in cookie
+  return btoa(String.fromCharCode(...result));
+}
+
+/**
+ * Decrypts an encrypted string value
+ */
+export async function decrypt(encryptedValue: string): Promise<string> {
+  if (!encryptedValue) return '';
+
+  try {
+    const key = await getEncryptionKey();
+
+    // Convert from base64
+    const encryptedBytes = Uint8Array.from(atob(encryptedValue), c => c.charCodeAt(0));
+
+    // Extract IV (first 12 bytes) and encrypted data
+    const iv = encryptedBytes.slice(0, 12);
+    const data = encryptedBytes.slice(12);
+
+    // Decrypt the data
+    const decryptedData = await crypto.subtle.decrypt({ name: ALGORITHM, iv }, key, data);
+
+    // Convert back to string
+    const decoder = new TextDecoder(ENCODING);
+    return decoder.decode(decryptedData);
   } catch (error) {
-    console.error('[Crypto] Error decrypting text:', error);
-    throw error;
+    console.error('Decryption error:', error);
+    return '';
   }
 }

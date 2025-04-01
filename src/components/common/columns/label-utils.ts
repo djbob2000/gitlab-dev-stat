@@ -1,5 +1,6 @@
 import { MergeRequestLabels } from '@/src/types/types';
 import { mrLabelColors } from './color-config';
+import { LABELS } from '@/src/constants/labels';
 
 /**
  * Gets the highest priority label from a list of labels
@@ -7,8 +8,8 @@ import { mrLabelColors } from './color-config';
 export const getPriority = (labels: string[]) => {
   if (!labels || labels.length === 0) return '';
 
-  // Find priority label matching p1-p8
-  const priorityLabel = labels.find(label => /^p[1-8]$/.test(label));
+  // Find priority label matching p1-p9
+  const priorityLabel = labels.find(label => /^p[1-9]$/.test(label));
   return priorityLabel || '';
 };
 
@@ -19,7 +20,7 @@ export const getStatusPriority = (labels: string[]) => {
   if (!labels || labels.length === 0) return '';
 
   // Define priority order
-  const statusPriority = ['blocked', 'paused', 'review', 'in-progress'];
+  const statusPriority = [LABELS.BLOCKED, LABELS.PAUSED, LABELS.REVIEW, LABELS.IN_PROGRESS];
 
   // Return the first matching status
   for (const status of statusPriority) {
@@ -39,10 +40,10 @@ export const getActionRequiredPriority = (mrLabels: MergeRequestLabels[] = []) =
     const labels = mr.labels || [];
 
     // First priority: action-required3 label
-    if (labels.includes('action-required3')) {
+    if (labels.includes(LABELS.ACTION_REQUIRED3)) {
       return {
-        label: 'action-required3',
-        color: mrLabelColors['action-required3'],
+        label: LABELS.ACTION_REQUIRED3,
+        color: mrLabelColors[LABELS.ACTION_REQUIRED3],
         mrIid: mr.mrIid,
         url: mr.url,
         title: mr.title,
@@ -50,10 +51,10 @@ export const getActionRequiredPriority = (mrLabels: MergeRequestLabels[] = []) =
     }
 
     // Second priority: action-required2 label
-    if (labels.includes('action-required2')) {
+    if (labels.includes(LABELS.ACTION_REQUIRED2)) {
       return {
-        label: 'action-required2',
-        color: mrLabelColors['action-required2'],
+        label: LABELS.ACTION_REQUIRED2,
+        color: mrLabelColors[LABELS.ACTION_REQUIRED2],
         mrIid: mr.mrIid,
         url: mr.url,
         title: mr.title,
@@ -61,10 +62,10 @@ export const getActionRequiredPriority = (mrLabels: MergeRequestLabels[] = []) =
     }
 
     // Third priority: action-required label
-    if (labels.includes('action-required')) {
+    if (labels.includes(LABELS.ACTION_REQUIRED)) {
       return {
-        label: 'action-required',
-        color: mrLabelColors['action-required'],
+        label: LABELS.ACTION_REQUIRED,
+        color: mrLabelColors[LABELS.ACTION_REQUIRED],
         mrIid: mr.mrIid,
         url: mr.url,
         title: mr.title,
@@ -73,4 +74,22 @@ export const getActionRequiredPriority = (mrLabels: MergeRequestLabels[] = []) =
   }
 
   return null;
+};
+
+/**
+ * Gets the status-update-commit label info if present
+ */
+export const getStatusUpdateCommitInfo = (mr: MergeRequestLabels) => {
+  if (!mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT)) {
+    return null;
+  }
+
+  return {
+    label: LABELS.STATUS_UPDATE_COMMIT,
+    color: mrLabelColors[LABELS.STATUS_UPDATE_COMMIT],
+    count: mr.statusUpdateCommitCount || 0,
+    mrIid: mr.mrIid,
+    url: mr.url,
+    title: mr.title,
+  };
 };

@@ -1,33 +1,60 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { decrypt } from './lib/crypto';
 
 /**
  * Middleware for handling API requests
- * Extracts GitLab token from cookies and adds it to request headers
+ * Extracts GitLab token from cookies, decrypts it if encrypted, and adds it to request headers
  */
-export function middleware(request: NextRequest) {
-  // Get token from cookie
-  const token = request.cookies.get('gitlab-token');
+export async function middleware(request: NextRequest) {
+  // Clone the request headers
+  const requestHeaders = new Headers(request.headers);
 
-  if (!token || !token.value) {
-    return NextResponse.json(
-      {
-        error: 'GitLab token is required',
-        detail: 'Please add your token in settings.',
-        path: request.nextUrl.pathname,
-      },
-      { status: 401 }
-    );
+  // Get the token from client cookies
+  const encryptedToken = request.cookies.get('gitlab-token')?.value;
+
+  if (encryptedToken) {
+    try {
+      // Decrypt the token
+      const decryptedToken = await decrypt(encryptedToken);
+
+      // Add the decrypted token to the headers
+      if (decryptedToken) {
+        requestHeaders.set('X-GitLab-Token', decryptedToken);
+      } else {
+        // Token was decrypted but value is empty, remove the invalid cookie
+        const response = NextResponse.next({
+          request: { headers: requestHeaders },
+        });
+
+        response.cookies.delete('gitlab-token');
+        console.warn('Empty token detected, clearing cookie');
+        return response;
+      }
+    } catch (error) {
+      // If decryption fails (possibly due to encryption key change)
+      console.error('Error decrypting token:', error);
+
+      // Remove the invalid cookie
+      const response = NextResponse.next({
+        request: { headers: requestHeaders },
+      });
+
+      response.cookies.delete('gitlab-token');
+
+      // Redirect to login page if accessing protected route
+      if (request.nextUrl.pathname.startsWith('/api/')) {
+        console.warn('Invalid token detected for API route, clearing cookie');
+      }
+
+      return response;
+    }
   }
 
-  // Clone request headers and add token
-  const headers = new Headers(request.headers);
-  headers.set('x-gitlab-token-encrypted', token.value);
-
-  // Return request with added header
+  // Return the response with modified headers
   return NextResponse.next({
     request: {
-      headers,
+      headers: requestHeaders,
     },
   });
 }
