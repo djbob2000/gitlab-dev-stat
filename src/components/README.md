@@ -6,16 +6,33 @@ This directory contains application components organized according to the follow
 
 - `/common` - Common components used in many places throughout the application
 
-  - `data-table.tsx` - Table for displaying developer data
-  - `columns.tsx` - Column definitions for the data table
+  - `/data-table` - Data table components
+  - `/columns` - Column definitions for different tables
+  - `columns.tsx` - Column exports
+  - `refresh-controls.tsx` - Controls for refreshing data
   - `theme-toggle.tsx` - Theme switcher (light/dark)
 
+- `/home` - Components specific to the home page
+
+  - `Header.tsx` - Home page header component
+  - `ProjectsList.tsx` - List of projects on the home page
+
 - `/ui` - Basic UI components used to build the interface
-  - Buttons, forms, inputs, checkboxes, etc.
 
-## Component Organization Guidelines
+  - `badge.tsx` - Badge component for labels
+  - `button.tsx` - Button component
+  - `card.tsx` - Card container component
+  - `checkbox.tsx` - Checkbox input component
+  - `dialog.tsx` - Dialog/modal component
+  - `form.tsx` - Form components
+  - `input.tsx` - Text input component
+  - `label.tsx` - Form label component
+  - `progress.tsx` - Progress indicator component
+  - `skeleton.tsx` - Skeleton loading component
+  - `sonner.tsx` - Toast notification component
+  - `table.tsx` - Table component
+  - `use-form-field.ts` - Form field hook
 
-1. **Atomicity**: Components should be as atomic and reusable as possible
-2. **Grouping by Purpose**: Group components by their functional purpose
-3. **Separation of Concerns**: Components should have clear, single responsibilities
-4. **Documentation**: It's important to document components using JSDoc or comments
+- Root components
+  - `developer-card.tsx` - Card showing developer information
+  - `project-card.tsx` - Card showing project information
