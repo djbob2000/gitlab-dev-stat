@@ -24,6 +24,12 @@ export function useProjects() {
   useEffect(() => {
     if (!isInitialized || !hasToken) return;
 
+    // Get selectedProjects from localStorage
+    const savedSelectedProjects = localStorage.getItem('selectedProjects');
+    const selectedProjects: Record<number, boolean> = savedSelectedProjects
+      ? JSON.parse(savedSelectedProjects)
+      : {};
+
     // Get project IDs from localStorage
     const projectIds = Array.from({ length: localStorage.length })
       .map((_, i) => localStorage.key(i))
@@ -56,7 +62,12 @@ export function useProjects() {
       };
     });
 
-    setProjects(initialProjects.filter(p => p.developers.length > 0));
+    // Only include projects that are selected AND have developers
+    setProjects(
+      initialProjects.filter(
+        p => p.developers.length > 0 && selectedProjects[p.id] !== false // Include if not explicitly set to false
+      )
+    );
   }, [isInitialized, hasToken]);
 
   // Load data for all projects
