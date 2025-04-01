@@ -694,26 +694,48 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
     projectId: number,
     mrIid: number
   ): Promise<IssueEvent[]> => {
-    let page = 1;
-    const perPage = 100;
-    let allEvents: IssueEvent[] = [];
+    try {
+      let page = 1;
+      const perPage = 100;
+      let allEvents: IssueEvent[] = [];
 
-    // Fetch label events for merge request
-    while (true) {
-      const events = await fetchFromGitLab(
-        `/projects/${projectId}/merge_requests/${mrIid}/resource_label_events`,
-        { per_page: perPage, page }
-      );
+      // Fetch label events for merge request
+      while (true) {
+        try {
+          const events = await fetchFromGitLab(
+            `/projects/${projectId}/merge_requests/${mrIid}/resource_label_events`,
+            { per_page: perPage, page }
+          );
 
-      if (events.length === 0) break;
+          if (events.length === 0) break;
 
-      allEvents = [...allEvents, ...events];
-      if (events.length < perPage) break;
+          allEvents = [...allEvents, ...events];
+          if (events.length < perPage) break;
 
-      page++;
+          page++;
+        } catch (error) {
+          // If we get a 404, the MR might not exist or is not accessible
+          if (error instanceof Error && error.message.includes('404 Not Found')) {
+            console.warn(
+              `MR #${mrIid} not found or inaccessible in project ${projectId}. Skipping.`
+            );
+            break;
+          }
+          throw error;
+        }
+      }
+
+      return allEvents;
+    } catch (error) {
+      // Handle any other errors at the function level
+      if (error instanceof Error && error.message.includes('404 Not Found')) {
+        console.warn(
+          `MR #${mrIid} not found or inaccessible in project ${projectId}. Returning empty array.`
+        );
+        return [];
+      }
+      throw error;
     }
-
-    return allEvents;
   };
 
   return {
