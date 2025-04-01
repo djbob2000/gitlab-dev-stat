@@ -73,10 +73,10 @@ export async function GET(request: Request) {
         issues.map(async issue => {
           const timeInProgress = issue.inProgressDuration;
           const totalTimeFromStart = issue.totalTimeFromStart;
-          const mergeRequests = await gitlabClient.getIssueRelatedMergeRequests(
-            projectId,
-            issue.iid
-          );
+          // Filter out MRs from other projects
+          const mergeRequests = (
+            await gitlabClient.getIssueRelatedMergeRequests(projectId, issue.iid)
+          ).filter(mr => mr.source_project_id === projectId);
 
           // Check each MR for action-required labels
           const mergeRequestLabelsPromises = mergeRequests

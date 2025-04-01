@@ -74,6 +74,7 @@ export interface MergeRequest {
   updated_at: string;
   labels: string[];
   web_url: string;
+  source_project_id: number;
   author: {
     id: number;
     username: string;
