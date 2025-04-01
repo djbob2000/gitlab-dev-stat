@@ -1,12 +1,14 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { encrypt, decrypt } from '@/src/lib/crypto';
 
 // GitLab API Error constants
 const GITLAB_API_ERROR = {
   MISSING_URL: 'GitLab base URL is not defined',
   UNAUTHORIZED: 'Unauthorized or invalid token',
   UNKNOWN: 'Unknown GitLab API error',
+  ENCRYPTION_FAILED: 'Failed to encrypt token',
 };
 
 /**
@@ -29,29 +31,40 @@ async function validateGitLabToken(token: string): Promise<boolean> {
 }
 
 /**
- * Validates and stores a GitLab token in cookies
+ * Validates and stores an encrypted GitLab token in cookies
  */
-export async function validateAndSetToken(token: string): Promise<{ success: boolean }> {
+export async function validateAndSetToken(
+  token: string
+): Promise<{ success: boolean; error?: string }> {
   try {
     const isValid = await validateGitLabToken(token);
 
     if (!isValid) {
-      return { success: false };
+      return { success: false, error: GITLAB_API_ERROR.UNAUTHORIZED };
     }
 
-    // Store token directly in cookie without encryption
-    const cookieStore = await cookies();
-    cookieStore.set('gitlab-token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365, // 30 days
-    });
+    try {
+      // Encrypt the token before storing in cookie
+      const encryptedToken = await encrypt(token);
 
-    return { success: true };
-  } catch (_error) {
-    return { success: false };
+      // Store encrypted token in cookie
+      const cookieStore = await cookies();
+      cookieStore.set('gitlab-token', encryptedToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to encrypt token:', error);
+      return { success: false, error: GITLAB_API_ERROR.ENCRYPTION_FAILED };
+    }
+  } catch (error) {
+    console.error('Token validation error:', error);
+    return { success: false, error: GITLAB_API_ERROR.UNKNOWN };
   }
 }
 
@@ -69,24 +82,31 @@ export async function removeToken(): Promise<{ success: boolean }> {
  */
 export async function hasValidToken(): Promise<{ hasToken: boolean }> {
   const cookieStore = await cookies();
-  const token = cookieStore.get('gitlab-token')?.value;
+  const encryptedToken = cookieStore.get('gitlab-token')?.value;
 
-  if (!token) {
+  if (!encryptedToken) {
     return { hasToken: false };
   }
 
   try {
+    // Decrypt the token
+    const token = await decrypt(encryptedToken);
+
+    if (!token) {
+      cookieStore.delete('gitlab-token');
+      return { hasToken: false };
+    }
+
     const isValid = await validateGitLabToken(token);
 
     if (!isValid) {
-      const cookieStore = await cookies();
       cookieStore.delete('gitlab-token');
       return { hasToken: false };
     }
 
     return { hasToken: true };
-  } catch (_error) {
-    const cookieStore = await cookies();
+  } catch (error) {
+    console.error('Token validation error:', error);
     cookieStore.delete('gitlab-token');
     return { hasToken: false };
   }
