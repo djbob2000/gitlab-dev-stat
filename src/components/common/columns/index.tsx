@@ -155,14 +155,14 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                 <span className="text-xs text-gray-500">:</span>
                 <div className="flex gap-1 flex-wrap">
                   {filteredLabels.map((label, index) => {
-                    // Проверяем, является ли это меткой status-update-commit
+                    // Check if this is a status-update-commit label
                     if (label === LABELS.STATUS_UPDATE_COMMIT) {
                       const statusInfo = getStatusUpdateCommitInfo(mr);
                       const count = statusInfo?.count || 0;
                       return (
                         <LabelPill
                           key={index}
-                          //cut the last 10 characters status-update-commit
+                          // Cut the last 10 characters status-update-commit
                           text={label.slice(0, -10)}
                           colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'}
                           count={count >= 2 ? count : undefined}
@@ -170,7 +170,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                       );
                     }
 
-                    // Обычные метки без счётчика
+                    // Regular labels without a counter
                     return (
                       <LabelPill
                         key={index}
@@ -206,12 +206,26 @@ export const columns: ColumnDef<IssueStatistics>[] = [
       // Calculate elapsed time from actionRequiredTime to now
       const elapsedTime = Date.now() - actionRequiredTime;
 
-      let colorClass = 'text-amber-600 dark:text-amber-400';
+      let colorClass = '';
 
       if (elapsedTime > 24 * 60 * 60 * 1000) {
         colorClass = 'text-red-600 dark:text-red-400 font-bold';
-      } else if (elapsedTime > 12 * 60 * 60 * 1000) {
-        colorClass = 'text-orange-600 dark:text-orange-400';
+      } else if (elapsedTime > 8 * 60 * 60 * 1000) {
+        colorClass = 'text-orange-600 dark:text-orange-500';
+      } else if (elapsedTime > 7 * 60 * 60 * 1000) {
+        colorClass = 'text-orange-500 dark:text-orange-400';
+      } else if (elapsedTime > 6 * 60 * 60 * 1000) {
+        colorClass = 'text-amber-700 dark:text-amber-500';
+      } else if (elapsedTime > 5 * 60 * 60 * 1000) {
+        colorClass = 'text-amber-600 dark:text-amber-400';
+      } else if (elapsedTime > 4 * 60 * 60 * 1000) {
+        colorClass = 'text-amber-500 dark:text-amber-300';
+      } else if (elapsedTime > 3 * 60 * 60 * 1000) {
+        colorClass = 'text-amber-400 dark:text-amber-200';
+      } else if (elapsedTime > 2 * 60 * 60 * 1000) {
+        colorClass = 'text-amber-300 dark:text-amber-100';
+      } else if (elapsedTime > 1 * 60 * 60 * 1000) {
+        colorClass = 'text-amber-200 dark:text-amber-50';
       }
 
       return (
@@ -293,9 +307,25 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     enableSorting: true,
     enableResizing: true,
     size: 50,
-    cell: ({ row }) => (
-      <div className="leading-none">{formatHoursAndMinutes(row.original.timeInProgress)}</div>
-    ),
+    cell: ({ row }) => {
+      const timeInProgress = row.original.timeInProgress;
+      const hours = timeInProgress / (60 * 60 * 1000); // Convert milliseconds to hours
+
+      let colorClass = '';
+      if (hours >= 8) {
+        colorClass = 'text-amber-700 dark:text-amber-500';
+      } else if (hours >= 7) {
+        colorClass = 'text-amber-600 dark:text-amber-400';
+      } else if (hours >= 6) {
+        colorClass = 'text-amber-500 dark:text-amber-300';
+      } else if (hours >= 5) {
+        colorClass = 'text-amber-400 dark:text-amber-200';
+      }
+
+      return (
+        <div className={`leading-none ${colorClass}`}>{formatHoursAndMinutes(timeInProgress)}</div>
+      );
+    },
   },
   {
     accessorKey: 'totalTimeFromStart',
