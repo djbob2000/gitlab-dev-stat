@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { encrypt, decrypt } from './lib/crypto';
+import { decrypt } from './lib/crypto';
 
 /**
  * Middleware for handling API requests
