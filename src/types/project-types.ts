@@ -9,10 +9,21 @@ export interface ProjectData {
   lastUpdated?: Date;
 }
 
-export const SELECTED_DEVELOPERS_PREFIX = 'selected-developers-';
-export const PROJECT_NAME_PREFIX = 'project-name-';
-export const PROJECT_PATH_PREFIX = 'project-path-';
-export const PROJECT_TABLE_ID_PREFIX = 'project-';
+// Import the constants from the dedicated constants file
+import {
+  SELECTED_DEVELOPERS_PREFIX,
+  PROJECT_NAME_PREFIX,
+  PROJECT_PATH_PREFIX,
+  PROJECT_TABLE_ID_PREFIX,
+} from '@/src/constants/storage-keys';
+
+// Re-export the constants
+export {
+  SELECTED_DEVELOPERS_PREFIX,
+  PROJECT_NAME_PREFIX,
+  PROJECT_PATH_PREFIX,
+  PROJECT_TABLE_ID_PREFIX,
+};
 
 // Re-exporting IssueStatistics from types file to avoid circular dependencies
 import { IssueStatistics } from '@/src/types/types';

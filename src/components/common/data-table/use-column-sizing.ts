@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ColumnSizingState, Updater } from '@tanstack/react-table';
+import { TABLE_COLUMN_WIDTHS_PREFIX } from '@/src/constants/storage-keys';
 
 /**
  * Hook for managing column widths with localStorage persistence
@@ -11,7 +12,7 @@ export const useColumnSizing = (tableId: string) => {
   // Load saved column widths on mount
   useEffect(() => {
     try {
-      const savedWidths = localStorage.getItem(`table-column-widths-${tableId}`);
+      const savedWidths = localStorage.getItem(`${TABLE_COLUMN_WIDTHS_PREFIX}${tableId}`);
       if (savedWidths) {
         setColumnSizing(JSON.parse(savedWidths));
       }
@@ -31,7 +32,7 @@ export const useColumnSizing = (tableId: string) => {
 
       setColumnSizing(newSizing);
       try {
-        localStorage.setItem(`table-column-widths-${tableId}`, JSON.stringify(newSizing));
+        localStorage.setItem(`${TABLE_COLUMN_WIDTHS_PREFIX}${tableId}`, JSON.stringify(newSizing));
       } catch (error) {
         console.error('Failed to save column widths to localStorage:', error);
       }

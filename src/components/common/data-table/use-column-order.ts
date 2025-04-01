@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ColumnOrderState, Updater } from '@tanstack/react-table';
+import { TABLE_COLUMN_ORDER_PREFIX } from '@/src/constants/storage-keys';
 
 /**
  * Hook for managing column order with localStorage persistence
@@ -10,7 +11,7 @@ export const useColumnOrder = (tableId: string, defaultColumnIds: string[]) => {
     // Check if there is a saved order in localStorage
     if (typeof window !== 'undefined') {
       try {
-        const savedOrder = localStorage.getItem(`table-column-order-${tableId}`);
+        const savedOrder = localStorage.getItem(`${TABLE_COLUMN_ORDER_PREFIX}${tableId}`);
         if (savedOrder) {
           const parsedOrder = JSON.parse(savedOrder) as string[];
 
@@ -73,7 +74,7 @@ export const useColumnOrder = (tableId: string, defaultColumnIds: string[]) => {
 
       // Save to localStorage
       try {
-        localStorage.setItem(`table-column-order-${tableId}`, JSON.stringify(newOrder));
+        localStorage.setItem(`${TABLE_COLUMN_ORDER_PREFIX}${tableId}`, JSON.stringify(newOrder));
       } catch (error) {
         console.error('Failed to save column order to localStorage:', error);
       }

@@ -14,10 +14,13 @@ import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
 import { Button } from '@/src/components/ui/button';
 import { ProjectCard } from '@/src/components/project-card';
 import { useTopLoader } from 'nextjs-toploader';
-
-const SELECTED_DEVELOPERS_PREFIX = 'selected-developers-';
-const PROJECT_NAME_PREFIX = 'project-name-';
-const PROJECT_PATH_PREFIX = 'project-path-';
+import React from 'react';
+import {
+  PROJECT_NAME_PREFIX,
+  PROJECT_PATH_PREFIX,
+  SELECTED_DEVELOPERS_PREFIX,
+  SELECTED_PROJECTS_KEY,
+} from '@/src/constants/storage-keys';
 
 interface GitLabProject {
   id: number;
@@ -75,20 +78,22 @@ export default function ProjectsPage() {
 
     try {
       // Load selected projects
-      const savedProjects = localStorage.getItem('selectedProjects');
+      const savedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
       if (savedProjects) {
         setSelectedProjects(JSON.parse(savedProjects));
       }
 
       // Load selected developers
       const devsByProject: Record<number, GitLabDeveloper[]> = {};
-      const projectKeys = Object.keys(localStorage).filter(key => key.startsWith('project-name-'));
+      const projectKeys = Object.keys(localStorage).filter(key =>
+        key.startsWith(PROJECT_NAME_PREFIX)
+      );
 
       for (const key of projectKeys) {
-        const projectId = Number(key.replace('project-name-', ''));
+        const projectId = Number(key.replace(PROJECT_NAME_PREFIX, ''));
         if (isNaN(projectId)) continue;
 
-        const savedDevsJSON = localStorage.getItem(`selected-developers-${projectId}`);
+        const savedDevsJSON = localStorage.getItem(`${SELECTED_DEVELOPERS_PREFIX}${projectId}`);
         if (savedDevsJSON) {
           try {
             const savedDevs = JSON.parse(savedDevsJSON);
@@ -186,7 +191,7 @@ export default function ProjectsPage() {
       };
 
       // Save to localStorage
-      localStorage.setItem('selectedProjects', JSON.stringify(newSelectedProjects));
+      localStorage.setItem(SELECTED_PROJECTS_KEY, JSON.stringify(newSelectedProjects));
 
       // Update projects directly instead of using a separate effect
       setProjects(currentProjects =>
@@ -205,8 +210,8 @@ export default function ProjectsPage() {
     (projectId: number) => {
       const project = projects.find(p => p.id === projectId);
       if (project) {
-        localStorage.setItem(`project-name-${projectId}`, project.name);
-        localStorage.setItem(`project-path-${projectId}`, project.path_with_namespace);
+        localStorage.setItem(`${PROJECT_NAME_PREFIX}${projectId}`, project.name);
+        localStorage.setItem(`${PROJECT_PATH_PREFIX}${projectId}`, project.path_with_namespace);
       }
 
       router.push(`/project-developers/${projectId}`);

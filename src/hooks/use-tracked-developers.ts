@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const STORAGE_KEY = 'tracked-developers';
+import { TRACKED_DEVELOPERS_KEY } from '@/src/constants/storage-keys';
 
 export interface TrackedDeveloper {
   userId: number;
@@ -14,7 +13,7 @@ export function useTrackedDevelopers() {
 
   // Load developers from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(TRACKED_DEVELOPERS_KEY);
     if (stored) {
       const parsedDevelopers = JSON.parse(stored);
       setDevelopers(parsedDevelopers);
@@ -30,7 +29,7 @@ export function useTrackedDevelopers() {
   useEffect(() => {
     // Only save after initial load to prevent overwriting
     if (isInitialized && developers.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(developers));
+      localStorage.setItem(TRACKED_DEVELOPERS_KEY, JSON.stringify(developers));
     }
   }, [developers, isInitialized]);
 

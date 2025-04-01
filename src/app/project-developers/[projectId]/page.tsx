@@ -12,6 +12,11 @@ import { Input } from '@/src/components/ui/input';
 import { DeveloperCard } from '@/src/components/developer-card';
 import { useTopLoader } from 'nextjs-toploader';
 import React from 'react';
+import {
+  PROJECT_NAME_PREFIX,
+  PROJECT_PATH_PREFIX,
+  SELECTED_DEVELOPERS_PREFIX,
+} from '@/src/constants/storage-keys';
 
 interface GitLabDeveloper {
   id: number;
@@ -91,11 +96,11 @@ export default function ProjectDevelopersPage({
       if (Array.isArray(data.developers)) {
         if (data.projectName) {
           setProjectName(data.projectName);
-          localStorage.setItem(`project-name-${projectId}`, data.projectName);
+          localStorage.setItem(`${PROJECT_NAME_PREFIX}${projectId}`, data.projectName);
         }
 
         if (data.projectPath) {
-          localStorage.setItem(`project-path-${projectId}`, data.projectPath);
+          localStorage.setItem(`${PROJECT_PATH_PREFIX}${projectId}`, data.projectPath);
         }
 
         // We're setting the developers directly without marking as selected
@@ -130,7 +135,7 @@ export default function ProjectDevelopersPage({
     hasInitialized.current = true;
 
     setOrigin(window.location.origin);
-    const savedProjectName = localStorage.getItem(`project-name-${projectId}`);
+    const savedProjectName = localStorage.getItem(`${PROJECT_NAME_PREFIX}${projectId}`);
     if (savedProjectName) {
       setProjectName(savedProjectName);
     } else {
@@ -138,7 +143,7 @@ export default function ProjectDevelopersPage({
     }
 
     try {
-      const savedDevelopersJSON = localStorage.getItem(`selected-developers-${projectId}`);
+      const savedDevelopersJSON = localStorage.getItem(`${SELECTED_DEVELOPERS_PREFIX}${projectId}`);
       if (savedDevelopersJSON) {
         const savedDevelopers = JSON.parse(savedDevelopersJSON);
 
@@ -185,7 +190,10 @@ export default function ProjectDevelopersPage({
         // Save to localStorage after toggling
         const selectedDevs = developers.filter(dev => newSelections[dev.id]);
         try {
-          localStorage.setItem(`selected-developers-${projectId}`, JSON.stringify(selectedDevs));
+          localStorage.setItem(
+            `${SELECTED_DEVELOPERS_PREFIX}${projectId}`,
+            JSON.stringify(selectedDevs)
+          );
         } catch (error) {
           console.error('Error saving to localStorage:', error);
           toast.error('Failed to save selection');
