@@ -11,7 +11,7 @@ import {
   getActionRequiredPriority,
   getStatusUpdateCommitInfo,
 } from './label-utils';
-import { LABELS, LabelType } from '@/src/constants/labels';
+import { LABELS, LabelType, PRIORITY_LABEL_PATTERN } from '@/src/constants/labels';
 
 /**
  * Column definitions for the data table
@@ -121,7 +121,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
 
             const filteredLabels = mr.labels.filter(
               label =>
-                !label.match(/^p[1-9]$/) && // exclude priority labels
+                !PRIORITY_LABEL_PATTERN.test(label) && // exclude priority labels
                 !excludeLabels.includes(label as LabelType) // exclude specific labels
             );
 

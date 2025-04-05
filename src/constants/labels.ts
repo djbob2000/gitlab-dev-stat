@@ -22,4 +22,6 @@ export const LABELS = {
   TEST: 'test',
 } as const;
 
+export const PRIORITY_LABEL_PATTERN = /^p[1-9]$/;
+
 export type LabelType = (typeof LABELS)[keyof typeof LABELS];
