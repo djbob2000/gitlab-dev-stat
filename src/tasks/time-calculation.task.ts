@@ -1,19 +1,6 @@
-// Re-export everything from the modular structure
-export * from './time-calculation/index';
-
+import { TimeInterval, IssueTimeTrackingStats } from '../types/gitlab/base';
 import { IssueEvent, IssueWithEvents } from './gitlab-api.task';
 import { LABELS } from '@/src/constants/labels';
-
-export interface TimeInterval {
-  start: Date;
-  end: Date | null;
-}
-
-export interface IssueTimeStats {
-  issueId: number;
-  totalDuration: number; // in milliseconds
-  intervals: TimeInterval[];
-}
 
 /**
  * Converts string date to Date object
@@ -116,7 +103,7 @@ const extractInProgressIntervals = (events: IssueEvent[]): TimeInterval[] => {
 /**
  * Calculates time statistics for a single issue
  */
-export const calculateIssueTimeStats = (issue: IssueWithEvents): IssueTimeStats => {
+export const calculateIssueTimeStats = (issue: IssueWithEvents): IssueTimeTrackingStats => {
   const intervals = extractInProgressIntervals(issue.events);
   const mergedIntervals = mergeIntervals(intervals);
   const totalDuration = calculateTotalDuration(mergedIntervals);
@@ -131,7 +118,9 @@ export const calculateIssueTimeStats = (issue: IssueWithEvents): IssueTimeStats 
 /**
  * Calculates time statistics for multiple issues
  */
-export const calculateBulkIssuesTimeStats = (issues: IssueWithEvents[]): IssueTimeStats[] => {
+export const calculateBulkIssuesTimeStats = (
+  issues: IssueWithEvents[]
+): IssueTimeTrackingStats[] => {
   return issues.map(calculateIssueTimeStats);
 };
 

@@ -71,3 +71,20 @@ export const dateRangeSchema = z.object({
 });
 
 export type DateRangeParams = z.infer<typeof dateRangeSchema>;
+
+/**
+ * Represents a time interval with a start and optional end time
+ */
+export interface TimeInterval {
+  start: Date;
+  end: Date | null;
+}
+
+/**
+ * Statistics about time spent on an issue calculated from events
+ */
+export interface IssueTimeTrackingStats {
+  issueId: number;
+  totalDuration: number; // in milliseconds
+  intervals: TimeInterval[];
+}

@@ -1,6 +1,6 @@
 import { IssueEvent, IssueWithEvents } from '../gitlab-api.task';
 import { parseDate, mergeIntervals, calculateTotalDuration } from './interval-utils';
-import { TimeInterval, IssueTimeStats } from './types';
+import { TimeInterval, IssueTimeTrackingStats } from '../../types/gitlab/base';
 import { LABELS } from '@/src/constants/labels';
 
 /**
@@ -46,7 +46,7 @@ export const extractInProgressIntervals = (events: IssueEvent[]): TimeInterval[]
 /**
  * Calculates time statistics for a single issue
  */
-export const calculateIssueTimeStats = (issue: IssueWithEvents): IssueTimeStats => {
+export const calculateIssueTimeStats = (issue: IssueWithEvents): IssueTimeTrackingStats => {
   // Extract intervals when the issue was in progress
   const intervals = extractInProgressIntervals(issue.events);
 
@@ -66,6 +66,8 @@ export const calculateIssueTimeStats = (issue: IssueWithEvents): IssueTimeStats 
 /**
  * Calculates time statistics for multiple issues
  */
-export const calculateBulkIssuesTimeStats = (issues: IssueWithEvents[]): IssueTimeStats[] => {
+export const calculateBulkIssuesTimeStats = (
+  issues: IssueWithEvents[]
+): IssueTimeTrackingStats[] => {
   return issues.map(issue => calculateIssueTimeStats(issue));
 };
