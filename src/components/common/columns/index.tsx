@@ -2,7 +2,7 @@
 
 import { ColumnDef } from '@tanstack/react-table';
 import { formatDuration, formatHoursAndMinutes } from '@/src/tasks/time-calculation.task';
-import type { IssueStatistics } from '@/src/types/types';
+import type { IssueStatistics } from '@/src/types';
 import { LabelPill } from './label-pill';
 import { priorityColors, statusColors, mrLabelColors } from './color-config';
 import {

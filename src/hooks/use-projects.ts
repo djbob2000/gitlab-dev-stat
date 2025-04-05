@@ -3,7 +3,7 @@ import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
 import { useTopLoader } from 'nextjs-toploader';
 import { toast } from 'sonner';
 import { fetchAnalytics } from '@/src/lib/api-utils';
-import { ProjectData } from '@/src/types/project-types';
+import { ProjectData } from '@/src/types';
 import {
   SELECTED_DEVELOPERS_PREFIX,
   PROJECT_NAME_PREFIX,
@@ -58,6 +58,13 @@ export function useProjects() {
         path: projectPath,
         developers,
         data: [],
+        statistics: {
+          totalIssues: 0,
+          openIssues: 0,
+          closedIssues: 0,
+          averageTimeToClose: 0,
+          issues: [],
+        },
         isLoading: false,
         error: null,
       };

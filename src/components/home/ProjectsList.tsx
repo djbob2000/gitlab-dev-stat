@@ -1,7 +1,8 @@
 import React from 'react';
 import { DataTable } from '@/src/components/common/data-table/index';
 import { columns } from '@/src/components/common/columns';
-import { ProjectData, PROJECT_TABLE_ID_PREFIX } from '@/src/types/project-types';
+import { ProjectData } from '@/src/types';
+import { PROJECT_TABLE_ID_PREFIX } from '@/src/constants/storage-keys';
 
 interface ProjectsListProps {
   projects: ProjectData[];

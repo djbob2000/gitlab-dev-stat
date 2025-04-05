@@ -175,7 +175,7 @@ export default function ProjectsPage() {
   }, [isLoading, loader, selectedProjects]);
 
   // Fetch projects when token is initialized and user has a token
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (isInitialized && isTokenInitialized && hasToken && projects.length === 0 && !isLoading) {
       fetchProjects();
@@ -220,7 +220,7 @@ export default function ProjectsPage() {
   );
 
   // Load projects from localStorage
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!isInitialized || !hasToken) return;
 

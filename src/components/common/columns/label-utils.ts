@@ -1,4 +1,4 @@
-import { MergeRequestLabels } from '@/src/types/types';
+import { MergeRequestInfo } from '@/src/types';
 import { mrLabelColors } from './color-config';
 import { LABELS } from '@/src/constants/labels';
 
@@ -40,7 +40,7 @@ export const getStatusPriority = (labels: string[]) => {
 /**
  * Gets the priority of action required labels
  */
-export const getActionRequiredPriority = (mrLabels: MergeRequestLabels[] = []) => {
+export const getActionRequiredPriority = (mrLabels: MergeRequestInfo[] = []) => {
   // Check if any merge request has an action-required label
   for (const mr of mrLabels) {
     const labels = mr.labels || [];
@@ -85,7 +85,7 @@ export const getActionRequiredPriority = (mrLabels: MergeRequestLabels[] = []) =
 /**
  * Gets the status-update-commit label info if present
  */
-export const getStatusUpdateCommitInfo = (mr: MergeRequestLabels) => {
+export const getStatusUpdateCommitInfo = (mr: MergeRequestInfo) => {
   if (!mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT)) {
     return null;
   }
