@@ -74,35 +74,6 @@ export default function ProjectsPage() {
   const loader = useTopLoader();
 
   /**
-   * Initialize data from localStorage - only runs once
-   */
-  useEffect(() => {
-    if (isInitialized) return;
-
-    try {
-      // Load selected projects
-      const savedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
-      if (savedProjects) {
-        setSelectedProjects(JSON.parse(savedProjects));
-      }
-
-      // Load selected developers
-      const devsByProject = loadSelectedDevelopersFromStorage();
-      setSelectedDevelopers(devsByProject);
-
-      setIsInitialized(true);
-
-      // Redirect if no token after initialization
-      if (isTokenInitialized && !hasToken) {
-        router.push('/settings');
-      }
-    } catch (error) {
-      console.error('Error initializing from localStorage:', error);
-      setIsInitialized(true);
-    }
-  }, [isTokenInitialized, hasToken, router, isInitialized]);
-
-  /**
    * Load developers from localStorage
    */
   const loadSelectedDevelopersFromStorage = useCallback(() => {
@@ -133,6 +104,35 @@ export default function ProjectsPage() {
 
     return devsByProject;
   }, []);
+
+  /**
+   * Initialize data from localStorage - only runs once
+   */
+  useEffect(() => {
+    if (isInitialized) return;
+
+    try {
+      // Load selected projects
+      const savedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
+      if (savedProjects) {
+        setSelectedProjects(JSON.parse(savedProjects));
+      }
+
+      // Load selected developers
+      const devsByProject = loadSelectedDevelopersFromStorage();
+      setSelectedDevelopers(devsByProject);
+
+      setIsInitialized(true);
+
+      // Redirect if no token after initialization
+      if (isTokenInitialized && !hasToken) {
+        router.push('/settings');
+      }
+    } catch (error) {
+      console.error('Error initializing from localStorage:', error);
+      setIsInitialized(true);
+    }
+  }, [isTokenInitialized, hasToken, router, isInitialized, loadSelectedDevelopersFromStorage]);
 
   /**
    * Fetch projects from API

@@ -22,33 +22,6 @@ export function useProjects() {
   const hasLoadedInitialData = useRef(false);
   const hasInitializedProjects = useRef(false);
 
-  // Load projects from localStorage - once after initialization
-  useEffect(() => {
-    if (!isInitialized || !hasToken || hasInitializedProjects.current) return;
-
-    hasInitializedProjects.current = true;
-
-    try {
-      // Get selectedProjects from localStorage
-      const savedSelectedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
-      const selectedProjects: Record<number, boolean> = savedSelectedProjects
-        ? JSON.parse(savedSelectedProjects)
-        : {};
-
-      // Get projects with developers from localStorage
-      const projectsWithData = getProjectsFromStorage();
-
-      // Only include projects that are explicitly selected AND have developers
-      const filteredProjects = projectsWithData.filter(
-        p => p.developers.length > 0 && selectedProjects[p.id] === true
-      );
-
-      setProjects(filteredProjects);
-    } catch (error) {
-      console.error('Error loading projects from localStorage:', error);
-    }
-  }, [isInitialized, hasToken]);
-
   /**
    * Get projects data from localStorage
    */
@@ -99,6 +72,33 @@ export function useProjects() {
       };
     });
   }, []);
+
+  // Load projects from localStorage - once after initialization
+  useEffect(() => {
+    if (!isInitialized || !hasToken || hasInitializedProjects.current) return;
+
+    hasInitializedProjects.current = true;
+
+    try {
+      // Get selectedProjects from localStorage
+      const savedSelectedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
+      const selectedProjects: Record<number, boolean> = savedSelectedProjects
+        ? JSON.parse(savedSelectedProjects)
+        : {};
+
+      // Get projects with developers from localStorage
+      const projectsWithData = getProjectsFromStorage();
+
+      // Only include projects that are explicitly selected AND have developers
+      const filteredProjects = projectsWithData.filter(
+        p => p.developers.length > 0 && selectedProjects[p.id] === true
+      );
+
+      setProjects(filteredProjects);
+    } catch (error) {
+      console.error('Error loading projects from localStorage:', error);
+    }
+  }, [isInitialized, hasToken, getProjectsFromStorage]);
 
   // Load data for all projects
   const loadAllData = useCallback(async () => {

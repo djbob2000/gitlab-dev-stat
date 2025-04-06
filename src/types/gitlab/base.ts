@@ -92,3 +92,22 @@ export interface IssueTimeTrackingStats {
   totalDuration: number; // in milliseconds
   intervals: TimeInterval[];
 }
+
+/**
+ * Type for batch processing function
+ * @template T Input item type
+ * @template R Result type
+ */
+export type BatchProcessor<T, R> = (item: T) => Promise<R>;
+
+/**
+ * Interface for merge request statistics
+ */
+export interface MergeRequestWithStats {
+  mrIid: number;
+  labels: string[];
+  url: string;
+  title: string;
+  actionRequiredLabelTime?: number;
+  statusUpdateCommitCount?: number;
+}
