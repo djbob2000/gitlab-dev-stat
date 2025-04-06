@@ -1,62 +1,75 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { decrypt } from './lib/crypto';
+import { createErrorResponse } from './lib/api-error-handler';
+import { HTTP_STATUS } from './constants/http-status';
 
 /**
- * Middleware for handling API requests
- * Extracts GitLab token from cookies, decrypts it if encrypted, and adds it to request headers
+ * Middleware for handling API authentication
+ * - Gets encrypted GitLab token from cookies
+ * - Decrypts token (tokens are encrypted in cookies for security)
+ * - Adds decrypted token to X-GitLab-Token header for API requests
+ * - Removes invalid tokens from cookies
+ * - Enforces authentication for all API routes except token management
  */
 export async function middleware(request: NextRequest) {
-  // Clone the request headers
-  const requestHeaders = new Headers(request.headers);
+  try {
+    const requestHeaders = new Headers(request.headers);
 
-  // Get the token from client cookies
-  const encryptedToken = request.cookies.get('gitlab-token')?.value;
+    // Get encrypted token from cookies (tokens are stored encrypted for security)
+    const encryptedToken = request.cookies.get('gitlab-token')?.value;
 
-  if (encryptedToken) {
-    try {
-      // Decrypt the token
-      const decryptedToken = await decrypt(encryptedToken);
-
-      // Add the decrypted token to the headers
-      if (decryptedToken) {
-        requestHeaders.set('X-GitLab-Token', decryptedToken);
-      } else {
-        // Token was decrypted but value is empty, remove the invalid cookie
+    if (encryptedToken) {
+      try {
+        // Decrypt token before sending to GitLab API
+        // We store tokens encrypted in cookies, but need to send them decrypted to GitLab
+        const decryptedToken = await decrypt(encryptedToken);
+        if (decryptedToken) {
+          // Add decrypted token to headers for GitLab API authentication
+          requestHeaders.set('X-GitLab-Token', decryptedToken);
+        } else {
+          // If token was decrypted but is empty, remove it from cookies
+          const response = NextResponse.next({
+            request: { headers: requestHeaders },
+          });
+          response.cookies.delete('gitlab-token');
+          return response;
+        }
+      } catch {
+        // If token decryption fails, remove invalid token from cookies
         const response = NextResponse.next({
           request: { headers: requestHeaders },
         });
-
         response.cookies.delete('gitlab-token');
-        console.warn('Empty token detected, clearing cookie');
         return response;
       }
-    } catch (error) {
-      // If decryption fails (possibly due to encryption key change)
-      console.error('Error decrypting token:', error);
-
-      // Remove the invalid cookie
-      const response = NextResponse.next({
-        request: { headers: requestHeaders },
-      });
-
-      response.cookies.delete('gitlab-token');
-
-      // Redirect to login page if accessing protected route
-      if (request.nextUrl.pathname.startsWith('/api/')) {
-        console.warn('Invalid token detected for API route, clearing cookie');
-      }
-
-      return response;
     }
-  }
 
-  // Return the response with modified headers
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+    // Require authentication for all API routes except token management
+    // /api/gitlab/token routes are used for login/token operations
+    if (
+      !request.nextUrl.pathname.startsWith('/api/gitlab/token') &&
+      !requestHeaders.has('X-GitLab-Token')
+    ) {
+      return createErrorResponse(
+        'Authentication required',
+        HTTP_STATUS.UNAUTHORIZED,
+        'AUTHENTICATION_ERROR'
+      );
+    }
+
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+  } catch {
+    return createErrorResponse(
+      'Internal server error',
+      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      'INTERNAL_SERVER_ERROR'
+    );
+  }
 }
 
 /**

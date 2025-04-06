@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BaseApiError } from '../common/api.types';
 
 /**
  * Unique identifier for GitLab entities
@@ -33,6 +34,21 @@ export interface GitLabUser {
 }
 
 /**
+ * GitLab-specific error structure
+ */
+export interface GitLabError extends BaseApiError {
+  gitlabResponse?: unknown;
+}
+
+/**
+ * GitLab API error response
+ */
+export interface GitLabErrorResponse {
+  success: false;
+  error: GitLabError;
+}
+
+/**
  * Successful API response wrapper
  */
 export interface ApiResponse<T> {
@@ -41,24 +57,12 @@ export interface ApiResponse<T> {
   readonly message?: string;
 }
 
-/**
- * Error API response wrapper
- */
-export interface ApiErrorResponse {
-  readonly success: false;
-  readonly error: {
-    readonly message: string;
-    readonly code?: string;
-    readonly details?: Record<string, unknown>;
-  };
-}
-
-export type ApiResult<T> = ApiResponse<T> | ApiErrorResponse;
+export type ApiResult<T> = ApiResponse<T> | GitLabErrorResponse;
 
 /**
  * Type guard to check if response is an error
  */
-export const isApiError = (response: ApiResult<unknown>): response is ApiErrorResponse => {
+export const isApiError = (response: ApiResult<unknown>): response is GitLabErrorResponse => {
   return !response.success;
 };
 
