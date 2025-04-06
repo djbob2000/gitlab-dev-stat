@@ -129,13 +129,23 @@ export const columns: ColumnDef<IssueStatistics>[] = [
             const hasNoLabels = filteredLabels.length === 0;
             const hasApprovedLabel = mr.labels.includes(LABELS.APPROVED);
 
+            // Check if any MR in this issue has action-required labels
+            const hasActionRequiredLabels = row.original.mergeRequests.some(mr =>
+              mr.labels.some(
+                label =>
+                  label === LABELS.ACTION_REQUIRED ||
+                  label === LABELS.ACTION_REQUIRED2 ||
+                  label === LABELS.ACTION_REQUIRED3
+              )
+            );
+
             let mrNumberClass = '';
 
             if (hasApprovedLabel) {
               // Use a green text color for approved MRs, similar to the label's color
               mrNumberClass =
                 'text-xs text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200';
-            } else if (isReview && hasNoLabels) {
+            } else if (isReview && hasNoLabels && !hasActionRequiredLabels) {
               mrNumberClass =
                 'text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 font-bold';
             } else {
