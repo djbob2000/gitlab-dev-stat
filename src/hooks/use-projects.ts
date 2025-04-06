@@ -20,17 +20,39 @@ export function useProjects() {
   const { hasToken, isInitialized } = useGitLabToken();
   const loader = useTopLoader();
   const hasLoadedInitialData = useRef(false);
+  const hasInitializedProjects = useRef(false);
 
-  // Load projects from localStorage
+  // Load projects from localStorage - once after initialization
   useEffect(() => {
-    if (!isInitialized || !hasToken) return;
+    if (!isInitialized || !hasToken || hasInitializedProjects.current) return;
 
-    // Get selectedProjects from localStorage
-    const savedSelectedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
-    const selectedProjects: Record<number, boolean> = savedSelectedProjects
-      ? JSON.parse(savedSelectedProjects)
-      : {};
+    hasInitializedProjects.current = true;
 
+    try {
+      // Get selectedProjects from localStorage
+      const savedSelectedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
+      const selectedProjects: Record<number, boolean> = savedSelectedProjects
+        ? JSON.parse(savedSelectedProjects)
+        : {};
+
+      // Get projects with developers from localStorage
+      const projectsWithData = getProjectsFromStorage();
+
+      // Only include projects that are explicitly selected AND have developers
+      const filteredProjects = projectsWithData.filter(
+        p => p.developers.length > 0 && selectedProjects[p.id] === true
+      );
+
+      setProjects(filteredProjects);
+    } catch (error) {
+      console.error('Error loading projects from localStorage:', error);
+    }
+  }, [isInitialized, hasToken]);
+
+  /**
+   * Get projects data from localStorage
+   */
+  const getProjectsFromStorage = useCallback((): ProjectData[] => {
     // Get project IDs from localStorage
     const projectIds = Array.from({ length: localStorage.length })
       .map((_, i) => localStorage.key(i))
@@ -38,8 +60,14 @@ export function useProjects() {
       .map(key => parseInt(key!.replace(SELECTED_DEVELOPERS_PREFIX, ''), 10))
       .filter(id => !isNaN(id));
 
-    // Initialize projects with empty data
-    const initialProjects = projectIds.map(id => {
+    // Get selected projects from localStorage
+    const savedSelectedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
+    const selectedProjects: Record<number, boolean> = savedSelectedProjects
+      ? JSON.parse(savedSelectedProjects)
+      : {};
+
+    // Initialize projects with data from localStorage
+    return projectIds.map(id => {
       const projectName = localStorage.getItem(`${PROJECT_NAME_PREFIX}${id}`) || `Project ${id}`;
       const projectPath =
         localStorage.getItem(`${PROJECT_PATH_PREFIX}${id}`) ||
@@ -67,16 +95,10 @@ export function useProjects() {
         },
         isLoading: false,
         error: null,
+        selected: selectedProjects[id] === true,
       };
     });
-
-    // Only include projects that are selected AND have developers
-    setProjects(
-      initialProjects.filter(
-        p => p.developers.length > 0 && selectedProjects[p.id] !== false // Include if not explicitly set to false
-      )
-    );
-  }, [isInitialized, hasToken]);
+  }, []);
 
   // Load data for all projects
   const loadAllData = useCallback(async () => {
@@ -119,12 +141,12 @@ export function useProjects() {
         })
       );
 
-      loader.done();
       setProjects(updatedProjects);
     } catch (_err) {
       toast.error('Failed to load data. Please check your GitLab token.');
     } finally {
       setIsLoading(false);
+      loader.done();
     }
   }, [isInitialized, hasToken, loader, projects, isLoading]);
 
@@ -165,10 +187,7 @@ export function useProjects() {
               : p
           )
         );
-
-        loader.done();
       } catch (err) {
-        loader.done();
         setProjects(prev =>
           prev.map(p =>
             p.id === projectId
@@ -183,12 +202,13 @@ export function useProjects() {
         toast.error(`Failed to load data for project ${project.name}.`);
       } finally {
         setIsLoading(false);
+        loader.done();
       }
     },
     [isInitialized, hasToken, projects, loader, isLoading]
   );
 
-  // Initial data load
+  // Initial data load - only once after projects are loaded
   useEffect(() => {
     if (
       isInitialized &&
@@ -203,6 +223,7 @@ export function useProjects() {
     }
   }, [isInitialized, hasToken, loadAllData, projects.length, isLoading]);
 
+  // Compute if any project is loading
   const anyProjectLoading = projects.some(project => project.isLoading);
 
   return {

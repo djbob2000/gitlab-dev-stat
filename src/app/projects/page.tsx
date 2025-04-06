@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -66,13 +66,16 @@ export default function ProjectsPage() {
     {}
   );
   const [isInitialized, setIsInitialized] = useState(false);
+  const [hasLoadedProjects, setHasLoadedProjects] = useState(false);
 
   // Hooks
   const { hasToken, isInitialized: isTokenInitialized } = useGitLabToken();
   const router = useRouter();
   const loader = useTopLoader();
 
-  // Initialize data from localStorage
+  /**
+   * Initialize data from localStorage - only runs once
+   */
   useEffect(() => {
     if (isInitialized) return;
 
@@ -84,29 +87,9 @@ export default function ProjectsPage() {
       }
 
       // Load selected developers
-      const devsByProject: Record<number, GitLabDeveloper[]> = {};
-      const projectKeys = Object.keys(localStorage).filter(key =>
-        key.startsWith(PROJECT_NAME_PREFIX)
-      );
-
-      for (const key of projectKeys) {
-        const projectId = Number(key.replace(PROJECT_NAME_PREFIX, ''));
-        if (isNaN(projectId)) continue;
-
-        const savedDevsJSON = localStorage.getItem(`${SELECTED_DEVELOPERS_PREFIX}${projectId}`);
-        if (savedDevsJSON) {
-          try {
-            const savedDevs = JSON.parse(savedDevsJSON);
-            if (Array.isArray(savedDevs) && savedDevs.length > 0) {
-              devsByProject[projectId] = savedDevs;
-            }
-          } catch (error) {
-            console.error(`Error loading developers for project ${projectId}:`, error);
-          }
-        }
-      }
-
+      const devsByProject = loadSelectedDevelopersFromStorage();
       setSelectedDevelopers(devsByProject);
+
       setIsInitialized(true);
 
       // Redirect if no token after initialization
@@ -119,11 +102,43 @@ export default function ProjectsPage() {
     }
   }, [isTokenInitialized, hasToken, router, isInitialized]);
 
-  // Fetch projects function
-  const fetchProjects = useCallback(async () => {
-    if (isLoading) {
-      return;
+  /**
+   * Load developers from localStorage
+   */
+  const loadSelectedDevelopersFromStorage = useCallback(() => {
+    const devsByProject: Record<number, GitLabDeveloper[]> = {};
+
+    // Find all project keys
+    const projectKeys = Object.keys(localStorage).filter(key =>
+      key.startsWith(PROJECT_NAME_PREFIX)
+    );
+
+    // Load developers for each project
+    for (const key of projectKeys) {
+      const projectId = Number(key.replace(PROJECT_NAME_PREFIX, ''));
+      if (isNaN(projectId)) continue;
+
+      const savedDevsJSON = localStorage.getItem(`${SELECTED_DEVELOPERS_PREFIX}${projectId}`);
+      if (savedDevsJSON) {
+        try {
+          const savedDevs = JSON.parse(savedDevsJSON);
+          if (Array.isArray(savedDevs) && savedDevs.length > 0) {
+            devsByProject[projectId] = savedDevs;
+          }
+        } catch (error) {
+          console.error(`Error loading developers for project ${projectId}:`, error);
+        }
+      }
     }
+
+    return devsByProject;
+  }, []);
+
+  /**
+   * Fetch projects from API
+   */
+  const fetchProjects = useCallback(async () => {
+    if (isLoading) return;
 
     setIsLoading(true);
     setErrorMsg(null);
@@ -131,16 +146,7 @@ export default function ProjectsPage() {
 
     try {
       const url = `${window.location.origin}/api/gitlab/projects`;
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      const response = await fetch(url, {
-        credentials: 'same-origin',
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+      const response = await fetch(url, { credentials: 'same-origin' });
 
       if (!response.ok) {
         throw new Error(`API error: ${response.status} ${response.statusText}`);
@@ -151,38 +157,37 @@ export default function ProjectsPage() {
       if (data && Array.isArray(data.projects)) {
         const projectsWithSelection = data.projects.map((project: GitLabProject) => ({
           ...project,
-          selected: !!selectedProjects[project.id],
+          selected: selectedProjects[project.id] === true,
         }));
         setProjects(projectsWithSelection);
+        setHasLoadedProjects(true);
       } else {
         throw new Error('Invalid response format, missing projects array');
       }
     } catch (error) {
       console.error('Failed to fetch projects:', error);
       setErrorMsg(error instanceof Error ? error.message : String(error));
-
-      if (error instanceof Error && error.name === 'AbortError') {
-        toast.error('Request timed out. Please try again.');
-      } else {
-        toast.error(
-          'Failed to load projects. Please check your GitLab token and network connection.'
-        );
-      }
+      toast.error(
+        'Failed to load projects. Please check your GitLab token and network connection.'
+      );
     } finally {
       setIsLoading(false);
       loader.done();
     }
   }, [isLoading, loader, selectedProjects]);
 
-  // Fetch projects when token is initialized and user has a token
-
+  /**
+   * Fetch projects only once after initialization
+   */
   useEffect(() => {
-    if (isInitialized && isTokenInitialized && hasToken && projects.length === 0 && !isLoading) {
+    if (isInitialized && isTokenInitialized && hasToken && !hasLoadedProjects && !isLoading) {
       fetchProjects();
     }
-  }, [isTokenInitialized, hasToken, fetchProjects, projects.length, isLoading, isInitialized]);
+  }, [isInitialized, isTokenInitialized, hasToken, hasLoadedProjects, isLoading, fetchProjects]);
 
-  // Toggle project selection
+  /**
+   * Toggle project selection
+   */
   const toggleProjectSelection = useCallback((projectId: number) => {
     setSelectedProjects(prev => {
       const newSelectedProjects = {
@@ -193,7 +198,7 @@ export default function ProjectsPage() {
       // Save to localStorage
       localStorage.setItem(SELECTED_PROJECTS_KEY, JSON.stringify(newSelectedProjects));
 
-      // Update projects directly instead of using a separate effect
+      // Update projects directly
       setProjects(currentProjects =>
         currentProjects.map(project => ({
           ...project,
@@ -205,7 +210,9 @@ export default function ProjectsPage() {
     });
   }, []);
 
-  // Navigate to project developers page
+  /**
+   * Navigate to project developers page
+   */
   const goToProjectDevelopers = useCallback(
     (projectId: number) => {
       const project = projects.find(p => p.id === projectId);
@@ -219,130 +226,113 @@ export default function ProjectsPage() {
     [projects, router]
   );
 
-  // Load projects from localStorage
+  /**
+   * Manual refresh handler
+   */
+  const handleRefresh = useCallback(() => {
+    if (!isLoading) {
+      fetchProjects();
+    }
+  }, [fetchProjects, isLoading]);
 
-  useEffect(() => {
-    if (!isInitialized || !hasToken) return;
+  /**
+   * Render content based on app state
+   */
+  const content = useMemo(() => {
+    // Render loading state
+    if (!isInitialized || !isTokenInitialized) {
+      return (
+        <div className="container py-8">
+          <h1 className="text-3xl font-bold mb-6">Your GitLab Projects</h1>
+          <div className="text-center text-gray-500 dark:text-gray-400 mt-8">Initializing...</div>
+        </div>
+      );
+    }
 
-    // Get project IDs from localStorage
-    const projectIds = Array.from({ length: localStorage.length })
-      .map((_, i) => localStorage.key(i))
-      .filter(key => key?.startsWith(SELECTED_DEVELOPERS_PREFIX))
-      .map(key => parseInt(key!.replace(SELECTED_DEVELOPERS_PREFIX, ''), 10))
-      .filter(id => !isNaN(id));
+    // Render no token state
+    if (!hasToken) {
+      return (
+        <div className="container py-8">
+          <h1 className="text-3xl font-bold mb-6">Your GitLab Projects</h1>
+          <Card>
+            <CardHeader>
+              <CardTitle>GitLab Token Required</CardTitle>
+              <CardDescription>
+                Please add your GitLab token in the settings to view your projects.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link
+                href="/settings"
+                className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+              >
+                Go to Settings
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
 
-    // Initialize projects with empty data
-    const initialProjects = projectIds.map(id => {
-      const projectName = localStorage.getItem(`${PROJECT_NAME_PREFIX}${id}`) || `Project ${id}`;
-      const projectPath =
-        localStorage.getItem(`${PROJECT_PATH_PREFIX}${id}`) ||
-        projectName.toLowerCase().replace(/\s+/g, '-');
-
-      return {
-        id,
-        name: projectName,
-        name_with_namespace: projectName,
-        path: projectPath,
-        path_with_namespace: projectPath,
-        description: '',
-        web_url: '',
-        avatar_url: null,
-        star_count: 0,
-        last_activity_at: new Date().toISOString(),
-        namespace: {
-          id: 0,
-          name: '',
-          path: '',
-          kind: '',
-          full_path: '',
-        },
-        visibility: 'private',
-        selected: true,
-      } satisfies GitLabProject;
-    });
-
-    // Only set projects that are selected
-    setProjects(initialProjects.filter(p => p.selected));
-  }, [hasToken, isInitialized]);
-
-  // Render loading state
-  if (!isInitialized || !isTokenInitialized) {
+    // Render main content
     return (
-      <div className="container py-8">
-        <h1 className="text-3xl font-bold mb-6">Your GitLab Projects</h1>
-        <div className="text-center text-gray-500 dark:text-gray-400 mt-8">Initializing...</div>
-      </div>
-    );
-  }
-
-  // Render no token state
-  if (!hasToken) {
-    return (
-      <div className="container py-8">
-        <h1 className="text-3xl font-bold mb-6">Your GitLab Projects</h1>
-        <Card>
-          <CardHeader>
-            <CardTitle>GitLab Token Required</CardTitle>
-            <CardDescription>
-              Please add your GitLab token in the settings to view your projects.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link
-              href="/settings"
-              className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-            >
-              Go to Settings
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container mx-auto py-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => router.push('/')}>
-            Back
+      <div className="container mx-auto py-6">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => router.push('/')}>
+              Back
+            </Button>
+            <h1 className="text-2xl font-bold">GitLab Projects</h1>
+          </div>
+          <Button onClick={handleRefresh} disabled={isLoading}>
+            {isLoading ? 'Loading...' : 'Refresh'}
           </Button>
-          <h1 className="text-2xl font-bold">GitLab Projects</h1>
         </div>
-        <Button onClick={() => fetchProjects()} disabled={isLoading}>
-          Refresh
-        </Button>
+
+        {errorMsg && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {errorMsg}
+          </div>
+        )}
+
+        {isLoading && projects.length === 0 ? (
+          <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
+            Loading your GitLab projects...
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="text-center my-8">
+            <p className="text-gray-600">
+              No projects found. Please check your GitLab token permissions.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map(project => (
+              <ProjectCard
+                key={project.id}
+                project={project}
+                onToggleSelect={toggleProjectSelection}
+                onViewDevelopers={goToProjectDevelopers}
+                selectedDevelopers={selectedDevelopers[project.id] || []}
+              />
+            ))}
+          </div>
+        )}
       </div>
+    );
+  }, [
+    isInitialized,
+    isTokenInitialized,
+    hasToken,
+    projects,
+    isLoading,
+    errorMsg,
+    selectedDevelopers,
+    router,
+    handleRefresh,
+    toggleProjectSelection,
+    goToProjectDevelopers,
+  ]);
 
-      {errorMsg && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {errorMsg}
-        </div>
-      )}
-
-      {isLoading && projects.length === 0 ? (
-        <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
-          Loading your GitLab projects...
-        </div>
-      ) : projects.length === 0 ? (
-        <div className="text-center my-8">
-          <p className="text-gray-600">
-            No projects found. Please check your GitLab token permissions.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map(project => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              onToggleSelect={toggleProjectSelection}
-              onViewDevelopers={goToProjectDevelopers}
-              selectedDevelopers={selectedDevelopers[project.id] || []}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return content;
 }
