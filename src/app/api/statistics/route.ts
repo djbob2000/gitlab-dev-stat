@@ -24,10 +24,13 @@ const getStatisticsSchema = z.object({
   projectPath: z.string().optional(),
 });
 
+// Gitlab API has limit of 100 items per request
+const BATCH_SIZE = 99;
+
 // Utility function to process issues in batches
 const processBatch = async <T, R>(
   items: T[],
-  batchSize: number = 99,
+  batchSize: number = BATCH_SIZE,
   fn: BatchProcessor<T, R>
 ): Promise<R[]> => {
   const results: R[] = [];
@@ -48,11 +51,10 @@ const processBatch = async <T, R>(
 const processMergeRequestLabels = async (
   gitlabClient: ReturnType<typeof createGitLabClient>,
   projectId: number,
-  projectPath: string,
   mergeRequests: GitLabApiMergeRequest[]
 ): Promise<MergeRequestWithStats[]> => {
   // Use a larger batch size for merge requests since they're less resource intensive
-  return processBatch(mergeRequests, 25, async (mr: GitLabApiMergeRequest) => {
+  return processBatch(mergeRequests, BATCH_SIZE, async (mr: GitLabApiMergeRequest) => {
     const actionRequiredLabels = mr.labels.filter(
       label =>
         label === LABELS.ACTION_REQUIRED ||
@@ -67,34 +69,45 @@ const processMergeRequestLabels = async (
     const needsLabelEvents =
       actionRequiredLabels.length > 0 || mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT);
 
+    // Only fetch label events if needed
     if (needsLabelEvents) {
       labelEvents = await gitlabClient.getMergeRequestLabelEvents(projectId, mr.iid);
     }
 
-    if (actionRequiredLabels.length > 0) {
-      const latestAddTime = actionRequiredLabels.reduce(
-        (latest: number | undefined, label: string) => {
-          const addEvents = labelEvents.filter(
-            event => event.action === 'add' && event.label?.name === label
-          );
+    // Process action required labels and status update commit count in parallel
+    const [actionRequiredTime, updateCommitCount] = await Promise.all([
+      // Calculate action required label time
+      (async () => {
+        if (actionRequiredLabels.length === 0) return undefined;
 
-          if (addEvents.length === 0) return latest;
+        const addEvents = labelEvents.filter(
+          event =>
+            event.action === 'add' &&
+            event.label?.name &&
+            actionRequiredLabels.includes(
+              event.label.name as
+                | typeof LABELS.ACTION_REQUIRED
+                | typeof LABELS.ACTION_REQUIRED2
+                | typeof LABELS.ACTION_REQUIRED3
+            )
+        );
 
-          const addTime = Math.max(...addEvents.map(event => new Date(event.created_at).getTime()));
+        if (addEvents.length === 0) return undefined;
 
-          return !latest ? addTime : Math.max(latest, addTime);
-        },
-        undefined
-      );
+        return Math.max(...addEvents.map(event => new Date(event.created_at).getTime()));
+      })(),
+      // Calculate status update commit count
+      (async () => {
+        if (!mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT)) return undefined;
 
-      actionRequiredLabelTime = latestAddTime;
-    }
+        return labelEvents.filter(
+          event => event.action === 'add' && event.label?.name === LABELS.STATUS_UPDATE_COMMIT
+        ).length;
+      })(),
+    ]);
 
-    if (mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT)) {
-      statusUpdateCommitCount = labelEvents.filter(
-        event => event.action === 'add' && event.label?.name === LABELS.STATUS_UPDATE_COMMIT
-      ).length;
-    }
+    actionRequiredLabelTime = actionRequiredTime;
+    statusUpdateCommitCount = updateCommitCount;
 
     return {
       mrIid: mr.iid,
@@ -157,20 +170,23 @@ export async function GET(request: Request) {
       );
 
       // Process issues in optimized batches
-      const issueStats = await processBatch(issues, 5, async issue => {
-        const timeInProgress = issue.inProgressDuration;
-        const totalTimeFromStart = issue.totalTimeFromStart;
+      const issueStats = await processBatch(issues, BATCH_SIZE, async issue => {
+        // Process multiple API calls in parallel
+        const [timeInProgress, totalTimeFromStart, mergeRequestsResponse] = await Promise.all([
+          Promise.resolve(issue.inProgressDuration),
+          Promise.resolve(issue.totalTimeFromStart),
+          gitlabClient.getIssueRelatedMergeRequests(projectId, issue.iid),
+        ]);
 
-        // Get merge requests for the current issue
-        const mergeRequests = (
-          await gitlabClient.getIssueRelatedMergeRequests(projectId, issue.iid)
-        ).filter(mr => mr.source_project_id === projectId && mr.state === 'opened');
+        // Filter merge requests
+        const mergeRequests = mergeRequestsResponse.filter(
+          mr => mr.source_project_id === projectId && mr.state === 'opened'
+        );
 
         // Process merge request labels in parallel with optimized batching
         const mergeRequestLabels = await processMergeRequestLabels(
           gitlabClient,
           projectId,
-          projectPath,
           mergeRequests
         );
 
