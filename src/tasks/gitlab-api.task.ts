@@ -88,7 +88,7 @@ export interface GitLabUser {
 
 // GitLab API client
 export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
-  const fetchFromGitLab = async (
+  const fetchFromGitLab = async <T = any>(
     endpoint: string,
     params: Record<string, string | number> = {}
   ) => {
@@ -122,7 +122,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
       }
 
       const data = await response.json();
-      return data;
+      return data as T;
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error) {
@@ -137,92 +137,44 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
 
   const getIssueEvents = async (projectId: number, issueIid: number): Promise<IssueEvent[]> => {
     try {
-      let page = 1;
       const perPage = 100;
-      let allEvents: IssueEvent[] = [];
 
-      // Fetch label events
-      while (true) {
-        const events = await fetchFromGitLab(
-          `/projects/${projectId}/issues/${issueIid}/resource_label_events`,
-          { per_page: perPage, page }
-        );
-
-        if (events.length === 0) break;
-
-        allEvents = [...allEvents, ...events];
-        if (events.length < perPage) break;
-
-        page++;
-      }
-
-      // Fetch resource events (including assignments)
-      page = 1;
-      while (true) {
-        const events = await fetchFromGitLab(
-          `/projects/${projectId}/issues/${issueIid}/resource_state_events`,
-          { per_page: perPage, page }
-        );
-
-        if (events.length === 0) break;
-
-        allEvents = [
-          ...allEvents,
-          ...events.map(
-            (event: {
-              id: number;
-              user: { id: number; username: string };
-              created_at: string;
-              action: string;
-              assignee?: { id: number; username: string };
-            }) => ({
-              ...event,
-              resource_type: 'issue',
-            })
+      return (
+        await Promise.all([
+          fetchFromGitLab<IssueEvent[]>(
+            `/projects/${projectId}/issues/${issueIid}/resource_label_events`,
+            { per_page: perPage, page: 1 }
           ),
-        ];
-        if (events.length < perPage) break;
-
-        page++;
-      }
-
-      // Fetch assignment events
-      page = 1;
-      while (true) {
-        const events = await fetchFromGitLab(`/projects/${projectId}/issues/${issueIid}/notes`, {
-          per_page: perPage,
-          page,
-        });
-
-        if (events.length === 0) break;
-
-        // Filter and transform system notes about assignments
-        const assignmentEvents = events
-          .filter((note: GitLabNote) => note.system && note.body.includes('assigned to'))
-          .map((note: GitLabNote) => {
-            const assigneeMatch = note.body.match(/@([^\s]+)/);
-            return {
-              id: note.id,
-              user: note.author,
-              created_at: note.created_at,
-              resource_type: 'issue',
-              action: 'assignee',
-              assignee: assigneeMatch
-                ? {
-                    id: 0, // We don't have the ID from the note
-                    username: assigneeMatch[1],
-                  }
-                : undefined,
-            };
-          });
-
-        allEvents = [...allEvents, ...assignmentEvents];
-        if (events.length < perPage) break;
-
-        page++;
-      }
-
-      return allEvents;
+          fetchFromGitLab<IssueEvent[]>(
+            `/projects/${projectId}/issues/${issueIid}/resource_state_events`,
+            { per_page: perPage, page: 1 }
+          ),
+          fetchFromGitLab<GitLabNote[]>(`/projects/${projectId}/issues/${issueIid}/notes`, {
+            per_page: perPage,
+            page: 1,
+          }).then(events => {
+            const assignmentEvents = events
+              .filter((note: GitLabNote) => note.system && note.body.includes('assigned to'))
+              .map((note: GitLabNote) => {
+                const assigneeMatch = note.body.match(/@([^\s]+)/);
+                return {
+                  id: note.id,
+                  user: note.author,
+                  created_at: note.created_at,
+                  resource_type: 'issue',
+                  action: 'assignee',
+                  assignee: assigneeMatch
+                    ? {
+                        id: 0, // We don't have the ID from the note
+                        username: assigneeMatch[1],
+                      }
+                    : undefined,
+                } as IssueEvent;
+              });
+            return assignmentEvents;
+          }),
+        ])
+      ).flat();
     } catch (error) {
       console.error(
         `Error fetching issue events for projectId=${projectId}, issueIid=${issueIid}:`,
@@ -573,30 +525,18 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
     const MAX_ISSUES = 50;
 
     if (assigneeIds && assigneeIds.length > 0) {
-      for (const userId of assigneeIds) {
-        let page = 1;
-        const perPage = Math.min(MAX_ISSUES, 100);
-
-        while (true) {
-          if (allIssues.length >= MAX_ISSUES) {
-            break;
-          }
-
-          const issues = await fetchFromGitLab(`/projects/${projectId}/issues`, {
-            assignee_id: userId,
-            state: 'opened',
-            per_page: perPage,
-            page,
-          });
-
-          if (issues.length === 0) break;
-
-          allIssues = [...allIssues, ...issues].slice(0, MAX_ISSUES);
-          if (issues.length < perPage) break;
-
-          page++;
-        }
-      }
+      allIssues = (
+        await Promise.all(
+          assigneeIds.map(async userId => {
+            return (await fetchFromGitLab(`/projects/${projectId}/issues`, {
+              assignee_id: userId,
+              state: 'opened',
+              per_page: MAX_ISSUES,
+              page: 0,
+            })) as Issue[];
+          })
+        )
+      ).flat();
     } else if (assigneeUsernames && assigneeUsernames.length > 0) {
       const usernameToIdMap = await getUserIdsByUsernames(projectId, assigneeUsernames);
 
@@ -611,36 +551,20 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
           continue;
         }
 
-        let page = 1;
-        const perPage = Math.min(MAX_ISSUES, 100);
-
-        while (true) {
-          if (allIssues.length >= MAX_ISSUES) break;
-
-          const issues = await fetchFromGitLab(`/projects/${projectId}/issues`, {
-            assignee_id: userId,
-            state: 'opened',
-            per_page: perPage,
-            page,
-          });
-
-          if (issues.length === 0) break;
-
-          allIssues = [...allIssues, ...issues].slice(0, MAX_ISSUES);
-          if (issues.length < perPage) break;
-
-          page++;
-        }
+        allIssues = (await fetchFromGitLab(`/projects/${projectId}/issues`, {
+          assignee_id: userId,
+          state: 'opened',
+          per_page: MAX_ISSUES,
+          page: 0,
+        })) as Issue[];
       }
     }
 
-    const issuesWithEvents = await Promise.allSettled(
-      allIssues
-        .filter((issue): issue is Issue => typeof issue.iid === 'number')
-        .map(async issue => {
-          const result = await getIssueWithEvents(projectId, issue.iid);
-          return result;
-        })
+    const retValue = await Promise.allSettled(
+      allIssues.map(async issue => {
+        const result = await getIssueWithEvents(projectId, issue.iid);
+        return result;
+      })
     ).then(results => {
       const fulfilled = results.filter(
         (result): result is PromiseFulfilledResult<IssueWithEvents> => result.status === 'fulfilled'
@@ -648,7 +572,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
       return fulfilled.map(result => result.value);
     });
 
-    return issuesWithEvents;
+    return retValue;
   };
 
   async function getProjectMembers(projectId: number): Promise<GitLabUser[]> {
