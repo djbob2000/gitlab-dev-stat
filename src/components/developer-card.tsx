@@ -36,7 +36,10 @@ export function DeveloperCard({ developer, onToggleSelect }: DeveloperCardProps)
   };
 
   return (
-    <Card className={developer.selected ? 'border-2 border-primary' : ''}>
+    <Card
+      className={developer.selected ? 'border-2 border-primary' : 'border-2'}
+      onClick={handleToggle}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -45,7 +48,7 @@ export function DeveloperCard({ developer, onToggleSelect }: DeveloperCardProps)
                 src={developer.avatar_url || '/placeholder-avatar.jpg'}
                 alt={developer.name}
                 fill
-                className="object-cover"
+                className="object-cover select-none drag-none"
                 sizes="40px"
               />
             </div>
@@ -62,7 +65,7 @@ export function DeveloperCard({ developer, onToggleSelect }: DeveloperCardProps)
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-xs text-muted-foreground mb-2">
+        <div className="text-xs text-muted-foreground mb-2 select-none">
           <a
             href={developer.web_url}
             target="_blank"
@@ -72,7 +75,7 @@ export function DeveloperCard({ developer, onToggleSelect }: DeveloperCardProps)
             View on GitLab
           </a>
         </div>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 select-none">
           <Badge variant={developer.state === 'active' ? 'default' : 'secondary'}>
             {developer.state}
           </Badge>
