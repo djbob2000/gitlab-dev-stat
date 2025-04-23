@@ -18,7 +18,7 @@ export const LABELS = {
   MAINTENANCE: 'maintenance',
   NOT_READY: 'not-ready',
   QA_PRE_CHECK: 'qa-pre-check',
-  STATUS_UPDATE_COMMIT: 'status-update-commit',
+  STATUS_UPDATE_COMMIT: 'status-commit',
   TEST: 'test',
 } as const;
 
