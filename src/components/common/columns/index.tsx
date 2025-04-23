@@ -179,8 +179,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                       return (
                         <LabelPill
                           key={index}
-                          // Cut the last 10 characters status-update-commit
-                          text={label.slice(0, -10)}
+                          text={label}
                           colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'}
                           count={count >= 2 ? count : undefined}
                         />
