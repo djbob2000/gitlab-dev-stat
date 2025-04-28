@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   images: {
     domains: ['gitlab.com', 'secure.gravatar.com'],
   },
+  experimental: {
+    reactCompiler: true,
+  },
 };
 
 export default nextConfig;
