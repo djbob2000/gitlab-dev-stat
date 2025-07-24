@@ -15,7 +15,7 @@ import {
  * Custom hook for managing projects and their data
  */
 export function useProjects() {
-  const [projects, setProjects] = useState<ProjectData[]>([]);
+  const [projects, setProjects] = useState<ProjectData[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { hasToken, isInitialized } = useGitLabToken();
   const loader = useTopLoader();
@@ -102,7 +102,7 @@ export function useProjects() {
 
   // Load data for all projects
   const loadAllData = useCallback(async () => {
-    if (!isInitialized || !hasToken || isLoading || projects.length === 0) {
+    if (!isInitialized || !hasToken || isLoading || projects === null || projects.length === 0) {
       return;
     }
 
@@ -112,11 +112,13 @@ export function useProjects() {
 
       // Mark all projects as loading
       setProjects(prev =>
-        prev.map(project => ({
-          ...project,
-          isLoading: true,
-          error: null,
-        }))
+        prev
+          ? prev.map(project => ({
+              ...project,
+              isLoading: true,
+              error: null,
+            }))
+          : null
       );
 
       // Load data for each project in parallel
@@ -153,7 +155,7 @@ export function useProjects() {
   // Load data for a specific project
   const loadProjectData = useCallback(
     async (projectId: number) => {
-      if (!isInitialized || !hasToken || isLoading) return;
+      if (!isInitialized || !hasToken || isLoading || projects === null) return;
 
       const projectIndex = projects.findIndex(p => p.id === projectId);
       if (projectIndex === -1) return;
@@ -167,7 +169,9 @@ export function useProjects() {
 
         // Mark project as loading
         setProjects(prev =>
-          prev.map(p => (p.id === projectId ? { ...p, isLoading: true, error: null } : p))
+          prev
+            ? prev.map(p => (p.id === projectId ? { ...p, isLoading: true, error: null } : p))
+            : null
         );
 
         // Load data
@@ -175,29 +179,33 @@ export function useProjects() {
 
         // Update project data
         setProjects(prev =>
-          prev.map(p =>
-            p.id === projectId
-              ? {
-                  ...p,
-                  data,
-                  isLoading: false,
-                  lastUpdated: new Date(),
-                  error: null,
-                }
-              : p
-          )
+          prev
+            ? prev.map(p =>
+                p.id === projectId
+                  ? {
+                      ...p,
+                      data,
+                      isLoading: false,
+                      lastUpdated: new Date(),
+                      error: null,
+                    }
+                  : p
+              )
+            : null
         );
       } catch (err) {
         setProjects(prev =>
-          prev.map(p =>
-            p.id === projectId
-              ? {
-                  ...p,
-                  isLoading: false,
-                  error: err instanceof Error ? err.message : 'Failed to fetch data',
-                }
-              : p
-          )
+          prev
+            ? prev.map(p =>
+                p.id === projectId
+                  ? {
+                      ...p,
+                      isLoading: false,
+                      error: err instanceof Error ? err.message : 'Failed to fetch data',
+                    }
+                  : p
+              )
+            : null
         );
         toast.error(`Failed to load data for project ${project.name}.`);
       } finally {
@@ -213,6 +221,7 @@ export function useProjects() {
     if (
       isInitialized &&
       hasToken &&
+      projects !== null &&
       projects.length > 0 &&
       !isLoading &&
       !hasLoadedInitialData.current
@@ -221,10 +230,10 @@ export function useProjects() {
       // Small delay for UI readiness
       setTimeout(loadAllData, 500);
     }
-  }, [isInitialized, hasToken, loadAllData, projects.length, isLoading]);
+  }, [isInitialized, hasToken, loadAllData, projects, isLoading]);
 
   // Compute if any project is loading
-  const anyProjectLoading = projects.some(project => project.isLoading);
+  const anyProjectLoading = projects?.some(project => project.isLoading) || false;
 
   return {
     projects,

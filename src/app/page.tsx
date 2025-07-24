@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
 import { Button } from '@/src/components/ui/button';
 import Link from 'next/link';
@@ -16,25 +16,15 @@ import { useAutoRefresh } from '@/src/hooks/use-auto-refresh';
  */
 export default function HomePage() {
   const { hasToken, isInitialized } = useGitLabToken();
-  const [_lastActionRequiredUpdate, setLastActionRequiredUpdate] = useState<Date>(new Date());
 
   // Custom hooks
-  const { projects, isLoading, loadProjectData: _loadProjectData, loadAllData } = useProjects();
+  const { projects, isLoading, loadAllData } = useProjects();
   const { autoRefresh, nextAutoRefresh, handleAutoRefreshChange } = useAutoRefresh(
     loadAllData,
     isLoading
   );
 
-  // Update action required time every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLastActionRequiredUpdate(new Date());
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Loading state
+  // Loading state for token initialization
   if (!isInitialized) {
     return (
       <div className="container py-10">
@@ -61,8 +51,20 @@ export default function HomePage() {
     );
   }
 
-  // No projects state
+  // Loading state for projects (initial load from localStorage or analytics load)
+  if (projects === null || isLoading) {
+    return (
+      <div className="container py-10">
+        <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
+          Loading...
+        </div>
+      </div>
+    );
+  }
+
+  // No projects state after loading
   if (projects.length === 0) {
+    // projects is not null here
     return (
       <div className="container py-10">
         <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
@@ -89,7 +91,7 @@ export default function HomePage() {
         onAutoRefreshChange={handleAutoRefreshChange}
       />
       <div className="container py-10 pt-0">
-        <ProjectsList projects={projects} />
+        {projects !== null && <ProjectsList projects={projects} />}
       </div>
     </>
   );
