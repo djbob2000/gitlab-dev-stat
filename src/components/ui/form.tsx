@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as LabelPrimitive from '@radix-ui/react-label';
-import { cn } from '@/src/lib/utils';
+import { cn } from '@/lib/utils';
 import { useFormField } from './use-form-field';
 import { Controller, ControllerProps, FieldPath, FieldValues } from 'react-hook-form';
 

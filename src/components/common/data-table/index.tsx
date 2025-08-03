@@ -28,7 +28,7 @@ import {
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableHeader } from './sortable-header';
 import { GripVertical } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
+import { cn } from '@/lib/utils';
 import { SkeletonTableRows } from './skeleton-table-rows';
 
 // Version with column resizing and dragging

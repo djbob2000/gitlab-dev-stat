@@ -1,6 +1,6 @@
-import { MergeRequestInfo } from '@/src/types';
+import { MergeRequestInfo } from '@/types';
 import { mrLabelColors } from './color-config';
-import { LABELS, PRIORITY_LABEL_PATTERN } from '@/src/constants/labels';
+import { LABELS, PRIORITY_LABEL_PATTERN } from '@/constants/labels';
 
 /**
  * Gets the highest priority label from a list of labels

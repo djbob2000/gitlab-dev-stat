@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ColumnOrderState, Updater } from '@tanstack/react-table';
-import { TABLE_COLUMN_ORDER_PREFIX } from '@/src/constants/storage-keys';
+import { TABLE_COLUMN_ORDER_PREFIX } from '@/constants/storage-keys';
 
 /**
  * Hook for managing column order with localStorage persistence

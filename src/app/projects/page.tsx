@@ -2,17 +2,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/src/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
-import { Button } from '@/src/components/ui/button';
-import { ProjectCard } from '@/src/components/project-card';
+import { useGitLabToken } from '@/hooks/use-gitlab-token';
+import { Button } from '@/components/ui/button';
+import { ProjectCard } from '@/components/project-card';
 import { useTopLoader } from 'nextjs-toploader';
 import React from 'react';
 import {
@@ -20,7 +14,7 @@ import {
   PROJECT_PATH_PREFIX,
   SELECTED_DEVELOPERS_PREFIX,
   SELECTED_PROJECTS_KEY,
-} from '@/src/constants/storage-keys';
+} from '@/constants/storage-keys';
 
 interface GitLabProject {
   id: number;

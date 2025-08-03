@@ -1,7 +1,7 @@
 /**
  * Color definitions for different label types
  */
-import { LABELS } from '@/src/constants/labels';
+import { LABELS } from '@/constants/labels';
 
 export const priorityColors: Record<string, string> = {
   p1: 'bg-[#FF0000] text-white',

@@ -1,5 +1,5 @@
-import { fetchWithToken } from '@/src/lib/api';
-import { IssueStatistics } from '@/src/types';
+import { fetchWithToken } from '@/lib/api';
+import { IssueStatistics } from '@/types';
 
 /**
  * Fetches analytics data for specified developers and project

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ColumnSizingState, Updater } from '@tanstack/react-table';
-import { TABLE_COLUMN_WIDTHS_PREFIX } from '@/src/constants/storage-keys';
+import { TABLE_COLUMN_WIDTHS_PREFIX } from '@/constants/storage-keys';
 
 /**
  * Hook for managing column widths with localStorage persistence

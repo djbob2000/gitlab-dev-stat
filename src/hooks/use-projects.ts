@@ -1,15 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
+import { useGitLabToken } from '@/hooks/use-gitlab-token';
 import { useTopLoader } from 'nextjs-toploader';
 import { toast } from 'sonner';
-import { fetchAnalytics } from '@/src/lib/api-utils';
-import { ProjectData } from '@/src/types';
+import { fetchAnalytics } from '@/lib/api-utils';
+import { ProjectData } from '@/types';
 import {
   SELECTED_DEVELOPERS_PREFIX,
   PROJECT_NAME_PREFIX,
   PROJECT_PATH_PREFIX,
   SELECTED_PROJECTS_KEY,
-} from '@/src/constants/storage-keys';
+} from '@/constants/storage-keys';
 
 /**
  * Custom hook for managing projects and their data

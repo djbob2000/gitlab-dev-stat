@@ -2,21 +2,21 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader } from '@/src/components/ui/card';
-import { Skeleton } from '@/src/components/ui/skeleton';
-import { Button } from '@/src/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
+import { useGitLabToken } from '@/hooks/use-gitlab-token';
 import { ArrowLeft, Search, Save } from 'lucide-react';
-import { Input } from '@/src/components/ui/input';
-import { DeveloperCard } from '@/src/components/developer-card';
+import { Input } from '@/components/ui/input';
+import { DeveloperCard } from '@/components/developer-card';
 import { useTopLoader } from 'nextjs-toploader';
 import React from 'react';
 import {
   PROJECT_NAME_PREFIX,
   PROJECT_PATH_PREFIX,
   SELECTED_DEVELOPERS_PREFIX,
-} from '@/src/constants/storage-keys';
+} from '@/constants/storage-keys';
 
 interface GitLabDeveloper {
   id: number;

@@ -1,18 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
-import { Button } from '@/src/components/ui/button';
+import { useGitLabToken } from '@/hooks/use-gitlab-token';
+import { Button } from '@/components/ui/button';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/src/components/ui/card';
-import { Input } from '@/src/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { validateAndSetToken } from '../actions/token';
 import { removeToken } from '../actions/token';

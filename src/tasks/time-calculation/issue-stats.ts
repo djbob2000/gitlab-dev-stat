@@ -1,7 +1,7 @@
 import { IssueEvent, IssueWithEvents } from '../gitlab-api.task';
 import { parseDate, mergeIntervals, calculateTotalDuration } from './interval-utils';
 import { TimeInterval, IssueTimeTrackingStats } from '../../types/gitlab/base';
-import { LABELS } from '@/src/constants/labels';
+import { LABELS } from '@/constants/labels';
 
 /**
  * Extracts intervals when an issue was in progress

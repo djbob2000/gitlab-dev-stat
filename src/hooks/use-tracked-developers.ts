@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TRACKED_DEVELOPERS_KEY } from '@/src/constants/storage-keys';
+import { TRACKED_DEVELOPERS_KEY } from '@/constants/storage-keys';
 
 export interface TrackedDeveloper {
   userId: number;

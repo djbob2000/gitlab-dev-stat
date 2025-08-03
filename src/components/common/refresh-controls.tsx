@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { Button } from '@/src/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { RefreshCw, Clock } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface RefreshControlsProps {
   isLoading: boolean;

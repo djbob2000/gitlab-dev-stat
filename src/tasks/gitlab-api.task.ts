@@ -1,4 +1,4 @@
-import { LABELS } from '@/src/constants/labels';
+import { LABELS } from '@/constants/labels';
 
 // Types for our module
 export interface GitLabConfig {

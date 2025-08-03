@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { removeToken, hasValidToken } from '@/src/app/actions/token';
+import { removeToken, hasValidToken } from '@/app/actions/token';
 
 export function useGitLabToken() {
   const [hasToken, setHasToken] = useState<boolean>(false);

@@ -1,15 +1,15 @@
 'use client';
 
 import React from 'react';
-import { useGitLabToken } from '@/src/hooks/use-gitlab-token';
-import { Button } from '@/src/components/ui/button';
+import { useGitLabToken } from '@/hooks/use-gitlab-token';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 // Import extracted components and hooks
-import { Header } from '@/src/components/home/Header';
-import { ProjectsList } from '@/src/components/home/ProjectsList';
-import { useProjects } from '@/src/hooks/use-projects';
-import { useAutoRefresh } from '@/src/hooks/use-auto-refresh';
+import { Header } from '@/components/home/Header';
+import { ProjectsList } from '@/components/home/ProjectsList';
+import { useProjects } from '@/hooks/use-projects';
+import { useAutoRefresh } from '@/hooks/use-auto-refresh';
 
 /**
  * Main page component

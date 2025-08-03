@@ -1,8 +1,8 @@
 import React from 'react';
-import { ThemeToggle } from '@/src/components/common/theme-toggle';
-import { RefreshControls } from '@/src/components/common/refresh-controls';
+import { ThemeToggle } from '@/components/common/theme-toggle';
+import { RefreshControls } from '@/components/common/refresh-controls';
 import { Settings, Server } from 'lucide-react';
-import { Button } from '@/src/components/ui/button';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 interface HeaderProps {

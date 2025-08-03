@@ -1,8 +1,8 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { formatDuration, formatHoursAndMinutes } from '@/src/tasks/time-calculation.task';
-import type { IssueStatistics } from '@/src/types';
+import { formatDuration, formatHoursAndMinutes } from '@/tasks/time-calculation.task';
+import type { IssueStatistics } from '@/types';
 import { LabelPill } from './label-pill';
 import { priorityColors, statusColors, mrLabelColors } from './color-config';
 import {
@@ -11,7 +11,7 @@ import {
   getActionRequiredPriority,
   getStatusUpdateCommitInfo,
 } from './label-utils';
-import { LABELS, LabelType, PRIORITY_LABEL_PATTERN } from '@/src/constants/labels';
+import { LABELS, LabelType, PRIORITY_LABEL_PATTERN } from '@/constants/labels';
 
 /**
  * Column definitions for the data table

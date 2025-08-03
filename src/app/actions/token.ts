@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { encrypt, decrypt } from '@/src/lib/crypto';
+import { encrypt, decrypt } from '@/lib/crypto';
 
 // GitLab API Error constants
 const GITLAB_API_ERROR = {

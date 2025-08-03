@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import { decrypt } from '@/src/lib/crypto';
+import { decrypt } from '@/lib/crypto';
 
 // GitLab API Error constants
 const GITLAB_API_ERROR = {

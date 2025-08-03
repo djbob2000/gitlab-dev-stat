@@ -1,6 +1,6 @@
 import { TimeInterval, IssueTimeTrackingStats } from '../types/gitlab/base';
 import { IssueEvent, IssueWithEvents } from './gitlab-api.task';
-import { LABELS } from '@/src/constants/labels';
+import { LABELS } from '@/constants/labels';
 
 /**
  * Converts string date to Date object

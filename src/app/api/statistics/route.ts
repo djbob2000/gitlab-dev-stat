@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createGitLabClient } from '@/src/tasks/gitlab-api.task';
+import { createGitLabClient } from '@/tasks/gitlab-api.task';
 import { headers } from 'next/headers';
-import { LABELS } from '@/src/constants/labels';
+import { LABELS } from '@/constants/labels';
 import type {
   GitLabApiEvent,
   GitLabApiMergeRequest,
   BatchProcessor,
   MergeRequestWithStats,
-} from '@/src/types/gitlab';
+} from '@/types/gitlab';
 
 // Validation schema for GET request
 const getStatisticsSchema = z.object({
