@@ -29,6 +29,7 @@ import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-
 import { SortableHeader } from './sortable-header';
 import { GripVertical } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
+import { SkeletonTableRows } from './skeleton-table-rows';
 
 // Version with column resizing and dragging
 interface DataTableProps<TData, TValue> {
@@ -148,6 +149,8 @@ export function DataTable<TData, TValue>({
     [table]
   );
 
+  const skeletonRowCount = 6;
+
   return (
     <div className="rounded-lg shadow-md bg-white dark:bg-gray-800">
       <TableHeader title={projectName || 'Developer Statistics'} lastUpdated={lastUpdated} />
@@ -184,7 +187,9 @@ export function DataTable<TData, TValue>({
               ))}
             </thead>
             <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-              {table.getRowModel().rows?.length ? (
+              {isLoading ? (
+                <SkeletonTableRows<TData> table={table} rows={skeletonRowCount} />
+              ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map(row => {
                   const isEvenRow = parseInt(row.id, 10) % 2 === 0;
                   return (
@@ -217,7 +222,7 @@ export function DataTable<TData, TValue>({
                     colSpan={columns.length}
                     className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
                   >
-                    {isLoading ? 'Loading...' : 'No results found.'}
+                    No results found.
                   </td>
                 </tr>
               )}

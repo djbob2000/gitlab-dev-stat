@@ -51,8 +51,8 @@ export default function HomePage() {
     );
   }
 
-  // Loading state for projects (initial load from localStorage or analytics load)
-  if (projects === null || isLoading) {
+  // Loading state for projects (initial load from localStorage)
+  if (projects === null) {
     return (
       <div className="container py-10">
         <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">

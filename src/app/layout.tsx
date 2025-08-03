@@ -4,6 +4,8 @@ import './globals.css';
 import { Providers } from './providers';
 import NextTopLoader from 'nextjs-toploader';
 
+export const experimental_ppr = 'force';
+
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
