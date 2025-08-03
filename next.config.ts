@@ -7,6 +7,13 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     reactCompiler: true,
+    clientSegmentCache: true,
+    // esmExternals: true,
+    // browserDebugInfoInTerminal: true,
+    // devtoolSegmentExplorer: true,
+    // globalNotFound: true,
+    // turbopackPersistentCaching: true,
+    // cacheComponents: true, // This option is not recognized in Next.js 15
   },
 };
 
