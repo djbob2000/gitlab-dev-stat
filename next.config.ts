@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   images: {
     domains: ['gitlab.com', 'secure.gravatar.com'],
   },
+  typedRoutes: true,
   experimental: {
     reactCompiler: true,
     clientSegmentCache: true,

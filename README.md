@@ -21,6 +21,7 @@ A Next.js application for tracking developer productivity metrics from GitLab is
 - **UI Components**: Shadcn UI
 - **State Management**: React Hook Forms
 - **API**: GitLab REST API integration
+- **Routing**: Typed Routes for type-safe navigation
 
 ## Getting Started
 
@@ -70,3 +71,18 @@ src/
 ### `GET /api/statistics`
 
 - Parameters: `usernames`, `userIds`
+
+## Typed Routes
+
+This project uses Next.js Typed Routes for type-safe navigation. The feature is enabled in `next.config.ts` and provides automatic type checking for all internal links and router navigation.
+
+Benefits:
+- Type safety for all route paths
+- Autocomplete for route paths in IDE
+- Compile-time error detection for invalid routes
+- Automatic route parameter typing
+
+Usage:
+- All `next/link` components now have type checking for href prop
+- `useRouter` hook methods (push, replace, etc.) are type-safe
+- Route parameters are automatically typed based on file structure
