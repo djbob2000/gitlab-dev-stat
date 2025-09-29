@@ -83,7 +83,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
       );
     },
   },
-{
+  {
     accessorKey: 'milestone',
     header: 'Mile',
     enableSorting: true,
