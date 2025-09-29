@@ -90,7 +90,7 @@ export interface GitLabUser {
 
 // GitLab API client
 export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
-  const fetchFromGitLab = async <T = any>(
+  const fetchFromGitLab = async <T>(
     endpoint: string,
     params: Record<string, string | number> = {}
   ) => {
@@ -454,11 +454,11 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
   ): Promise<IssueWithEvents> => {
     try {
       const [issue, events] = await Promise.all([
-        fetchFromGitLab(`/projects/${projectId}/issues/${issueIid}`),
+        fetchFromGitLab<Issue>(`/projects/${projectId}/issues/${issueIid}`),
         getIssueEvents(projectId, issueIid),
       ]);
 
-      const currentAssignee = issue.assignee?.username;
+      const currentAssignee = issue.assignee?.username || '';
       const isClosed = issue.state === 'closed';
       const { activeTime, totalTime } = calculateInProgressDuration(
         events,
@@ -530,12 +530,12 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
       allIssues = (
         await Promise.all(
           assigneeIds.map(async userId => {
-            return (await fetchFromGitLab(`/projects/${projectId}/issues`, {
+            return await fetchFromGitLab<Issue[]>(`/projects/${projectId}/issues`, {
               assignee_id: userId,
               state: 'opened',
               per_page: MAX_ISSUES,
               page: 0,
-            })) as Issue[];
+            });
           })
         )
       ).flat();
@@ -553,12 +553,12 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
           continue;
         }
 
-        allIssues = (await fetchFromGitLab(`/projects/${projectId}/issues`, {
+        allIssues = await fetchFromGitLab<Issue[]>(`/projects/${projectId}/issues`, {
           assignee_id: userId,
           state: 'opened',
           per_page: MAX_ISSUES,
           page: 0,
-        })) as Issue[];
+        });
       }
     }
 
@@ -584,10 +584,10 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
       let allMembers: GitLabUser[] = [];
 
       while (true) {
-        const members = (await fetchFromGitLab(`/projects/${projectId}/members/all`, {
+        const members = await fetchFromGitLab<GitLabUser[]>(`/projects/${projectId}/members/all`, {
           per_page: perPage,
           page,
-        })) as GitLabUser[];
+        });
 
         if (members.length === 0) break;
 
@@ -611,9 +611,12 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
     projectId: number,
     issueIid: number
   ): Promise<MergeRequest[]> => {
-    return fetchFromGitLab(`/projects/${projectId}/issues/${issueIid}/related_merge_requests`, {
-      state: 'opened',
-    });
+    return fetchFromGitLab<MergeRequest[]>(
+      `/projects/${projectId}/issues/${issueIid}/related_merge_requests`,
+      {
+        state: 'opened',
+      }
+    );
   };
 
   // Adding a new function to get MR label history
@@ -629,7 +632,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
       // Fetch label events for merge request
       while (true) {
         try {
-          const events = await fetchFromGitLab(
+          const events = await fetchFromGitLab<IssueEvent[]>(
             `/projects/${projectId}/merge_requests/${mrIid}/resource_label_events`,
             { per_page: perPage, page }
           );
