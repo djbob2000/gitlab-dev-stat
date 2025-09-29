@@ -1,4 +1,5 @@
 import { LABELS } from '@/constants/labels';
+import { GitlabMilestone } from '@/types/gitlab/issues';
 
 // Types for our module
 export interface GitLabConfig {
@@ -44,6 +45,7 @@ export interface Issue {
     id: number;
     username: string;
   } | null;
+  milestone: GitlabMilestone | null;
 }
 
 export interface IssueWithEvents extends Partial<Issue> {

@@ -1,6 +1,23 @@
 import { GitLabId, GitLabTimestamps, GitLabUser } from './base';
 import { MergeRequestInfo } from './merge-requests';
 
+/**
+ * GitLab milestone entity
+ */
+export interface GitlabMilestone {
+  readonly id: number;
+  readonly iid: number;
+  readonly project_id: number;
+  readonly title: string;
+  readonly description: string;
+  readonly due_date: string | null;
+  readonly start_date: string | null;
+  readonly state: string;
+  readonly updated_at: string;
+  readonly created_at: string;
+  readonly expired: boolean;
+}
+
 export type IssueState = 'opened' | 'closed';
 
 /**
@@ -27,6 +44,7 @@ export interface GitLabIssue extends GitLabTimestamps {
   readonly author: GitLabUser;
   readonly assignee: GitLabUser | null;
   readonly web_url: string;
+  readonly milestone?: GitlabMilestone | null;
 }
 
 /**
@@ -43,6 +61,7 @@ export interface IssueStatistics {
   labels: string[];
   mergeRequests: MergeRequestInfo[];
   url: string;
+  milestone?: GitlabMilestone | null;
 }
 
 export type IssueEventType = 'label_added' | 'label_removed' | 'closed' | 'reopened';

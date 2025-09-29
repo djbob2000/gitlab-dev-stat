@@ -83,6 +83,17 @@ export const columns: ColumnDef<IssueStatistics>[] = [
       );
     },
   },
+    {
+    accessorKey: 'milestone',
+    header: 'Mile',
+    enableSorting: true,
+    enableResizing: true,
+    size: 100,
+    cell: ({ row }) => {
+      const milestone = row.original.milestone;
+      return milestone ? milestone.title : '';
+    },
+  },
   {
     accessorKey: 'mergeRequests',
     header: 'MR Labels',

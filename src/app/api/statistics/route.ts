@@ -205,6 +205,7 @@ export async function GET(request: Request) {
           title: issue.title,
           assignee: issue.assignee,
           labels: issue.labels,
+          milestone: issue.milestone,
           timeInProgress,
           totalTimeFromStart,
           mergeRequests: mergeRequestLabels,
