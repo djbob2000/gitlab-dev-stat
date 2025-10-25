@@ -1,7 +1,7 @@
 import React from 'react';
 import { DataTable } from '@/components/common/data-table/index';
 import { columns } from '@/components/common/columns';
-import { ProjectData } from '@/types';
+import type { ProjectData } from '@/types';
 import { PROJECT_TABLE_ID_PREFIX } from '@/constants/storage-keys';
 
 interface ProjectsListProps {
@@ -9,7 +9,7 @@ interface ProjectsListProps {
 }
 
 export function ProjectsList({ projects }: ProjectsListProps) {
-  return projects.map(project => (
+  return projects.map((project) => (
     <div key={project.id} className="mb-10">
       <DataTable
         columns={columns}

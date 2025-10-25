@@ -5,14 +5,14 @@ import { createErrorResponse } from './lib/api-error-handler';
 import { HTTP_STATUS } from './constants/http-status';
 
 /**
- * Middleware for handling API authentication
+ * Proxy for handling API authentication
  * - Gets encrypted GitLab token from cookies
  * - Decrypts token (tokens are encrypted in cookies for security)
  * - Adds decrypted token to X-GitLab-Token header for API requests
  * - Removes invalid tokens from cookies
  * - Enforces authentication for all API routes except token management
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   try {
     const requestHeaders = new Headers(request.headers);
 
@@ -73,7 +73,7 @@ export async function middleware(request: NextRequest) {
 }
 
 /**
- * Middleware configuration - specifies paths for which it should execute
+ * Proxy configuration - specifies paths for which it should execute
  * Only applied to API routes
  *  It's a special Next.js convention that the framework automatically recognizes.
  */

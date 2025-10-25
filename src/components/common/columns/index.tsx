@@ -1,6 +1,6 @@
 'use client';
 
-import { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { formatDuration, formatHoursAndMinutes } from '@/tasks/time-calculation.task';
 import type { IssueStatistics } from '@/types';
 import { LabelPill } from './label-pill';
@@ -11,7 +11,7 @@ import {
   getActionRequiredPriority,
   getStatusUpdateCommitInfo,
 } from './label-utils';
-import { LABELS, LabelType, PRIORITY_LABEL_PATTERN } from '@/constants/labels';
+import { LABELS, type LabelType, PRIORITY_LABEL_PATTERN } from '@/constants/labels';
 
 /**
  * Column definitions for the data table
@@ -71,7 +71,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     },
     cell: ({ row }) => {
       const statusLabel = getStatusPriority(row.original.labels);
-      if (!statusLabel) return <div className="leading-none"></div>;
+      if (!statusLabel) return <div className="leading-none" />;
 
       return (
         <div className="leading-none">
@@ -116,11 +116,11 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     cell: ({ row }) => {
       const mrLabels = row.original.mergeRequests || [];
 
-      if (mrLabels.length === 0) return <div className="leading-none"></div>;
+      if (mrLabels.length === 0) return <div className="leading-none" />;
 
       return (
         <div className="leading-none space-y-1">
-          {mrLabels.map(mr => {
+          {mrLabels.map((mr) => {
             const excludeLabels: LabelType[] = [
               LABELS.REVIEW,
               LABELS.IN_PROGRESS,
@@ -131,7 +131,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
             ];
 
             const filteredLabels = mr.labels.filter(
-              label =>
+              (label) =>
                 !PRIORITY_LABEL_PATTERN.test(label) && // exclude priority labels
                 !excludeLabels.includes(label as LabelType) // exclude specific labels
             );
@@ -141,9 +141,9 @@ export const columns: ColumnDef<IssueStatistics>[] = [
             const hasApprovedLabel = mr.labels.includes(LABELS.APPROVED);
 
             // Check if any MR in this issue has action-required labels
-            const hasActionRequiredLabels = row.original.mergeRequests.some(mr =>
+            const hasActionRequiredLabels = row.original.mergeRequests.some((mr) =>
               mr.labels.some(
-                label =>
+                (label) =>
                   label === LABELS.ACTION_REQUIRED ||
                   label === LABELS.ACTION_REQUIRED2 ||
                   label === LABELS.ACTION_REQUIRED3
@@ -182,14 +182,14 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                 </a>
                 <span className="text-xs text-gray-500">:</span>
                 <div className="flex gap-1 flex-wrap">
-                  {filteredLabels.map((label, index) => {
+                  {filteredLabels.map((label) => {
                     // Check if this is a status-update-commit label
                     if (label === LABELS.STATUS_UPDATE_COMMIT) {
                       const statusInfo = getStatusUpdateCommitInfo(mr);
                       const count = statusInfo?.count || 0;
                       return (
                         <LabelPill
-                          key={index}
+                          key={`${label}-${mr.mrIid}`}
                           text={label}
                           colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'}
                           count={count >= 2 ? count : undefined}
@@ -200,7 +200,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                     // Regular labels without a counter
                     return (
                       <LabelPill
-                        key={index}
+                        key={`${label}-${mr.mrIid}`}
                         text={label}
                         colorClass={mrLabelColors[label] || 'bg-gray-200 text-gray-800'}
                       />
@@ -228,7 +228,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     cell: ({ row }) => {
       const actionRequiredTime = row.original.actionRequiredTime;
 
-      if (!actionRequiredTime) return <div className="leading-none"></div>;
+      if (!actionRequiredTime) return <div className="leading-none" />;
 
       // Calculate elapsed time from actionRequiredTime to now
       const elapsedTime = Date.now() - actionRequiredTime;

@@ -103,18 +103,16 @@ async function fetchUserProjects(token: string): Promise<GitLabProject[]> {
       // Check if we've reached the last page or if there are no more projects
       if (projects.length < perPage) {
         break;
-      } else {
-        page++;
       }
+      page++;
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
         console.error('Request timed out after 10 seconds');
         // If timeout expired, stop attempts
         break;
-      } else {
-        throw error;
       }
+      throw error;
     }
   }
 

@@ -1,5 +1,5 @@
-import { GitLabId, GitLabTimestamps } from './base';
-import { IndividualIssueStats, IssueStatistics } from './issues';
+import type { GitLabId, GitLabTimestamps } from './base';
+import type { IndividualIssueStats, IssueStatistics } from './issues';
 
 /**
  * Project visibility levels in GitLab

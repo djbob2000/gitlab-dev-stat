@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,7 +38,7 @@ interface ApiResponse {
   projectPath?: string;
 }
 
-export default function ProjectDevelopersPage({
+function ProjectDevelopersPageContent({
   params,
 }: {
   params: Promise<{ projectId: string }>;
@@ -103,7 +103,7 @@ export default function ProjectDevelopersPage({
           localStorage.setItem(`${PROJECT_PATH_PREFIX}${projectId}`, data.projectPath);
         }
 
-        // We're setting the developers directly without marking as selected
+        // We're setting developers directly without marking as selected
         // Will compute selected status during render for better performance
         setDevelopers(data.developers);
         hasFetchedData.current = true;
@@ -148,9 +148,9 @@ export default function ProjectDevelopersPage({
         const savedDevelopers = JSON.parse(savedDevelopersJSON);
 
         const savedSelections: Record<number, boolean> = {};
-        savedDevelopers.forEach((dev: GitLabDeveloper) => {
+        for (const dev of savedDevelopers) {
           savedSelections[dev.id] = true;
-        });
+        }
 
         setSelectedDevelopers(savedSelections);
       }
@@ -169,7 +169,7 @@ export default function ProjectDevelopersPage({
     if (
       isTokenInitialized &&
       hasToken &&
-      !isNaN(projectId) &&
+      !Number.isNaN(projectId) &&
       origin &&
       !hasFetchedData.current &&
       !isLoadingRef.current
@@ -178,17 +178,17 @@ export default function ProjectDevelopersPage({
     }
   }, [isTokenInitialized, hasToken, projectId, router, fetchDevelopers, origin]);
 
-  // Memoize the toggle function
+  // Memoize toggle function
   const toggleDeveloperSelection = useCallback(
     (developerId: number) => {
-      setSelectedDevelopers(prev => {
+      setSelectedDevelopers((prev) => {
         const newSelections = {
           ...prev,
           [developerId]: !prev[developerId],
         };
 
         // Save to localStorage after toggling
-        const selectedDevs = developers.filter(dev => newSelections[dev.id]);
+        const selectedDevs = developers.filter((dev) => newSelections[dev.id]);
         try {
           localStorage.setItem(
             `${SELECTED_DEVELOPERS_PREFIX}${projectId}`,
@@ -207,17 +207,17 @@ export default function ProjectDevelopersPage({
 
   // Memoize filtered developers calculation to avoid recalculating on every render
   const filteredDevelopers = React.useMemo(() => {
-    // First apply the search filter
+    // First apply search filter
     const filtered = searchQuery
       ? developers.filter(
-          dev =>
+          (dev) =>
             dev.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             dev.username.toLowerCase().includes(searchQuery.toLowerCase())
         )
       : developers;
 
     // Then annotate with selected status
-    return filtered.map(dev => ({
+    return filtered.map((dev) => ({
       ...dev,
       selected: !!selectedDevelopers[dev.id],
     }));
@@ -241,32 +241,13 @@ export default function ProjectDevelopersPage({
         </div>
         <div className="bg-card dark:bg-slate-900 border border-border rounded-md p-4 mb-4 shadow-sm">
           <div className="flex items-center">
-            <svg
-              className="animate-spin -ml-1 mr-3 h-4 w-4 text-muted-foreground"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-muted-foreground mr-3" />
             <p className="text-sm text-muted-foreground">Loading developers...</p>
           </div>
           {errorMsg && <p className="text-destructive mt-2 text-sm">{errorMsg}</p>}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map(i => (
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
                 <div className="flex items-center space-x-3">
@@ -337,7 +318,7 @@ export default function ProjectDevelopersPage({
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map(i => (
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i}>
               <CardHeader className="pb-2">
                 <div className="flex items-center space-x-3">
@@ -365,7 +346,7 @@ export default function ProjectDevelopersPage({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDevelopers.map(developer => (
+          {filteredDevelopers.map((developer) => (
             <DeveloperCard
               key={developer.id}
               developer={developer}
@@ -375,5 +356,25 @@ export default function ProjectDevelopersPage({
         </div>
       )}
     </div>
+  );
+}
+
+export default function ProjectDevelopersPage({
+  params,
+}: {
+  params: Promise<{ projectId: string }>;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto py-6">
+          <div className="flex justify-center items-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+          </div>
+        </div>
+      }
+    >
+      <ProjectDevelopersPageContent params={params} />
+    </Suspense>
   );
 }

@@ -1,5 +1,5 @@
-import { GitLabId, GitLabTimestamps, GitLabUser } from './base';
-import { MergeRequestInfo } from './merge-requests';
+import type { GitLabId, GitLabTimestamps, GitLabUser } from './base';
+import type { MergeRequestInfo } from './merge-requests';
 
 /**
  * GitLab milestone entity

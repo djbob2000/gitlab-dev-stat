@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BaseApiError } from '../common/api.types';
+import type { BaseApiError } from '../common/api.types';
 
 /**
  * Unique identifier for GitLab entities

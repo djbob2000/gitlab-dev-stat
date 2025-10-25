@@ -1,4 +1,4 @@
-import { TimeInterval } from '../../types/gitlab/base';
+import type { TimeInterval } from '../../types/gitlab/base';
 
 /**
  * Converts string date to Date object

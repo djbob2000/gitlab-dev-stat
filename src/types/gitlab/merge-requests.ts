@@ -1,4 +1,4 @@
-import { GitLabId, GitLabTimestamps, GitLabUser } from './base';
+import type { GitLabId, GitLabTimestamps, GitLabUser } from './base';
 
 export type MergeRequestState = 'opened' | 'closed' | 'merged';
 

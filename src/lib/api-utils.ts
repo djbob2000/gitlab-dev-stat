@@ -1,5 +1,5 @@
 import { fetchWithToken } from '@/lib/api';
-import { IssueStatistics } from '@/types';
+import type { IssueStatistics } from '@/types';
 
 /**
  * Fetches analytics data for specified developers and project
@@ -16,13 +16,13 @@ export async function fetchAnalytics(
   const params = new URLSearchParams();
 
   // Prefer user IDs over usernames for better reliability
-  const userIds = developers.map(dev => dev.userId).filter(Boolean);
+  const userIds = developers.map((dev) => dev.userId).filter(Boolean);
 
   if (userIds.length > 0) {
     params.append('userIds', userIds.join(','));
   } else {
     // Fall back to usernames if no user IDs are available
-    const usernames = developers.map(dev => dev.username);
+    const usernames = developers.map((dev) => dev.username);
     params.append('usernames', usernames.join(','));
   }
 

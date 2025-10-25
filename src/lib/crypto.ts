@@ -81,7 +81,7 @@ export async function decrypt(encryptedValue: string): Promise<string> {
     const key = await getEncryptionKey();
 
     // Convert from base64
-    const encryptedBytes = Uint8Array.from(atob(encryptedValue), c => c.charCodeAt(0));
+    const encryptedBytes = Uint8Array.from(atob(encryptedValue), (c) => c.charCodeAt(0));
 
     // Extract IV (first 12 bytes) and encrypted data
     const iv = encryptedBytes.slice(0, 12);

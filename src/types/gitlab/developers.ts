@@ -1,6 +1,6 @@
-import { GitLabId, GitLabUser } from './base';
-import { IndividualIssueStats } from './issues';
-import { MergeRequestStatistics } from './merge-requests';
+import type { GitLabId, GitLabUser } from './base';
+import type { IndividualIssueStats } from './issues';
+import type { MergeRequestStatistics } from './merge-requests';
 
 /**
  * Extended GitLab user with tracking status and project associations

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ApiErrorResponse, ApiErrorCode } from '@/types';
+import type { ApiErrorResponse, ApiErrorCode } from '@/types';
 
 /**
  * Creates a standardized error response

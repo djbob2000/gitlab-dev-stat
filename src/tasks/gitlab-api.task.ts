@@ -1,5 +1,5 @@
 import { LABELS } from '@/constants/labels';
-import { GitlabMilestone } from '@/types/gitlab/issues';
+import type { GitlabMilestone } from '@/types/gitlab/issues';
 
 // Types for our module
 export interface GitLabConfig {
@@ -101,7 +101,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
       }
     }
 
-    const url = `${baseUrl}/api/v4${endpoint}${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    const url = `${baseUrl}/api/v4${endpoint}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -154,7 +154,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
           fetchFromGitLab<GitLabNote[]>(`/projects/${projectId}/issues/${issueIid}/notes`, {
             per_page: perPage,
             page: 1,
-          }).then(events => {
+          }).then((events) => {
             const assignmentEvents = events
               .filter((note: GitLabNote) => note.system && note.body.includes('assigned to'))
               .map((note: GitLabNote) => {
@@ -271,7 +271,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
         continue;
       }
 
-      let dayStart;
+      let dayStart: Date;
       if (currentDate.getTime() === startDate.getTime()) {
         dayStart = new Date(startDate);
       } else {
@@ -279,7 +279,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
         dayStart.setUTCHours(WORK_START_HOUR_UTC, 0, 0, 0);
       }
 
-      let dayEnd;
+      let dayEnd: Date;
       if (
         currentDate.getUTCFullYear() === endDay.getUTCFullYear() &&
         currentDate.getUTCMonth() === endDay.getUTCMonth() &&
@@ -498,7 +498,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
       const usernameToIdMap = new Map<string, number>();
 
       for (const username of usernames) {
-        const member = members.find(m => m.username === username);
+        const member = members.find((m) => m.username === username);
         if (member) {
           usernameToIdMap.set(username, member.id);
         }
@@ -529,7 +529,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
     if (assigneeIds && assigneeIds.length > 0) {
       allIssues = (
         await Promise.all(
-          assigneeIds.map(async userId => {
+          assigneeIds.map(async (userId) => {
             return await fetchFromGitLab<Issue[]>(`/projects/${projectId}/issues`, {
               assignee_id: userId,
               state: 'opened',
@@ -563,15 +563,15 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
     }
 
     const retValue = await Promise.allSettled(
-      allIssues.map(async issue => {
+      allIssues.map(async (issue) => {
         const result = await getIssueWithEvents(projectId, issue.iid);
         return result;
       })
-    ).then(results => {
+    ).then((results) => {
       const fulfilled = results.filter(
         (result): result is PromiseFulfilledResult<IssueWithEvents> => result.status === 'fulfilled'
       );
-      return fulfilled.map(result => result.value);
+      return fulfilled.map((result) => result.value);
     });
 
     return retValue;
@@ -597,7 +597,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
         page++;
       }
 
-      return allMembers.map(member => ({
+      return allMembers.map((member) => ({
         id: member.id,
         username: member.username,
       }));

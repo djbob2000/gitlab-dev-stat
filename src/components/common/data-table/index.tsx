@@ -2,12 +2,12 @@
 
 import * as React from 'react';
 import {
-  ColumnDef,
+  type ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
-  ColumnResizeMode,
-  SortingState,
+  type ColumnResizeMode,
+  type SortingState,
   getSortedRowModel,
 } from '@tanstack/react-table';
 import { useColumnSizing } from './use-column-sizing';
@@ -21,8 +21,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
-  DragStartEvent,
+  type DragEndEvent,
+  type DragStartEvent,
   DragOverlay,
 } from '@dnd-kit/core';
 import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
@@ -74,7 +74,7 @@ export function DataTable<TData, TValue>({
 
   // Get column IDs for order
   const columnIds = React.useMemo(() => {
-    return normalizedColumns.map(column => String(column.id));
+    return normalizedColumns.map((column) => String(column.id));
   }, [normalizedColumns]);
 
   // Use hooks for state management
@@ -140,7 +140,7 @@ export function DataTable<TData, TValue>({
   // Function to get column header for overlay
   const getColumnHeaderLabel = React.useCallback(
     (id: string) => {
-      const column = table.getAllColumns().find(col => String(col.id) === id);
+      const column = table.getAllColumns().find((col) => String(col.id) === id);
       if (column?.columnDef.header) {
         return typeof column.columnDef.header === 'string' ? column.columnDef.header : id;
       }
@@ -173,13 +173,13 @@ export function DataTable<TData, TValue>({
             style={{ minWidth: table.getTotalSize() }}
           >
             <thead className="bg-gray-50 dark:bg-gray-900">
-              {table.getHeaderGroups().map(headerGroup => (
+              {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   <SortableContext
-                    items={headerGroup.headers.map(header => String(header.column.id))}
+                    items={headerGroup.headers.map((header) => String(header.column.id))}
                     strategy={horizontalListSortingStrategy}
                   >
-                    {headerGroup.headers.map(header => (
+                    {headerGroup.headers.map((header) => (
                       <SortableHeader<TData> key={header.id} header={header} _table={table} />
                     ))}
                   </SortableContext>
@@ -190,8 +190,8 @@ export function DataTable<TData, TValue>({
               {isLoading ? (
                 <SkeletonTableRows<TData> table={table} rows={skeletonRowCount} />
               ) : table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map(row => {
-                  const isEvenRow = parseInt(row.id, 10) % 2 === 0;
+                table.getRowModel().rows.map((row) => {
+                  const isEvenRow = Number.parseInt(row.id, 10) % 2 === 0;
                   return (
                     <tr
                       key={row.id}
@@ -200,7 +200,7 @@ export function DataTable<TData, TValue>({
                         isEvenRow ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'
                       )}
                     >
-                      {row.getVisibleCells().map(cell => (
+                      {row.getVisibleCells().map((cell) => (
                         <td
                           key={cell.id}
                           className="px-2 text-sm text-gray-500 dark:text-gray-400 overflow-hidden"

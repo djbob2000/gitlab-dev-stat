@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ColumnOrderState, Updater } from '@tanstack/react-table';
+import type { ColumnOrderState, Updater } from '@tanstack/react-table';
 import { TABLE_COLUMN_ORDER_PREFIX } from '@/constants/storage-keys';
 
 /**
@@ -21,18 +21,18 @@ export const useColumnOrder = (tableId: string, defaultColumnIds: string[]) => {
           }
 
           // Ensure all IDs are strings
-          const stringOrder = parsedOrder.map(id => String(id));
+          const stringOrder = parsedOrder.map((id) => String(id));
 
           // Add new columns that are not in the saved order
           const combinedOrder = [...stringOrder];
-          defaultColumnIds.forEach(id => {
+          defaultColumnIds.forEach((id) => {
             if (!combinedOrder.includes(id)) {
               combinedOrder.push(id);
             }
           });
 
           // Remove columns that no longer exist
-          const filteredOrder = combinedOrder.filter(id => defaultColumnIds.includes(id));
+          const filteredOrder = combinedOrder.filter((id) => defaultColumnIds.includes(id));
 
           return filteredOrder;
         }
@@ -48,17 +48,17 @@ export const useColumnOrder = (tableId: string, defaultColumnIds: string[]) => {
   // Update column order when defaultColumnIds changes
   useEffect(() => {
     // Check that all columns from defaultColumnIds are present in columnOrder
-    const missingColumns = defaultColumnIds.filter(id => !columnOrder.includes(id));
+    const missingColumns = defaultColumnIds.filter((id) => !columnOrder.includes(id));
 
     // If there are new columns, add them to the end
     if (missingColumns.length > 0) {
-      setColumnOrder(prev => [...prev, ...missingColumns]);
+      setColumnOrder((prev) => [...prev, ...missingColumns]);
     }
 
     // Remove columns that no longer exist
-    const columnsToRemove = columnOrder.filter(id => !defaultColumnIds.includes(id));
+    const columnsToRemove = columnOrder.filter((id) => !defaultColumnIds.includes(id));
     if (columnsToRemove.length > 0) {
-      setColumnOrder(prev => prev.filter(id => defaultColumnIds.includes(id)));
+      setColumnOrder((prev) => prev.filter((id) => defaultColumnIds.includes(id)));
     }
   }, [defaultColumnIds, columnOrder]);
 

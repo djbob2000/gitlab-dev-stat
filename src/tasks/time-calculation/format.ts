@@ -3,7 +3,7 @@
  * for the In Progress column
  */
 export const formatHoursAndMinutes = (durationMs: number): string => {
-  if (!durationMs || isNaN(durationMs)) return '';
+  if (!durationMs || Number.isNaN(durationMs)) return '';
 
   // Convert milliseconds to hours and minutes
   const seconds = Math.floor(durationMs / 1000);
@@ -20,7 +20,7 @@ export const formatHoursAndMinutes = (durationMs: number): string => {
  * where d represents calendar days (24 hours per day), excluding weekends
  */
 export const formatDuration = (durationMs: number): string => {
-  if (!durationMs || isNaN(durationMs)) return '';
+  if (!durationMs || Number.isNaN(durationMs)) return '';
 
   // Calculate weekends to subtract
   const startDate = new Date(Date.now() - durationMs);

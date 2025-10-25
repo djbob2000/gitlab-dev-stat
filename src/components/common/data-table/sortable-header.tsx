@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { flexRender, Header, Table } from '@tanstack/react-table';
+import { flexRender, type Header, type Table } from '@tanstack/react-table';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';

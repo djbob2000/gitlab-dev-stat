@@ -74,14 +74,14 @@ export default function ProjectsPage() {
     const devsByProject: Record<number, GitLabDeveloper[]> = {};
 
     // Find all project keys
-    const projectKeys = Object.keys(localStorage).filter(key =>
+    const projectKeys = Object.keys(localStorage).filter((key) =>
       key.startsWith(PROJECT_NAME_PREFIX)
     );
 
     // Load developers for each project
     for (const key of projectKeys) {
       const projectId = Number(key.replace(PROJECT_NAME_PREFIX, ''));
-      if (isNaN(projectId)) continue;
+      if (Number.isNaN(projectId)) continue;
 
       const savedDevsJSON = localStorage.getItem(`${SELECTED_DEVELOPERS_PREFIX}${projectId}`);
       if (savedDevsJSON) {
@@ -183,7 +183,7 @@ export default function ProjectsPage() {
    * Toggle project selection
    */
   const toggleProjectSelection = useCallback((projectId: number) => {
-    setSelectedProjects(prev => {
+    setSelectedProjects((prev) => {
       const newSelectedProjects = {
         ...prev,
         [projectId]: !prev[projectId],
@@ -193,8 +193,8 @@ export default function ProjectsPage() {
       localStorage.setItem(SELECTED_PROJECTS_KEY, JSON.stringify(newSelectedProjects));
 
       // Update projects directly
-      setProjects(currentProjects =>
-        currentProjects.map(project => ({
+      setProjects((currentProjects) =>
+        currentProjects.map((project) => ({
           ...project,
           selected: project.id === projectId ? !prev[projectId] : !!prev[project.id],
         }))
@@ -209,7 +209,7 @@ export default function ProjectsPage() {
    */
   const goToProjectDevelopers = useCallback(
     (projectId: number) => {
-      const project = projects.find(p => p.id === projectId);
+      const project = projects.find((p) => p.id === projectId);
       if (project) {
         localStorage.setItem(`${PROJECT_NAME_PREFIX}${projectId}`, project.name);
         localStorage.setItem(`${PROJECT_PATH_PREFIX}${projectId}`, project.path_with_namespace);
@@ -301,7 +301,7 @@ export default function ProjectsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map(project => (
+            {projects.map((project) => (
               <ProjectCard
                 key={project.id}
                 project={project}

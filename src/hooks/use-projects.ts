@@ -3,7 +3,7 @@ import { useGitLabToken } from '@/hooks/use-gitlab-token';
 import { useTopLoader } from 'nextjs-toploader';
 import { toast } from 'sonner';
 import { fetchAnalytics } from '@/lib/api-utils';
-import { ProjectData } from '@/types';
+import type { ProjectData } from '@/types';
 import {
   SELECTED_DEVELOPERS_PREFIX,
   PROJECT_NAME_PREFIX,
@@ -29,9 +29,9 @@ export function useProjects() {
     // Get project IDs from localStorage
     const projectIds = Array.from({ length: localStorage.length })
       .map((_, i) => localStorage.key(i))
-      .filter(key => key?.startsWith(SELECTED_DEVELOPERS_PREFIX))
-      .map(key => parseInt(key!.replace(SELECTED_DEVELOPERS_PREFIX, ''), 10))
-      .filter(id => !isNaN(id));
+      .filter((key) => key?.startsWith(SELECTED_DEVELOPERS_PREFIX))
+      .map((key) => Number.parseInt(key?.replace(SELECTED_DEVELOPERS_PREFIX, '') || '', 10))
+      .filter((id) => !Number.isNaN(id));
 
     // Get selected projects from localStorage
     const savedSelectedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
@@ -40,7 +40,7 @@ export function useProjects() {
       : {};
 
     // Initialize projects with data from localStorage
-    return projectIds.map(id => {
+    return projectIds.map((id) => {
       const projectName = localStorage.getItem(`${PROJECT_NAME_PREFIX}${id}`) || `Project ${id}`;
       const projectPath =
         localStorage.getItem(`${PROJECT_PATH_PREFIX}${id}`) ||
@@ -91,7 +91,7 @@ export function useProjects() {
 
       // Only include projects that are explicitly selected AND have developers
       const filteredProjects = projectsWithData.filter(
-        p => p.developers.length > 0 && selectedProjects[p.id] === true
+        (p) => p.developers.length > 0 && selectedProjects[p.id] === true
       );
 
       setProjects(filteredProjects);
@@ -111,9 +111,9 @@ export function useProjects() {
       loader.start();
 
       // Mark all projects as loading
-      setProjects(prev =>
+      setProjects((prev) =>
         prev
-          ? prev.map(project => ({
+          ? prev.map((project) => ({
               ...project,
               isLoading: true,
               error: null,
@@ -123,7 +123,7 @@ export function useProjects() {
 
       // Load data for each project in parallel
       const updatedProjects = await Promise.all(
-        projects.map(async project => {
+        projects.map(async (project) => {
           try {
             const data = await fetchAnalytics(project.developers, project.id, project.path);
             return {
@@ -157,7 +157,7 @@ export function useProjects() {
     async (projectId: number) => {
       if (!isInitialized || !hasToken || isLoading || projects === null) return;
 
-      const projectIndex = projects.findIndex(p => p.id === projectId);
+      const projectIndex = projects.findIndex((p) => p.id === projectId);
       if (projectIndex === -1) return;
 
       const project = projects[projectIndex];
@@ -168,9 +168,9 @@ export function useProjects() {
         loader.start();
 
         // Mark project as loading
-        setProjects(prev =>
+        setProjects((prev) =>
           prev
-            ? prev.map(p => (p.id === projectId ? { ...p, isLoading: true, error: null } : p))
+            ? prev.map((p) => (p.id === projectId ? { ...p, isLoading: true, error: null } : p))
             : null
         );
 
@@ -178,9 +178,9 @@ export function useProjects() {
         const data = await fetchAnalytics(project.developers, project.id, project.path);
 
         // Update project data
-        setProjects(prev =>
+        setProjects((prev) =>
           prev
-            ? prev.map(p =>
+            ? prev.map((p) =>
                 p.id === projectId
                   ? {
                       ...p,
@@ -194,9 +194,9 @@ export function useProjects() {
             : null
         );
       } catch (err) {
-        setProjects(prev =>
+        setProjects((prev) =>
           prev
-            ? prev.map(p =>
+            ? prev.map((p) =>
                 p.id === projectId
                   ? {
                       ...p,
@@ -233,7 +233,7 @@ export function useProjects() {
   }, [isInitialized, hasToken, loadAllData, projects, isLoading]);
 
   // Compute if any project is loading
-  const anyProjectLoading = projects?.some(project => project.isLoading) || false;
+  const anyProjectLoading = projects?.some((project) => project.isLoading) || false;
 
   return {
     projects,

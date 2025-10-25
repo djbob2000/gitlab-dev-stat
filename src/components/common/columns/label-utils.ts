@@ -1,4 +1,4 @@
-import { MergeRequestInfo } from '@/types';
+import type { MergeRequestInfo } from '@/types';
 import { mrLabelColors } from './color-config';
 import { LABELS, PRIORITY_LABEL_PATTERN } from '@/constants/labels';
 
@@ -9,7 +9,7 @@ export const getPriority = (labels: string[]) => {
   if (!labels || labels.length === 0) return '';
 
   // Find priority label matching p1-p9
-  const priorityLabel = labels.find(label => PRIORITY_LABEL_PATTERN.test(label));
+  const priorityLabel = labels.find((label) => PRIORITY_LABEL_PATTERN.test(label));
   return priorityLabel || '';
 };
 

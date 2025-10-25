@@ -115,7 +115,7 @@ export async function GET(request: Request) {
   try {
     // Environment variables validation
     const requiredEnvVars = ['GITLAB_BASE_URL'];
-    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    const missingEnvVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
     if (missingEnvVars.length > 0) {
       return NextResponse.json(

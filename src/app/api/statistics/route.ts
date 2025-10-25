@@ -14,11 +14,11 @@ import type {
 const getStatisticsSchema = z.object({
   usernames: z
     .string()
-    .transform(str => str.split(','))
+    .transform((str) => str.split(','))
     .nullish(),
   userIds: z
     .string()
-    .transform(str => str.split(',').map(Number))
+    .transform((str) => str.split(',').map(Number))
     .nullish(),
   projectId: z.string(),
   projectPath: z.string().optional(),
@@ -30,8 +30,8 @@ const BATCH_SIZE = 99;
 // Utility function to process issues in batches
 const processBatch = async <T, R>(
   items: T[],
-  batchSize: number = BATCH_SIZE,
-  fn: BatchProcessor<T, R>
+  fn: BatchProcessor<T, R>,
+  batchSize: number = BATCH_SIZE
 ): Promise<R[]> => {
   const results: R[] = [];
   for (let i = 0; i < items.length; i += batchSize) {
@@ -41,7 +41,7 @@ const processBatch = async <T, R>(
 
     // Add a small delay between batches to prevent rate limiting
     if (i + batchSize < items.length) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
   return results;
@@ -54,9 +54,9 @@ const processMergeRequestLabels = async (
   mergeRequests: GitLabApiMergeRequest[]
 ): Promise<MergeRequestWithStats[]> => {
   // Use a larger batch size for merge requests since they're less resource intensive
-  return processBatch(mergeRequests, BATCH_SIZE, async (mr: GitLabApiMergeRequest) => {
+  return processBatch(mergeRequests, async (mr: GitLabApiMergeRequest) => {
     const actionRequiredLabels = mr.labels.filter(
-      label =>
+      (label) =>
         label === LABELS.ACTION_REQUIRED ||
         label === LABELS.ACTION_REQUIRED2 ||
         label === LABELS.ACTION_REQUIRED3
@@ -81,7 +81,7 @@ const processMergeRequestLabels = async (
         if (actionRequiredLabels.length === 0) return undefined;
 
         const addEvents = labelEvents.filter(
-          event =>
+          (event) =>
             event.action === 'add' &&
             event.label?.name &&
             actionRequiredLabels.includes(
@@ -94,14 +94,14 @@ const processMergeRequestLabels = async (
 
         if (addEvents.length === 0) return undefined;
 
-        return Math.max(...addEvents.map(event => new Date(event.created_at).getTime()));
+        return Math.max(...addEvents.map((event) => new Date(event.created_at).getTime()));
       })(),
       // Calculate status update commit count
       (async () => {
         if (!mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT)) return undefined;
 
         return labelEvents.filter(
-          event => event.action === 'add' && event.label?.name === LABELS.STATUS_UPDATE_COMMIT
+          (event) => event.action === 'add' && event.label?.name === LABELS.STATUS_UPDATE_COMMIT
         ).length;
       })(),
     ]);
@@ -124,7 +124,7 @@ export async function GET(request: Request) {
   try {
     // Environment variables validation
     const requiredEnvVars = ['GITLAB_BASE_URL'];
-    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    const missingEnvVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
     if (missingEnvVars.length > 0) {
       return NextResponse.json(
@@ -157,8 +157,13 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Project path is required' }, { status: 400 });
       }
 
+      const baseUrl = process.env.GITLAB_BASE_URL;
+      if (!baseUrl) {
+        return NextResponse.json({ error: 'GITLAB_BASE_URL is not configured' }, { status: 500 });
+      }
+      
       const gitlabClient = createGitLabClient({
-        baseUrl: process.env.GITLAB_BASE_URL!,
+        baseUrl,
         token,
         projectPath,
       });
@@ -170,7 +175,7 @@ export async function GET(request: Request) {
       );
 
       // Process issues in optimized batches
-      const issueStats = await processBatch(issues, BATCH_SIZE, async issue => {
+      const issueStats = await processBatch(issues, async (issue) => {
         // Process multiple API calls in parallel
         const [timeInProgress, totalTimeFromStart, mergeRequestsResponse] = await Promise.all([
           Promise.resolve(issue.inProgressDuration),
@@ -180,7 +185,7 @@ export async function GET(request: Request) {
 
         // Filter merge requests
         const mergeRequests = mergeRequestsResponse.filter(
-          mr => mr.source_project_id === projectId && mr.state === 'opened'
+          (mr) => mr.source_project_id === projectId && mr.state === 'opened'
         );
 
         // Process merge request labels in parallel with optimized batching
