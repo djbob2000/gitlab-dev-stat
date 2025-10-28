@@ -71,8 +71,8 @@ export function useProjects(initialProjects?: GitLabProject[]) {
       // Enrich server projects with localStorage data
       const enrichedProjects = enrichProjectsWithLocalStorage(initialProjects);
 
-      // Only include projects that have developers to track
-      const filteredProjects = enrichedProjects.filter((p) => p.developers.length > 0);
+      // Only include projects that have developers to track AND are selected
+      const filteredProjects = enrichedProjects.filter((p) => p.developers.length > 0 && p.selected);
 
       setProjects(filteredProjects);
     } catch (error) {
