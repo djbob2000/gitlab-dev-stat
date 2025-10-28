@@ -30,5 +30,7 @@ export async function fetchAnalytics(
   params.append('projectId', projectId.toString());
   params.append('projectPath', projectPath);
 
-  return fetchWithToken(`/api/statistics?${params.toString()}`);
+  const url = `/api/statistics?${params.toString()}`;
+
+  return fetchWithToken(url);
 }

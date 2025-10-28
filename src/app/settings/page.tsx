@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import React from 'react';
+import { useActionState } from 'react-dom';
 import { useGitLabToken } from '@/hooks/use-gitlab-token';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
@@ -15,38 +17,49 @@ export default function DevelopersPage() {
   const { hasToken, updateToken, isInitialized: isTokenInitialized } = useGitLabToken();
   const [newToken, setNewToken] = useState('');
   const [showToken, setShowToken] = useState(false);
-  const [isValidating, setIsValidating] = useState(false);
   const [isRemovingToken, setIsRemovingToken] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleSaveToken = async (token: string) => {
-    setIsValidating(true);
-    setError(null);
-    try {
-      const result = await validateAndSetToken(token);
-      if (result.success) {
-        setNewToken('');
-        toast.success('GitLab token saved successfully');
-        await updateToken(token);
-      } else {
-        setError('Failed to validate token. Please check if the token is valid.');
+  // Token saving action using useActionState (React 19.3+)
+  const [tokenError, saveTokenAction, isSavingToken] = useActionState(
+    async (prev: string | null, formData: FormData) => {
+      const token = formData.get('token') as string;
+      
+      if (!token || token.trim().length === 0) {
+        return 'Token is required';
       }
-    } catch {
-      setError('Failed to validate token. Please check if the token is valid.');
-    } finally {
-      setIsValidating(false);
+
+      try {
+        const result = await validateAndSetToken(token);
+        if (result.success) {
+          await updateToken(token);
+          setNewToken('');
+          toast.success('GitLab token saved successfully');
+          return null;
+        } else {
+          return result.error || 'Failed to validate token. Please check if the token is valid.';
+        }
+      } catch (error) {
+        return 'Failed to validate token. Please check if the token is valid.';
+      }
+    },
+    null
+  );
+
+  // Show error toast when there's an action state error
+  React.useEffect(() => {
+    if (tokenError) {
+      toast.error(tokenError);
     }
-  };
+  }, [tokenError]);
 
   const handleRemoveToken = async () => {
     setIsRemovingToken(true);
-    setError(null);
     try {
       await removeToken();
       await updateToken(null);
       toast.success('GitLab token removed successfully');
     } catch {
-      setError('Failed to remove token.');
+      toast.error('Failed to remove token.');
     } finally {
       setIsRemovingToken(false);
     }
@@ -87,11 +100,6 @@ export default function DevelopersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
           {hasToken ? (
             <div>
               <p className="mb-4 text-green-600">GitLab token is set and valid.</p>
@@ -119,21 +127,31 @@ export default function DevelopersPage() {
                 </a>
                 . Make sure to grant <strong>api</strong> and <strong>read_api</strong> scopes.
               </p>
-              <div className="flex items-center gap-4">
+              
+              {/* Form using useActionState (React 19.3+) */}
+              <form action={saveTokenAction} className="flex items-center gap-4">
                 <Input
                   type={showToken ? 'text' : 'password'}
+                  name="token"
                   placeholder="Enter your GitLab token"
                   value={newToken}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewToken(e.target.value)}
                   className="max-w-md"
+                  disabled={isSavingToken}
                 />
-                <Button variant="ghost" size="icon" onClick={() => setShowToken(!showToken)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  onClick={() => setShowToken(!showToken)}
+                  disabled={isSavingToken}
+                >
                   {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
-                <Button onClick={() => handleSaveToken(newToken)} disabled={isValidating}>
-                  {isValidating ? 'Validating...' : 'Save Token'}
+                <Button type="submit" disabled={isSavingToken}>
+                  {isSavingToken ? 'Validating...' : 'Save Token'}
                 </Button>
-              </div>
+              </form>
             </div>
           )}
         </CardContent>

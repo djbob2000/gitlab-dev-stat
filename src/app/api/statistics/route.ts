@@ -47,77 +47,106 @@ const processBatch = async <T, R>(
   return results;
 };
 
-// Process merge request labels with optimized parallel requests
+// Optimized batch processing for merge request labels
 const processMergeRequestLabels = async (
   gitlabClient: ReturnType<typeof createGitLabClient>,
   projectId: number,
   mergeRequests: GitLabApiMergeRequest[]
 ): Promise<MergeRequestWithStats[]> => {
-  // Use a larger batch size for merge requests since they're less resource intensive
-  return processBatch(mergeRequests, async (mr: GitLabApiMergeRequest) => {
+  if (mergeRequests.length === 0) return [];
+
+  // Filter MRs that need label events processing
+  const mrsNeedingEvents = mergeRequests.filter(mr => {
     const actionRequiredLabels = mr.labels.filter(
-      (label) =>
+      label =>
         label === LABELS.ACTION_REQUIRED ||
         label === LABELS.ACTION_REQUIRED2 ||
         label === LABELS.ACTION_REQUIRED3
     );
-
-    let actionRequiredLabelTime: number | undefined = undefined;
-    let statusUpdateCommitCount: number | undefined = undefined;
-    let labelEvents: GitLabApiEvent[] = [];
-
-    const needsLabelEvents =
-      actionRequiredLabels.length > 0 || mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT);
-
-    // Only fetch label events if needed
-    if (needsLabelEvents) {
-      labelEvents = await gitlabClient.getMergeRequestLabelEvents(projectId, mr.iid);
-    }
-
-    // Process action required labels and status update commit count in parallel
-    const [actionRequiredTime, updateCommitCount] = await Promise.all([
-      // Calculate action required label time
-      (async () => {
-        if (actionRequiredLabels.length === 0) return undefined;
-
-        const addEvents = labelEvents.filter(
-          (event) =>
-            event.action === 'add' &&
-            event.label?.name &&
-            actionRequiredLabels.includes(
-              event.label.name as
-                | typeof LABELS.ACTION_REQUIRED
-                | typeof LABELS.ACTION_REQUIRED2
-                | typeof LABELS.ACTION_REQUIRED3
-            )
-        );
-
-        if (addEvents.length === 0) return undefined;
-
-        return Math.max(...addEvents.map((event) => new Date(event.created_at).getTime()));
-      })(),
-      // Calculate status update commit count
-      (async () => {
-        if (!mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT)) return undefined;
-
-        return labelEvents.filter(
-          (event) => event.action === 'add' && event.label?.name === LABELS.STATUS_UPDATE_COMMIT
-        ).length;
-      })(),
-    ]);
-
-    actionRequiredLabelTime = actionRequiredTime;
-    statusUpdateCommitCount = updateCommitCount;
-
-    return {
-      mrIid: mr.iid,
-      labels: mr.labels,
-      url: mr.web_url,
-      title: mr.title,
-      actionRequiredLabelTime,
-      statusUpdateCommitCount,
-    };
+    return actionRequiredLabels.length > 0 || mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT);
   });
+
+  // Batch fetch label events for all MRs that need them
+  const labelEventsPromises = mrsNeedingEvents.map(async (mr) => {
+    try {
+      const events = await gitlabClient.getMergeRequestLabelEvents(projectId, mr.iid);
+      return { mrIid: mr.iid, events };
+    } catch (error) {
+      console.warn(`Failed to get label events for MR ${mr.iid}:`, error);
+      return { mrIid: mr.iid, events: [] as GitLabApiEvent[] };
+    }
+  });
+
+  const labelEventsResults = await Promise.allSettled(labelEventsPromises);
+  const eventsByMrIid = new Map<number, GitLabApiEvent[]>();
+
+  labelEventsResults.forEach((result) => {
+    if (result.status === 'fulfilled') {
+      eventsByMrIid.set(result.value.mrIid, result.value.events);
+    }
+  });
+
+  // Process all MRs in parallel with the fetched events
+  return Promise.all(
+    mergeRequests.map(async (mr) => {
+      const actionRequiredLabels = mr.labels.filter(
+        (label) =>
+          label === LABELS.ACTION_REQUIRED ||
+          label === LABELS.ACTION_REQUIRED2 ||
+          label === LABELS.ACTION_REQUIRED3
+      );
+
+      let actionRequiredLabelTime: number | undefined = undefined;
+      let statusUpdateCommitCount: number | undefined = undefined;
+
+      // Get events only for MRs that need them
+      const labelEvents = eventsByMrIid.get(mr.iid) || [];
+
+      // Process label events in parallel within each MR
+      const [actionRequiredTime, updateCommitCount] = await Promise.all([
+        // Calculate action required label time
+        (async () => {
+          if (actionRequiredLabels.length === 0) return undefined;
+
+          const addEvents = labelEvents.filter(
+            (event) =>
+              event.action === 'add' &&
+              event.label?.name &&
+              actionRequiredLabels.includes(
+                event.label.name as
+                  | typeof LABELS.ACTION_REQUIRED
+                  | typeof LABELS.ACTION_REQUIRED2
+                  | typeof LABELS.ACTION_REQUIRED3
+              )
+          );
+
+          if (addEvents.length === 0) return undefined;
+
+          return Math.max(...addEvents.map((event) => new Date(event.created_at).getTime()));
+        })(),
+        // Calculate status update commit count
+        (async () => {
+          if (!mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT)) return undefined;
+
+          return labelEvents.filter(
+            (event) => event.action === 'add' && event.label?.name === LABELS.STATUS_UPDATE_COMMIT
+          ).length;
+        })(),
+      ]);
+
+      actionRequiredLabelTime = actionRequiredTime;
+      statusUpdateCommitCount = updateCommitCount;
+
+      return {
+        mrIid: mr.iid,
+        labels: mr.labels,
+        url: mr.web_url,
+        title: mr.title,
+        actionRequiredLabelTime,
+        statusUpdateCommitCount,
+      };
+    })
+  );
 };
 
 export async function GET(request: Request) {
@@ -174,29 +203,55 @@ export async function GET(request: Request) {
         validatedData.userIds ?? undefined
       );
 
-      // Process issues in optimized batches
+      // Fetch merge requests for all issues in parallel
+      const mergeRequestsPromises = issues.map(issue =>
+        gitlabClient.getIssueRelatedMergeRequests(projectId, issue.iid)
+      );
+
+      const mergeRequestsResults = await Promise.allSettled(mergeRequestsPromises);
+      const mergeRequestsByIid = new Map<number, GitLabApiMergeRequest[]>();
+
+      mergeRequestsResults.forEach((result, index) => {
+        if (result.status === 'fulfilled' && issues[index]) {
+          const filteredMrs = result.value.filter(
+            (mr) => mr.source_project_id === projectId && mr.state === 'opened'
+          );
+          mergeRequestsByIid.set(issues[index].iid, filteredMrs);
+        } else {
+          mergeRequestsByIid.set(issues[index].iid, []);
+        }
+      });
+
+      // Collect all unique merge requests for batch processing
+      const allMergeRequests = Array.from(mergeRequestsByIid.values()).flat();
+      const uniqueMergeRequests = allMergeRequests.filter((mr, index, self) =>
+        index === self.findIndex((other) => other.iid === mr.iid)
+      );
+
+      // Process merge request labels for all unique MRs
+      const mergeRequestLabels = await processMergeRequestLabels(
+        gitlabClient,
+        projectId,
+        uniqueMergeRequests
+      );
+
+      // Group processed labels by MR IID
+      const labelsByMrIid = new Map<number, MergeRequestWithStats>();
+      mergeRequestLabels.forEach(label => {
+        labelsByMrIid.set(label.mrIid, label);
+      });
+
+      // Process issues in batches with parallelized operations
       const issueStats = await processBatch(issues, async (issue) => {
-        // Process multiple API calls in parallel
-        const [timeInProgress, totalTimeFromStart, mergeRequestsResponse] = await Promise.all([
-          Promise.resolve(issue.inProgressDuration),
-          Promise.resolve(issue.totalTimeFromStart),
-          gitlabClient.getIssueRelatedMergeRequests(projectId, issue.iid),
-        ]);
+        const issueMergeRequests = mergeRequestsByIid.get(issue.iid) || [];
+        
+        // Map merge request labels to this issue's MRs
+        const issueMergeRequestLabels = issueMergeRequests
+          .map(mr => labelsByMrIid.get(mr.iid))
+          .filter(Boolean) as MergeRequestWithStats[];
 
-        // Filter merge requests
-        const mergeRequests = mergeRequestsResponse.filter(
-          (mr) => mr.source_project_id === projectId && mr.state === 'opened'
-        );
-
-        // Process merge request labels in parallel with optimized batching
-        const mergeRequestLabels = await processMergeRequestLabels(
-          gitlabClient,
-          projectId,
-          mergeRequests
-        );
-
-        // Calculate the latest action required time across all MRs
-        const actionRequiredTime = mergeRequestLabels.reduce(
+        // Calculate the latest action required time across all MRs for this issue
+        const actionRequiredTime = issueMergeRequestLabels.reduce(
           (latest, mr) =>
             mr.actionRequiredLabelTime && (!latest || mr.actionRequiredLabelTime > latest)
               ? mr.actionRequiredLabelTime
@@ -211,9 +266,9 @@ export async function GET(request: Request) {
           assignee: issue.assignee,
           labels: issue.labels,
           milestone: issue.milestone,
-          timeInProgress,
-          totalTimeFromStart,
-          mergeRequests: mergeRequestLabels,
+          timeInProgress: issue.inProgressDuration,
+          totalTimeFromStart: issue.totalTimeFromStart,
+          mergeRequests: issueMergeRequestLabels,
           actionRequiredTime,
           url: `${process.env.GITLAB_BASE_URL}/${projectPath}/-/issues/${issue.iid}`,
         };

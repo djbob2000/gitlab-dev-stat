@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useOptimistic, startTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -8,12 +9,12 @@ import { cn } from '@/lib/utils';
 interface RefreshControlsProps {
   isLoading: boolean;
   autoRefresh: boolean;
-  nextRefreshTime: Date | null; // Получаем время следующего обновления вместо готового таймера
+  nextRefreshTime: Date | null;
   onRefresh: () => void;
   onAutoRefreshChange: (enabled: boolean) => void;
 }
 
-// Компонент с внутренним таймером
+// Компонент с использованием useOptimistic (React 19.3+)
 function RefreshControlsBase({
   isLoading,
   autoRefresh,
@@ -21,6 +22,12 @@ function RefreshControlsBase({
   onRefresh,
   onAutoRefreshChange,
 }: RefreshControlsProps) {
+  // Оптимистическое состояние для мгновенного обновления UI
+  const [optimisticAutoRefresh, setOptimisticAutoRefresh] = useOptimistic(
+    autoRefresh,
+    (state, newValue: boolean) => newValue
+  );
+
   // Внутреннее состояние для отображения таймера
   const [timeDisplay, setTimeDisplay] = useState('5:00');
 
@@ -36,7 +43,7 @@ function RefreshControlsBase({
     }
 
     // Если автообновление выключено или нет даты
-    if (!autoRefresh || !nextRefreshTime) {
+    if (!optimisticAutoRefresh || !nextRefreshTime) {
       setTimeDisplay('5:00');
       return;
     }
@@ -64,15 +71,20 @@ function RefreshControlsBase({
         timerRef.current = null;
       }
     };
-  }, [autoRefresh, nextRefreshTime]);
+  }, [optimisticAutoRefresh, nextRefreshTime]);
 
-  // Обработчик переключения состояния автообновления
-  const toggleAutoRefresh = useCallback(() => {
-    onAutoRefreshChange(!autoRefresh);
-  }, [autoRefresh, onAutoRefreshChange]);
+  // Обработчик переключения состояния автообновления с оптимистическими обновлениями
+  const toggleAutoRefresh = () => {
+    // Оборачиваем оптимистическое обновление в startTransition
+    startTransition(() => {
+      setOptimisticAutoRefresh(!optimisticAutoRefresh);
+    });
+    // Отправляем запрос на сервер
+    onAutoRefreshChange(!optimisticAutoRefresh);
+  };
 
   // Получаем текст для кнопки
-  const buttonText = autoRefresh ? `Auto: ${timeDisplay}` : 'Auto Off';
+  const buttonText = optimisticAutoRefresh ? `Auto: ${timeDisplay}` : 'Auto Off';
 
   return (
     <div className="flex items-center gap-2">
@@ -88,20 +100,20 @@ function RefreshControlsBase({
       </Button>
 
       <Button
-        variant={autoRefresh ? 'default' : 'outline'}
+        variant={optimisticAutoRefresh ? 'default' : 'outline'}
         size="sm"
         className="gap-1 h-9 px-3 min-w-28"
         onClick={toggleAutoRefresh}
         title={
-          autoRefresh ? 'Disable auto-refresh' : 'Enable auto-refresh (refreshes every 5 minutes)'
+          optimisticAutoRefresh ? 'Disable auto-refresh' : 'Enable auto-refresh (refreshes every 5 minutes)'
         }
       >
         <Clock className="h-4 w-4" />
-        <span className={cn('whitespace-nowrap', autoRefresh && 'font-mono')}>{buttonText}</span>
+        <span className={cn('whitespace-nowrap', optimisticAutoRefresh && 'font-mono')}>{buttonText}</span>
       </Button>
     </div>
   );
 }
 
-// Экспортируем мемоизированную версию компонента
+// Экспортируем мемоизированную версию компонента (React 19.3+ с useOptimistic)
 export const RefreshControls = React.memo(RefreshControlsBase);

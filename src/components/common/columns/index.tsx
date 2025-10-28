@@ -284,36 +284,6 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     },
   },
   {
-    accessorKey: 'team',
-    header: 'Team',
-    enableSorting: true,
-    enableResizing: true,
-    size: 55,
-    cell: ({ row }) => {
-      const hasTeam1 = row.original.labels?.includes(LABELS.TEAM1);
-      const hasTeam2 = row.original.labels?.includes(LABELS.TEAM2);
-
-      return (
-        <div className="leading-none flex items-center gap-2">
-          {hasTeam1 && (
-            <LabelPill
-              text="1"
-              colorClass={mrLabelColors[LABELS.TEAM1] || 'bg-gray-200 text-gray-800'}
-              className="shrink-0"
-            />
-          )}
-          {hasTeam2 && (
-            <LabelPill
-              text="2"
-              colorClass={mrLabelColors[LABELS.TEAM2] || 'bg-gray-200 text-gray-800'}
-              className="shrink-0"
-            />
-          )}
-        </div>
-      );
-    },
-  },
-  {
     accessorKey: 'title',
     header: 'Title',
     enableSorting: true,

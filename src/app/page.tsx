@@ -1,98 +1,29 @@
-'use client';
-
-import React from 'react';
-import { useGitLabToken } from '@/hooks/use-gitlab-token';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-
-// Import extracted components and hooks
-import { Header } from '@/components/home/Header';
-import { ProjectsList } from '@/components/home/ProjectsList';
-import { useProjects } from '@/hooks/use-projects';
-import { useAutoRefresh } from '@/hooks/use-auto-refresh';
+import { Suspense } from 'react';
+import { unstable_noStore as noStore } from 'next/cache';
+import type { GitLabProject } from '@/types/gitlab/projects';
+import HomePageClient from './home-page-client';
+import { hasValidToken } from './actions/token';
+import { getUserProjects } from './actions/projects';
+import { PageSkeleton } from '@/components/home/page-skeleton';
 
 /**
- * Main page component
+ * Серверний компонент з Suspense для потокової передачі даних
  */
-export default function HomePage() {
-  const { hasToken, isInitialized } = useGitLabToken();
+export default function Page() {
+  noStore(); // Prevent prerendering since we use cookies()
 
-  // Custom hooks
-  const { projects, isLoading, loadAllData } = useProjects();
-  const { autoRefresh, nextAutoRefresh, handleAutoRefreshChange } = useAutoRefresh(
-    loadAllData,
-    isLoading
-  );
+  // Використовуємо Server Actions для отримання реальних даних
+  const tokenPromise = hasValidToken();
+  const projectsPromise = getUserProjects();
 
-  // Loading state for token initialization
-  if (!isInitialized) {
-    return (
-      <div className="container py-10">
-        <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
-          Loading...
-        </div>
-      </div>
-    );
-  }
-
-  // No token state
-  if (!hasToken) {
-    return (
-      <div className="container py-10">
-        <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
-          Please add your GitLab token in the settings to view analytics.
-          <div className="mt-4">
-            <Button asChild>
-              <Link href="/settings">Go to Settings</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Loading state for projects (initial load from localStorage)
-  if (projects === null) {
-    return (
-      <div className="container py-10">
-        <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
-          Loading...
-        </div>
-      </div>
-    );
-  }
-
-  // No projects state after loading
-  if (projects.length === 0) {
-    // projects is not null here
-    return (
-      <div className="container py-10">
-        <div className="mb-4 p-4 text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg">
-          No projects with tracked developers found. Please select developers to track in the
-          projects section.
-          <div className="mt-4">
-            <Button asChild>
-              <Link href="/projects">Go to Projects</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Main content
   return (
-    <>
-      <Header
-        isLoading={isLoading}
-        autoRefresh={autoRefresh}
-        nextRefreshTime={nextAutoRefresh}
-        onRefresh={loadAllData}
-        onAutoRefreshChange={handleAutoRefreshChange}
-      />
-      <div className="container py-10 pt-0">
-        {projects !== null && <ProjectsList projects={projects} />}
-      </div>
-    </>
+    <div className="min-h-screen bg-background">
+      <Suspense fallback={<PageSkeleton />}>
+        <HomePageClient
+          tokenPromise={tokenPromise}
+          projectsPromise={projectsPromise}
+        />
+      </Suspense>
+    </div>
   );
 }

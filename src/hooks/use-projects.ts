@@ -4,48 +4,35 @@ import { useTopLoader } from 'nextjs-toploader';
 import { toast } from 'sonner';
 import { fetchAnalytics } from '@/lib/api-utils';
 import type { ProjectData } from '@/types';
+import type { GitLabProject } from '@/types/gitlab/projects';
 import {
   SELECTED_DEVELOPERS_PREFIX,
-  PROJECT_NAME_PREFIX,
-  PROJECT_PATH_PREFIX,
   SELECTED_PROJECTS_KEY,
 } from '@/constants/storage-keys';
 
 /**
  * Custom hook for managing projects and their data
  */
-export function useProjects() {
+export function useProjects(initialProjects?: GitLabProject[]) {
   const [projects, setProjects] = useState<ProjectData[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { hasToken, isInitialized } = useGitLabToken();
   const loader = useTopLoader();
   const hasLoadedInitialData = useRef(false);
-  const hasInitializedProjects = useRef(false);
+  const hasInitializedFromServer = useRef(false);
 
   /**
-   * Get projects data from localStorage
+   * Enrich server projects with localStorage data
    */
-  const getProjectsFromStorage = useCallback((): ProjectData[] => {
-    // Get project IDs from localStorage
-    const projectIds = Array.from({ length: localStorage.length })
-      .map((_, i) => localStorage.key(i))
-      .filter((key) => key?.startsWith(SELECTED_DEVELOPERS_PREFIX))
-      .map((key) => Number.parseInt(key?.replace(SELECTED_DEVELOPERS_PREFIX, '') || '', 10))
-      .filter((id) => !Number.isNaN(id));
-
+  const enrichProjectsWithLocalStorage = useCallback((serverProjects: GitLabProject[]): ProjectData[] => {
     // Get selected projects from localStorage
     const savedSelectedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
     const selectedProjects: Record<number, boolean> = savedSelectedProjects
       ? JSON.parse(savedSelectedProjects)
       : {};
 
-    // Initialize projects with data from localStorage
-    return projectIds.map((id) => {
-      const projectName = localStorage.getItem(`${PROJECT_NAME_PREFIX}${id}`) || `Project ${id}`;
-      const projectPath =
-        localStorage.getItem(`${PROJECT_PATH_PREFIX}${id}`) ||
-        projectName.toLowerCase().replace(/\s+/g, '-');
-      const developersJSON = localStorage.getItem(`${SELECTED_DEVELOPERS_PREFIX}${id}`);
+    return serverProjects.map((project) => {
+      const developersJSON = localStorage.getItem(`${SELECTED_DEVELOPERS_PREFIX}${project.id}`);
       const developers = developersJSON
         ? JSON.parse(developersJSON).map((dev: { id: number; username: string }) => ({
             userId: dev.id,
@@ -54,9 +41,9 @@ export function useProjects() {
         : [];
 
       return {
-        id,
-        name: projectName,
-        path: projectPath,
+        id: project.id,
+        name: project.name,
+        path: project.path,
         developers,
         data: [],
         statistics: {
@@ -68,37 +55,30 @@ export function useProjects() {
         },
         isLoading: false,
         error: null,
-        selected: selectedProjects[id] === true,
+        lastUpdated: new Date(),
+        selected: selectedProjects[project.id] === true,
       };
     });
   }, []);
 
-  // Load projects from localStorage - once after initialization
+  // Initialize projects from server data and enrich with localStorage
   useEffect(() => {
-    if (!isInitialized || !hasToken || hasInitializedProjects.current) return;
+    if (!isInitialized || !hasToken || hasInitializedFromServer.current || !initialProjects) return;
 
-    hasInitializedProjects.current = true;
+    hasInitializedFromServer.current = true;
 
     try {
-      // Get selectedProjects from localStorage
-      const savedSelectedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
-      const selectedProjects: Record<number, boolean> = savedSelectedProjects
-        ? JSON.parse(savedSelectedProjects)
-        : {};
+      // Enrich server projects with localStorage data
+      const enrichedProjects = enrichProjectsWithLocalStorage(initialProjects);
 
-      // Get projects with developers from localStorage
-      const projectsWithData = getProjectsFromStorage();
-
-      // Only include projects that are explicitly selected AND have developers
-      const filteredProjects = projectsWithData.filter(
-        (p) => p.developers.length > 0 && selectedProjects[p.id] === true
-      );
+      // Only include projects that have developers to track
+      const filteredProjects = enrichedProjects.filter((p) => p.developers.length > 0);
 
       setProjects(filteredProjects);
     } catch (error) {
-      console.error('Error loading projects from localStorage:', error);
+      console.error('Error initializing projects from server data:', error);
     }
-  }, [isInitialized, hasToken, getProjectsFromStorage]);
+  }, [isInitialized, hasToken, initialProjects, enrichProjectsWithLocalStorage]);
 
   // Load data for all projects
   const loadAllData = useCallback(async () => {

@@ -1,5 +1,6 @@
 'use server';
 
+import { unstable_noStore as noStore } from 'next/cache';
 import { cookies } from 'next/headers';
 import { encrypt, decrypt } from '@/lib/crypto';
 
@@ -36,6 +37,8 @@ async function validateGitLabToken(token: string): Promise<boolean> {
 export async function validateAndSetToken(
   token: string
 ): Promise<{ success: boolean; error?: string }> {
+  noStore(); // Prevent prerendering for cookie operations
+
   try {
     const isValid = await validateGitLabToken(token);
 
@@ -72,6 +75,8 @@ export async function validateAndSetToken(
  * Removes the GitLab token cookie
  */
 export async function removeToken(): Promise<{ success: boolean }> {
+  noStore(); // Prevent prerendering for cookie operations
+
   const cookieStore = await cookies();
   cookieStore.delete('gitlab-token');
   return { success: true };
@@ -81,33 +86,41 @@ export async function removeToken(): Promise<{ success: boolean }> {
  * Checks if a valid token exists
  */
 export async function hasValidToken(): Promise<{ hasToken: boolean }> {
-  const cookieStore = await cookies();
-  const encryptedToken = cookieStore.get('gitlab-token')?.value;
-
-  if (!encryptedToken) {
-    return { hasToken: false };
-  }
+  noStore(); // Prevent prerendering for cookie operations
 
   try {
-    // Decrypt the token
-    const token = await decrypt(encryptedToken);
+    const cookieStore = await cookies();
+    const encryptedToken = cookieStore.get('gitlab-token')?.value;
 
-    if (!token) {
-      cookieStore.delete('gitlab-token');
+    if (!encryptedToken) {
       return { hasToken: false };
     }
 
-    const isValid = await validateGitLabToken(token);
+    try {
+      // Decrypt the token
+      const token = await decrypt(encryptedToken);
 
-    if (!isValid) {
+      if (!token) {
+        cookieStore.delete('gitlab-token');
+        return { hasToken: false };
+      }
+
+      const isValid = await validateGitLabToken(token);
+
+      if (!isValid) {
+        cookieStore.delete('gitlab-token');
+        return { hasToken: false };
+      }
+
+      return { hasToken: true };
+    } catch (error) {
+      console.error('Token validation error:', error);
       cookieStore.delete('gitlab-token');
       return { hasToken: false };
     }
-
-    return { hasToken: true };
   } catch (error) {
-    console.error('Token validation error:', error);
-    cookieStore.delete('gitlab-token');
+    // Handle cookies() error gracefully during prerendering
+    console.warn('cookies() error during prerendering:', error);
     return { hasToken: false };
   }
 }
