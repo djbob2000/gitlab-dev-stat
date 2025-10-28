@@ -2,7 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  cacheComponents: true, // Re-enabled with dynamic export in page.tsx
+  // cacheComponents: true, // Re-enabled with dynamic export in page.tsx
   images: {
     remotePatterns: [
       {

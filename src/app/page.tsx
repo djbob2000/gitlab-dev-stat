@@ -6,6 +6,8 @@ import { hasValidToken } from './actions/token';
 import { getUserProjects } from './actions/projects';
 import { PageSkeleton } from '@/components/home/page-skeleton';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Серверний компонент з Suspense для потокової передачі даних
  */

@@ -30,7 +30,7 @@ export function useAutoRefresh(onRefresh: () => Promise<void>, isLoading: boolea
       // If we're loading, just update the next refresh time
       setNextAutoRefresh(new Date(Date.now() + AUTO_REFRESH_INTERVAL));
     }
-  }, [isLoading]);
+  });
 
   // Main effect handling the auto-refresh logic
   useEffect(() => {
@@ -68,7 +68,7 @@ export function useAutoRefresh(onRefresh: () => Promise<void>, isLoading: boolea
         timerRef.current = null;
       }
     };
-  }, [autoRefresh, isLoading, nextAutoRefresh, handleRefresh]);
+  }, [autoRefresh, nextAutoRefresh, handleRefresh]);
 
   return { autoRefresh, nextAutoRefresh, handleAutoRefreshChange };
 }

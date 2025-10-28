@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import React from 'react';
-import { useActionState } from 'react-dom';
+import { useActionState } from 'react';
 import { useGitLabToken } from '@/hooks/use-gitlab-token';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
@@ -23,7 +23,7 @@ export default function DevelopersPage() {
   const [tokenError, saveTokenAction, isSavingToken] = useActionState(
     async (prev: string | null, formData: FormData) => {
       const token = formData.get('token') as string;
-      
+
       if (!token || token.trim().length === 0) {
         return 'Token is required';
       }
@@ -35,9 +35,8 @@ export default function DevelopersPage() {
           setNewToken('');
           toast.success('GitLab token saved successfully');
           return null;
-        } else {
-          return result.error || 'Failed to validate token. Please check if the token is valid.';
         }
+        return result.error || 'Failed to validate token. Please check if the token is valid.';
       } catch (error) {
         return 'Failed to validate token. Please check if the token is valid.';
       }
@@ -127,7 +126,7 @@ export default function DevelopersPage() {
                 </a>
                 . Make sure to grant <strong>api</strong> and <strong>read_api</strong> scopes.
               </p>
-              
+
               {/* Form using useActionState (React 19.3+) */}
               <form action={saveTokenAction} className="flex items-center gap-4">
                 <Input
