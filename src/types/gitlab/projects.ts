@@ -59,6 +59,7 @@ export interface ProjectData {
   isLoading: boolean;
   error?: string | null;
   lastUpdated?: Date;
+  selected?: boolean;
 }
 
 /**
