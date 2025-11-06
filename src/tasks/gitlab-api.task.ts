@@ -55,11 +55,29 @@ export interface Issue {
     username: string;
   } | null;
   milestone: GitlabMilestone | null;
+  web_url: string;
 }
 
 export interface IssueWithEvents extends Partial<Issue> {
   id: number;
   iid: number;
+  title: string;
+  description: string;
+  state: string;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+  labels: string[];
+  author: {
+    id: number;
+    username: string;
+  };
+  assignee?: {
+    id: number;
+    username: string;
+  } | null;
+  milestone: GitlabMilestone | null;
+  web_url: string;
   events: IssueEvent[];
   inProgressDuration: number; // Duration in milliseconds
   totalTimeFromStart: number; // Duration from first in-progress or creation to now
@@ -110,7 +128,9 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
       }
     }
 
-    const url = `${baseUrl}/api/v4${endpoint}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `${baseUrl}/api/v4${endpoint}${
+      queryParams.toString() ? `?${queryParams.toString()}` : ''
+    }`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -162,7 +182,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
         fetchFromGitLab<GitLabNote[]>(`/projects/${projectId}/issues/${issueIid}/notes`, {
           per_page: perPage,
           page: 1,
-        }).then((events) => {
+        }).then(events => {
           const assignmentEvents = events
             .filter((note: GitLabNote) => note.system && note.body.includes('assigned to'))
             .map((note: GitLabNote) => {
@@ -187,11 +207,11 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
 
       // Only combine successful results
       const allEvents: IssueEvent[] = [];
-      results.forEach((result) => {
+      for (const result of results) {
         if (result.status === 'fulfilled') {
           allEvents.push(...result.value);
         }
-      });
+      }
 
       return allEvents;
     } catch (error) {
@@ -204,19 +224,22 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
   };
 
   // Batch version of getIssueEvents for multiple issues
-  const getIssueEventsBatch = async (projectId: number, issueIids: number[]): Promise<IssueEvent[]> => {
+  const getIssueEventsBatch = async (
+    projectId: number,
+    issueIids: number[]
+  ): Promise<IssueEvent[]> => {
     if (issueIids.length === 0) return [];
 
     try {
       const perPage = 100;
       const allEvents: IssueEvent[] = [];
-      
+
       // Process issues in batches to avoid overwhelming the API
       const batchSize = 10; // Process 10 issues at a time
       const chunks = chunkArray(issueIids, batchSize);
 
       for (const chunk of chunks) {
-        const batchPromises = chunk.map(async (iid) => {
+        const batchPromises = chunk.map(async iid => {
           try {
             return await getIssueEvents(projectId, iid);
           } catch (error) {
@@ -226,12 +249,12 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
         });
 
         const batchResults = await Promise.allSettled(batchPromises);
-        
-        batchResults.forEach((result) => {
+
+        for (const result of batchResults) {
           if (result.status === 'fulfilled') {
             allEvents.push(...result.value);
           }
-        });
+        }
 
         // Small delay between batches to be respectful to the API
         if (chunks.indexOf(chunk) < chunks.length - 1) {
@@ -561,7 +584,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
       const usernameToIdMap = new Map<string, number>();
 
       for (const username of usernames) {
-        const member = members.find((m) => m.username === username);
+        const member = members.find(m => m.username === username);
         if (member) {
           usernameToIdMap.set(username, member.id);
         }
@@ -599,12 +622,13 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
             per_page: MAX_ISSUES,
           })
         );
-        
+
         const results = await Promise.allSettled(issuePromises);
         allIssues = results
-          .filter((result): result is PromiseFulfilledResult<Issue[]> => result.status === 'fulfilled')
+          .filter(
+            (result): result is PromiseFulfilledResult<Issue[]> => result.status === 'fulfilled'
+          )
           .flatMap(result => result.value);
-          
       } else if (assigneeUsernames && assigneeUsernames.length > 0) {
         const usernameToIdMap = await getUserIdsByUsernames(projectId, assigneeUsernames);
         const userIds = Array.from(usernameToIdMap.values()).slice(0, 20); // GitLab limit
@@ -618,10 +642,12 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
               per_page: MAX_ISSUES,
             })
           );
-          
+
           const results = await Promise.allSettled(issuePromises);
           allIssues = results
-            .filter((result): result is PromiseFulfilledResult<Issue[]> => result.status === 'fulfilled')
+            .filter(
+              (result): result is PromiseFulfilledResult<Issue[]> => result.status === 'fulfilled'
+            )
             .flatMap(result => result.value);
         }
       }
@@ -630,7 +656,6 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
       const issueIids = allIssues.map(issue => issue.iid);
       const result = await getIssuesWithEventsBatch(projectId, issueIids);
       return result;
-      
     } catch (error) {
       console.error(`Error getting project issues for projectId=${projectId}:`, error);
       throw error;
@@ -648,9 +673,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
 
     // First fetch all issues in batch
     const issues = await Promise.allSettled(
-      issueIids.map(iid =>
-        fetchFromGitLab<Issue>(`/projects/${projectId}/issues/${iid}`)
-      )
+      issueIids.map(iid => fetchFromGitLab<Issue>(`/projects/${projectId}/issues/${iid}`))
     ).then(results =>
       results
         .filter((result): result is PromiseFulfilledResult<Issue> => result.status === 'fulfilled')
@@ -658,13 +681,11 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
     );
 
     // Fetch events for all issues in parallel (but limit concurrency)
-    const eventsPromises = issues.map(issue =>
-      getIssueEventsBatch(projectId, [issue.iid])
-    );
+    const eventsPromises = issues.map(issue => getIssueEventsBatch(projectId, [issue.iid]));
 
     const eventsResults = await Promise.allSettled(eventsPromises);
     const eventsByIid = new Map<number, IssueEvent[]>();
-    
+
     eventsResults.forEach((result, index) => {
       if (result.status === 'fulfilled' && issues[index]) {
         eventsByIid.set(issues[index].iid, result.value);
@@ -697,7 +718,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
     try {
       const perPage = 100;
       let allMembers: GitLabUser[] = [];
-      let page = 1;
+      const page = 1;
 
       // Fetch all pages in parallel for better performance
       const fetchPage = async (pageNum: number): Promise<GitLabUser[]> => {
@@ -716,7 +737,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
 
       // Fetch first page to determine total pages
       const firstPage = await fetchPage(page);
-      
+
       if (firstPage.length === 0) {
         return [];
       }
@@ -728,16 +749,16 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
         // Get total count from header (estimated)
         const estimatedTotalPages = 5; // Reasonable estimate for most projects
         const remainingPages = Array.from({ length: estimatedTotalPages - 1 }, (_, i) => i + 2);
-        
+
         try {
           const remainingPagePromises = remainingPages.map(p => fetchPage(p));
           const remainingPagesResults = await Promise.allSettled(remainingPagePromises);
-          
-          remainingPagesResults.forEach((result) => {
+
+          for (const result of remainingPagesResults) {
             if (result.status === 'fulfilled' && result.value.length > 0) {
               allMembers.push(...result.value);
             }
-          });
+          }
         } catch (error) {
           console.warn(`Some member pages failed to load for project ${projectId}:`, error);
         }
@@ -745,13 +766,13 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
 
       // Remove duplicates by ID
       const uniqueMembers = new Map<number, GitLabUser>();
-      allMembers.forEach(member => {
+      for (const member of allMembers) {
         if (!uniqueMembers.has(member.id)) {
           uniqueMembers.set(member.id, member);
         }
-      });
+      }
 
-      return Array.from(uniqueMembers.values()).map((member) => ({
+      return Array.from(uniqueMembers.values()).map(member => ({
         id: member.id,
         username: member.username,
       }));

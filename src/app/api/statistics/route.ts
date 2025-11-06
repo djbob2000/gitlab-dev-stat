@@ -80,11 +80,11 @@ const processMergeRequestLabels = async (
   const labelEventsResults = await Promise.allSettled(labelEventsPromises);
   const eventsByMrIid = new Map<number, GitLabApiEvent[]>();
 
-  labelEventsResults.forEach((result) => {
+  for (const result of labelEventsResults) {
     if (result.status === 'fulfilled') {
       eventsByMrIid.set(result.value.mrIid, result.value.events);
     }
-  });
+  }
 
   // Process all MRs in parallel with the fetched events
   return Promise.all(
@@ -237,9 +237,9 @@ export async function GET(request: Request) {
 
       // Group processed labels by MR IID
       const labelsByMrIid = new Map<number, MergeRequestWithStats>();
-      mergeRequestLabels.forEach(label => {
+      for (const label of mergeRequestLabels) {
         labelsByMrIid.set(label.mrIid, label);
-      });
+      }
 
       // Process issues in batches with parallelized operations
       const issueStats = await processBatch(issues, async (issue) => {
@@ -260,18 +260,18 @@ export async function GET(request: Request) {
         );
 
         return {
-          id: issue.id,
-          iid: issue.iid,
-          title: issue.title,
-          assignee: issue.assignee,
-          labels: issue.labels,
-          milestone: issue.milestone,
-          timeInProgress: issue.inProgressDuration,
-          totalTimeFromStart: issue.totalTimeFromStart,
-          mergeRequests: issueMergeRequestLabels,
-          actionRequiredTime,
-          url: `${process.env.GITLAB_BASE_URL}/${projectPath}/-/issues/${issue.iid}`,
-        };
+            id: issue.id,
+            iid: issue.iid,
+            title: issue.title,
+            assignee: issue.assignee,
+            labels: issue.labels,
+            milestone: issue.milestone,
+            timeInProgress: issue.inProgressDuration,
+            totalTimeFromStart: issue.totalTimeFromStart,
+            mergeRequests: issueMergeRequestLabels,
+            actionRequiredTime,
+            url: issue.web_url,
+          };
       });
 
       return NextResponse.json(issueStats);

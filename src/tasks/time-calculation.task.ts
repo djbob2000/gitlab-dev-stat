@@ -129,7 +129,7 @@ export const calculateBulkIssuesTimeStats = (
  * for the In Progress column
  */
 export const formatHoursAndMinutes = (durationMs: number): string => {
-  if (!durationMs || isNaN(durationMs)) return '';
+  if (!durationMs || Number.isNaN(durationMs)) return '';
 
   // Convert milliseconds to hours and minutes
   const seconds = Math.floor(durationMs / 1000);
@@ -146,7 +146,7 @@ export const formatHoursAndMinutes = (durationMs: number): string => {
  * where d represents calendar days (24 hours per day), excluding weekends
  */
 export const formatDuration = (durationMs: number): string => {
-  if (!durationMs || isNaN(durationMs)) return '';
+  if (!durationMs || Number.isNaN(durationMs)) return '';
 
   // Handle negative or zero duration
   if (durationMs <= 0) return '00:00';

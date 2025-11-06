@@ -90,6 +90,15 @@ export function SortableHeader<TData>({ header, _table }: SortableHeaderProps<TD
           <span
             className={canSort ? 'cursor-pointer select-none flex-1' : 'flex-1'}
             onClick={toggleSortingHandler}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleSortingHandler?.(e);
+              }
+            }}
+            role={canSort ? 'button' : undefined}
+            tabIndex={canSort ? 0 : undefined}
+            aria-label={canSort ? 'Sort by this column' : undefined}
           >
             {headerContent}
             {sortingIcon}

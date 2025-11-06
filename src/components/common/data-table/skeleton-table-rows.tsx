@@ -15,7 +15,7 @@ export function SkeletonTableRows<TData>({
     <>
       {Array.from({ length: rows }).map((_, i) => (
         <tr
-          key={`skeleton-${i}`}
+          key={`skeleton-${crypto.randomUUID()}`}
           className={cn(i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900')}
         >
           {table.getVisibleLeafColumns().map(col => (

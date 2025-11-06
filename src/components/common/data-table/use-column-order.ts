@@ -25,11 +25,11 @@ export const useColumnOrder = (tableId: string, defaultColumnIds: string[]) => {
 
           // Add new columns that are not in the saved order
           const combinedOrder = [...stringOrder];
-          defaultColumnIds.forEach((id) => {
+          for (const id of defaultColumnIds) {
             if (!combinedOrder.includes(id)) {
               combinedOrder.push(id);
             }
-          });
+          }
 
           // Remove columns that no longer exist
           const filteredOrder = combinedOrder.filter((id) => defaultColumnIds.includes(id));
