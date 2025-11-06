@@ -1,7 +1,7 @@
 'use server';
 
 import { unstable_noStore as noStore } from 'next/cache';
-import { cookies, type Cookies } from 'next/headers';
+import { cookies } from 'next/headers';
 import { decrypt } from '@/lib/crypto';
 import type { GitLabProject } from '@/types/gitlab/projects';
 
@@ -10,16 +10,15 @@ export async function getUserProjects(): Promise<GitLabProject[]> {
 
   try {
     // Отримуємо зашифрований токен з cookies
-    let cookieStore: Cookies;
+    let encryptedToken = '';
     try {
-      cookieStore = await cookies();
+      const cookieStore = await cookies();
+      encryptedToken = cookieStore.get('gitlab-token')?.value || '';
     } catch (error) {
       // Handle cookies() error gracefully during prerendering
       console.warn('cookies() error during prerendering in getUserProjects:', error);
       return [];
     }
-    
-    const encryptedToken = cookieStore.get('gitlab-token')?.value;
     
     // Якщо токен відсутній, повертаємо порожній масив
     if (!encryptedToken) {
