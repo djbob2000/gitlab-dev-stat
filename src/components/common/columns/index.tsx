@@ -115,12 +115,19 @@ export const columns: ColumnDef<IssueStatistics>[] = [
     },
     cell: ({ row }) => {
       const mrLabels = row.original.mergeRequests || [];
+      const issueNumber = row.original.iid;
 
-      if (mrLabels.length === 0) return <div className="leading-none" />;
+      // Filter out MRs that don't match the issue number
+      const filteredMRs = mrLabels.filter(mr => {
+        const mrTitlePrefix = mr.title ? mr.title.match(/^(\d+)/)?.[1] : null;
+        return !mrTitlePrefix || mrTitlePrefix === issueNumber.toString();
+      });
+
+      if (filteredMRs.length === 0) return <div className="leading-none" />;
 
       return (
         <div className="leading-none space-y-1">
-          {mrLabels.map((mr) => {
+          {filteredMRs.map(mr => {
             const excludeLabels: LabelType[] = [
               LABELS.REVIEW,
               LABELS.IN_PROGRESS,
@@ -131,7 +138,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
             ];
 
             const filteredLabels = mr.labels.filter(
-              (label) =>
+              label =>
                 !PRIORITY_LABEL_PATTERN.test(label) && // exclude priority labels
                 !excludeLabels.includes(label as LabelType) // exclude specific labels
             );
@@ -141,9 +148,9 @@ export const columns: ColumnDef<IssueStatistics>[] = [
             const hasApprovedLabel = mr.labels.includes(LABELS.APPROVED);
 
             // Check if any MR in this issue has action-required labels
-            const hasActionRequiredLabels = row.original.mergeRequests.some((mr) =>
+            const hasActionRequiredLabels = filteredMRs.some(mr =>
               mr.labels.some(
-                (label) =>
+                label =>
                   label === LABELS.ACTION_REQUIRED ||
                   label === LABELS.ACTION_REQUIRED2 ||
                   label === LABELS.ACTION_REQUIRED3
@@ -164,11 +171,6 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                 'text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200';
             }
 
-            // Check if MR title starts with the issue number
-            const issueNumber = row.original.iid;
-            const mrTitlePrefix = mr.title ? mr.title.match(/^(\d+)/)?.[1] : null;
-            const mrNumberMismatch = mrTitlePrefix && mrTitlePrefix !== issueNumber.toString();
-
             return (
               <div key={mr.mrIid} className="flex gap-1 items-center">
                 <a
@@ -177,12 +179,11 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                   rel="noopener noreferrer"
                   className={mrNumberClass}
                 >
-                  {mrNumberMismatch ? '?' : ''}
                   {mr.mrIid}
                 </a>
                 <span className="text-xs text-gray-500">:</span>
                 <div className="flex gap-1 flex-wrap">
-                  {filteredLabels.map((label) => {
+                  {filteredLabels.map(label => {
                     // Check if this is a status-update-commit label
                     if (label === LABELS.STATUS_UPDATE_COMMIT) {
                       const statusInfo = getStatusUpdateCommitInfo(mr);
