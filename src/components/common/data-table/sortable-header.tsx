@@ -1,10 +1,10 @@
 'use client';
 
-import * as React from 'react';
-import { flexRender, type Header, type Table } from '@tanstack/react-table';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { flexRender, type Header, type Table } from '@tanstack/react-table';
 import { GripVertical } from 'lucide-react';
+import * as React from 'react';
 
 interface SortableHeaderProps<TData> {
   header: Header<TData, unknown>;
@@ -86,32 +86,33 @@ export function SortableHeader<TData>({ header, _table }: SortableHeaderProps<TD
         </span>
 
         {/* Column header content */}
-        {!isPlaceholder && (
-          <span
-            className={canSort ? 'cursor-pointer select-none flex-1' : 'flex-1'}
-            onClick={toggleSortingHandler}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                toggleSortingHandler?.(e);
-              }
-            }}
-            role={canSort ? 'button' : undefined}
-            tabIndex={canSort ? 0 : undefined}
-            aria-label={canSort ? 'Sort by this column' : undefined}
-          >
-            {headerContent}
-            {sortingIcon}
-          </span>
-        )}
+        {!isPlaceholder &&
+          (canSort ? (
+            <button
+              type="button"
+              className="cursor-pointer select-none flex-1 text-left"
+              onClick={toggleSortingHandler}
+              aria-label="Sort by this column"
+            >
+              {headerContent}
+              {sortingIcon}
+            </button>
+          ) : (
+            <span className="flex-1">
+              {headerContent}
+              {sortingIcon}
+            </span>
+          ))}
 
         {/* Column resize handle */}
         {canResize && (
-          <span
+          <button
+            type="button"
             onMouseDown={resizeHandler}
             onTouchStart={resizeHandler}
             className={`absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none bg-gray-300 dark:bg-gray-600
               ${header.column.getIsResizing() ? 'bg-blue-500 dark:bg-blue-400' : ''}`}
+            aria-label="Resize column"
           />
         )}
       </div>

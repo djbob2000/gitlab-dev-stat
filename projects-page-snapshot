@@ -1,0 +1,348 @@
+uid=2_0 RootWebArea "GitLab Developer Statistics" url="http://localhost:3000/projects"
+  uid=2_1 ignored
+    uid=2_2 ignored
+      uid=2_3 ignored
+        uid=2_4 ignored
+          uid=2_5 ignored
+            uid=2_6 button "Back"
+              uid=2_7 StaticText "Back"
+                uid=2_8 InlineTextBox "Back"
+            uid=2_9 heading "GitLab Projects" level="1"
+              uid=2_10 StaticText "GitLab Projects"
+                uid=2_11 InlineTextBox "GitLab Projects"
+          uid=2_12 button "Refresh"
+            uid=2_13 StaticText "Refresh"
+              uid=2_14 InlineTextBox "Refresh"
+        uid=2_15 ignored
+          uid=2_16 ignored
+            uid=2_17 ignored
+              uid=2_18 ignored
+                uid=2_19 ignored
+                  uid=2_20 heading "level2" level="3"
+                    uid=2_21 generic
+                      uid=2_22 checkbox
+                    uid=2_23 StaticText "level2"
+                      uid=2_24 InlineTextBox "level2"
+                  uid=2_25 ignored
+                uid=2_26 button "Developers"
+                  uid=2_27 StaticText "Developers"
+                    uid=2_28 InlineTextBox "Developers"
+            uid=2_29 ignored
+              uid=2_30 ignored
+                uid=2_31 ignored
+                  uid=2_32 link "View on GitLab" url="https://gitlab.com/fernir2/level2"
+                    uid=2_33 StaticText "View on GitLab"
+                      uid=2_34 InlineTextBox "View on GitLab"
+          uid=2_35 ignored
+            uid=2_36 ignored
+              uid=2_37 ignored
+                uid=2_38 ignored
+                  uid=2_39 heading "monorepo" level="3"
+                    uid=2_40 generic
+                      uid=2_41 checkbox checked
+                        uid=2_42 ignored
+                    uid=2_43 StaticText "monorepo"
+                      uid=2_44 InlineTextBox "monorepo"
+                  uid=2_45 ignored
+                uid=2_46 button "Developers"
+                  uid=2_47 StaticText "Developers"
+                    uid=2_48 InlineTextBox "Developers"
+            uid=2_49 ignored
+              uid=2_50 ignored
+                uid=2_51 ignored
+                  uid=2_52 link "View on GitLab" url="https://gitlab.com/fernir2/monorepo"
+                    uid=2_53 StaticText "View on GitLab"
+                      uid=2_54 InlineTextBox "View on GitLab"
+                  uid=2_55 ignored
+                    uid=2_56 ignored
+                      uid=2_57 StaticText "Tracked project"
+                        uid=2_58 InlineTextBox "Tracked project"
+          uid=2_59 ignored
+            uid=2_60 ignored
+              uid=2_61 ignored
+                uid=2_62 ignored
+                  uid=2_63 heading "dev-tutorials" level="3"
+                    uid=2_64 generic
+                      uid=2_65 checkbox
+                    uid=2_66 StaticText "dev-tutorials"
+                      uid=2_67 InlineTextBox "dev-tutorials"
+                  uid=2_68 ignored
+                uid=2_69 button "Developers"
+                  uid=2_70 StaticText "Developers"
+                    uid=2_71 InlineTextBox "Developers"
+            uid=2_72 ignored
+              uid=2_73 ignored
+                uid=2_74 ignored
+                  uid=2_75 link "View on GitLab" url="https://gitlab.com/fernir2/dev-tutorials"
+                    uid=2_76 StaticText "View on GitLab"
+                      uid=2_77 InlineTextBox "View on GitLab"
+          uid=2_78 ignored
+            uid=2_79 ignored
+              uid=2_80 ignored
+                uid=2_81 ignored
+                  uid=2_82 heading "website" level="3"
+                    uid=2_83 generic
+                      uid=2_84 checkbox checked
+                        uid=2_85 ignored
+                    uid=2_86 StaticText "website"
+                      uid=2_87 InlineTextBox "website"
+                  uid=2_88 ignored
+                uid=2_89 button "Developers"
+                  uid=2_90 StaticText "Developers"
+                    uid=2_91 InlineTextBox "Developers"
+            uid=2_92 ignored
+              uid=2_93 ignored
+                uid=2_94 ignored
+                  uid=2_95 link "View on GitLab" url="https://gitlab.com/fernir2/website"
+                    uid=2_96 StaticText "View on GitLab"
+                      uid=2_97 InlineTextBox "View on GitLab"
+                  uid=2_98 ignored
+                    uid=2_99 ignored
+                      uid=2_100 StaticText "Tracked project"
+                        uid=2_101 InlineTextBox "Tracked project"
+          uid=2_102 ignored
+            uid=2_103 ignored
+              uid=2_104 ignored
+                uid=2_105 ignored
+                  uid=2_106 heading "saas-kit" level="3"
+                    uid=2_107 generic
+                      uid=2_108 checkbox
+                    uid=2_109 StaticText "saas-kit"
+                      uid=2_110 InlineTextBox "saas-kit"
+                  uid=2_111 ignored
+                uid=2_112 button "Developers"
+                  uid=2_113 StaticText "Developers"
+                    uid=2_114 InlineTextBox "Developers"
+            uid=2_115 ignored
+              uid=2_116 ignored
+                uid=2_117 ignored
+                  uid=2_118 link "View on GitLab" url="https://gitlab.com/fernir2/saas-kit"
+                    uid=2_119 StaticText "View on GitLab"
+                      uid=2_120 InlineTextBox "View on GitLab"
+          uid=2_121 ignored
+            uid=2_122 ignored
+              uid=2_123 ignored
+                uid=2_124 ignored
+                  uid=2_125 heading "saas-kit-test" level="3"
+                    uid=2_126 generic
+                      uid=2_127 checkbox
+                    uid=2_128 StaticText "saas-kit-test"
+                      uid=2_129 InlineTextBox "saas-kit-test"
+                  uid=2_130 ignored
+                uid=2_131 button "Developers"
+                  uid=2_132 StaticText "Developers"
+                    uid=2_133 InlineTextBox "Developers"
+            uid=2_134 ignored
+              uid=2_135 ignored
+                uid=2_136 ignored
+                  uid=2_137 link "View on GitLab" url="https://gitlab.com/fernir2/saas-kit-test"
+                    uid=2_138 StaticText "View on GitLab"
+                      uid=2_139 InlineTextBox "View on GitLab"
+          uid=2_140 ignored
+            uid=2_141 ignored
+              uid=2_142 ignored
+                uid=2_143 ignored
+                  uid=2_144 heading "saas-kit-docs" level="3"
+                    uid=2_145 generic
+                      uid=2_146 checkbox
+                    uid=2_147 StaticText "saas-kit-docs"
+                      uid=2_148 InlineTextBox "saas-kit-docs"
+                  uid=2_149 ignored
+                uid=2_150 button "Developers"
+                  uid=2_151 StaticText "Developers"
+                    uid=2_152 InlineTextBox "Developers"
+            uid=2_153 ignored
+              uid=2_154 ignored
+                uid=2_155 ignored
+                  uid=2_156 link "View on GitLab" url="https://gitlab.com/fernir2/saas-kit-docs"
+                    uid=2_157 StaticText "View on GitLab"
+                      uid=2_158 InlineTextBox "View on GitLab"
+          uid=2_159 ignored
+            uid=2_160 ignored
+              uid=2_161 ignored
+                uid=2_162 ignored
+                  uid=2_163 heading "internal-cli" level="3"
+                    uid=2_164 generic
+                      uid=2_165 checkbox
+                    uid=2_166 StaticText "internal-cli"
+                      uid=2_167 InlineTextBox "internal-cli"
+                  uid=2_168 ignored
+                uid=2_169 button "Developers"
+                  uid=2_170 StaticText "Developers"
+                    uid=2_171 InlineTextBox "Developers"
+            uid=2_172 ignored
+              uid=2_173 ignored
+                uid=2_174 ignored
+                  uid=2_175 link "View on GitLab" url="https://gitlab.com/fernir2/internal-cli"
+                    uid=2_176 StaticText "View on GitLab"
+                      uid=2_177 InlineTextBox "View on GitLab"
+          uid=2_178 ignored
+            uid=2_179 ignored
+              uid=2_180 ignored
+                uid=2_181 ignored
+                  uid=2_182 heading "infra" level="3"
+                    uid=2_183 generic
+                      uid=2_184 checkbox
+                    uid=2_185 StaticText "infra"
+                      uid=2_186 InlineTextBox "infra"
+                  uid=2_187 ignored
+                uid=2_188 button "Developers"
+                  uid=2_189 StaticText "Developers"
+                    uid=2_190 InlineTextBox "Developers"
+            uid=2_191 ignored
+              uid=2_192 ignored
+                uid=2_193 ignored
+                  uid=2_194 link "View on GitLab" url="https://gitlab.com/fernir2/infra"
+                    uid=2_195 StaticText "View on GitLab"
+                      uid=2_196 InlineTextBox "View on GitLab"
+          uid=2_197 ignored
+            uid=2_198 ignored
+              uid=2_199 ignored
+                uid=2_200 ignored
+                  uid=2_201 heading "flint" level="3"
+                    uid=2_202 generic
+                      uid=2_203 checkbox
+                    uid=2_204 StaticText "flint"
+                      uid=2_205 InlineTextBox "flint"
+                  uid=2_206 ignored
+                uid=2_207 button "Developers"
+                  uid=2_208 StaticText "Developers"
+                    uid=2_209 InlineTextBox "Developers"
+            uid=2_210 ignored
+              uid=2_211 ignored
+                uid=2_212 ignored
+                  uid=2_213 link "View on GitLab" url="https://gitlab.com/fernir2/flint"
+                    uid=2_214 StaticText "View on GitLab"
+                      uid=2_215 InlineTextBox "View on GitLab"
+          uid=2_216 ignored
+            uid=2_217 ignored
+              uid=2_218 ignored
+                uid=2_219 ignored
+                  uid=2_220 heading "base-repo" level="3"
+                    uid=2_221 generic
+                      uid=2_222 checkbox
+                    uid=2_223 StaticText "base-repo"
+                      uid=2_224 InlineTextBox "base-repo"
+                  uid=2_225 ignored
+                uid=2_226 button "Developers"
+                  uid=2_227 StaticText "Developers"
+                    uid=2_228 InlineTextBox "Developers"
+            uid=2_229 ignored
+              uid=2_230 ignored
+                uid=2_231 ignored
+                  uid=2_232 link "View on GitLab" url="https://gitlab.com/fernir2/base-repo"
+                    uid=2_233 StaticText "View on GitLab"
+                      uid=2_234 InlineTextBox "View on GitLab"
+          uid=2_235 ignored
+            uid=2_236 ignored
+              uid=2_237 ignored
+                uid=2_238 ignored
+                  uid=2_239 heading "vscode-ext" level="3"
+                    uid=2_240 generic
+                      uid=2_241 checkbox
+                    uid=2_242 StaticText "vscode-ext"
+                      uid=2_243 InlineTextBox "vscode-ext"
+                  uid=2_244 ignored
+                uid=2_245 button "Developers"
+                  uid=2_246 StaticText "Developers"
+                    uid=2_247 InlineTextBox "Developers"
+            uid=2_248 ignored
+              uid=2_249 ignored
+                uid=2_250 ignored
+                  uid=2_251 link "View on GitLab" url="https://gitlab.com/fernir2/vscode-ext"
+                    uid=2_252 StaticText "View on GitLab"
+                      uid=2_253 InlineTextBox "View on GitLab"
+          uid=2_254 ignored
+            uid=2_255 ignored
+              uid=2_256 ignored
+                uid=2_257 ignored
+                  uid=2_258 heading "gitlab-spokbee-platform" level="3"
+                    uid=2_259 generic
+                      uid=2_260 checkbox
+                    uid=2_261 StaticText "gitlab-spokbee-platform"
+                      uid=2_262 InlineTextBox "gitlab-spokbee-"
+                      uid=2_263 InlineTextBox "platform"
+                  uid=2_264 ignored
+                uid=2_265 button "Developers"
+                  uid=2_266 StaticText "Developers"
+                    uid=2_267 InlineTextBox "Developers"
+            uid=2_268 ignored
+              uid=2_269 ignored
+                uid=2_270 ignored
+                  uid=2_271 link "View on GitLab" url="https://gitlab.com/fernir2/gitlab-spokbee-platform"
+                    uid=2_272 StaticText "View on GitLab"
+                      uid=2_273 InlineTextBox "View on GitLab"
+          uid=2_274 ignored
+            uid=2_275 ignored
+              uid=2_276 ignored
+                uid=2_277 ignored
+                  uid=2_278 heading "trial-playground" level="3"
+                    uid=2_279 generic
+                      uid=2_280 checkbox
+                    uid=2_281 StaticText "trial-playground"
+                      uid=2_282 InlineTextBox "trial-playground"
+                  uid=2_283 ignored
+                uid=2_284 button "Developers"
+                  uid=2_285 StaticText "Developers"
+                    uid=2_286 InlineTextBox "Developers"
+            uid=2_287 ignored
+              uid=2_288 ignored
+                uid=2_289 ignored
+                  uid=2_290 link "View on GitLab" url="https://gitlab.com/fernir2/trial-playground"
+                    uid=2_291 StaticText "View on GitLab"
+                      uid=2_292 InlineTextBox "View on GitLab"
+          uid=2_293 ignored
+            uid=2_294 ignored
+              uid=2_295 ignored
+                uid=2_296 ignored
+                  uid=2_297 heading "ks-frontend" level="3"
+                    uid=2_298 generic
+                      uid=2_299 checkbox
+                    uid=2_300 StaticText "ks-frontend"
+                      uid=2_301 InlineTextBox "ks-frontend"
+                  uid=2_302 ignored
+                uid=2_303 button "Developers"
+                  uid=2_304 StaticText "Developers"
+                    uid=2_305 InlineTextBox "Developers"
+            uid=2_306 ignored
+              uid=2_307 ignored
+                uid=2_308 ignored
+                  uid=2_309 link "View on GitLab" url="https://gitlab.com/fernir2/ks-frontend"
+                    uid=2_310 StaticText "View on GitLab"
+                      uid=2_311 InlineTextBox "View on GitLab"
+          uid=2_312 ignored
+            uid=2_313 ignored
+              uid=2_314 ignored
+                uid=2_315 ignored
+                  uid=2_316 heading "ks" level="3"
+                    uid=2_317 generic
+                      uid=2_318 checkbox
+                    uid=2_319 StaticText "ks"
+                      uid=2_320 InlineTextBox "ks"
+                  uid=2_321 ignored
+                uid=2_322 button "Developers"
+                  uid=2_323 StaticText "Developers"
+                    uid=2_324 InlineTextBox "Developers"
+            uid=2_325 ignored
+              uid=2_326 ignored
+                uid=2_327 ignored
+                  uid=2_328 link "View on GitLab" url="https://gitlab.com/fernir2/ks"
+                    uid=2_329 StaticText "View on GitLab"
+                      uid=2_330 InlineTextBox "View on GitLab"
+      uid=2_331 region "Notifications alt+T"
+      uid=2_332 generic
+        uid=2_333 generic
+          uid=2_334 generic
+            uid=2_335 ignored
+              uid=2_336 ignored
+                uid=2_337 generic
+                  uid=2_338 ignored
+                    uid=2_339 button "Open Next.js Dev Tools" expandable haspopup="menu"
+                      uid=2_340 image
+                        uid=2_341 ignored
+                        uid=2_342 ignored
+                        uid=2_343 ignored
+                        uid=2_344 ignored
+                        uid=2_345 ignored
+      uid=2_346 generic
+        uid=2_347 alert

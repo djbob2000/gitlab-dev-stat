@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
-import { useOptimistic, startTransition } from 'react';
+import { Clock, RefreshCw } from 'lucide-react';
+import React, { startTransition, useEffect, useOptimistic, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface RefreshControlsProps {
@@ -25,7 +24,7 @@ function RefreshControlsBase({
   // Оптимистическое состояние для мгновенного обновления UI
   const [optimisticAutoRefresh, setOptimisticAutoRefresh] = useOptimistic(
     autoRefresh,
-    (state, newValue: boolean) => newValue
+    (_state, newValue: boolean) => newValue
   );
 
   // Внутреннее состояние для отображения таймера
@@ -105,11 +104,15 @@ function RefreshControlsBase({
         className="gap-1 h-9 px-3 min-w-28"
         onClick={toggleAutoRefresh}
         title={
-          optimisticAutoRefresh ? 'Disable auto-refresh' : 'Enable auto-refresh (refreshes every 5 minutes)'
+          optimisticAutoRefresh
+            ? 'Disable auto-refresh'
+            : 'Enable auto-refresh (refreshes every 5 minutes)'
         }
       >
         <Clock className="h-4 w-4" />
-        <span className={cn('whitespace-nowrap', optimisticAutoRefresh && 'font-mono')}>{buttonText}</span>
+        <span className={cn('whitespace-nowrap', optimisticAutoRefresh && 'font-mono')}>
+          {buttonText}
+        </span>
       </Button>
     </div>
   );

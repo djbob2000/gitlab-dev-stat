@@ -1,35 +1,35 @@
 'use client';
 
-import * as React from 'react';
-import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  type ColumnResizeMode,
-  type SortingState,
-  getSortedRowModel,
-} from '@tanstack/react-table';
-import { useColumnSizing } from './use-column-sizing';
-import { useColumnOrder } from './use-column-order';
-import { TableHeader } from './table-header';
 // Import components from dnd-kit
 import {
-  DndContext,
   closestCenter,
+  DndContext,
+  type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
-  DragOverlay,
 } from '@dnd-kit/core';
-import { arrayMove, SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import { SortableHeader } from './sortable-header';
+import { arrayMove, horizontalListSortingStrategy, SortableContext } from '@dnd-kit/sortable';
+import {
+  type ColumnDef,
+  type ColumnResizeMode,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  type SortingState,
+  useReactTable,
+} from '@tanstack/react-table';
 import { GripVertical } from 'lucide-react';
+import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { SkeletonTableRows } from './skeleton-table-rows';
+import { SortableHeader } from './sortable-header';
+import { TableHeader } from './table-header';
+import { useColumnOrder } from './use-column-order';
+import { useColumnSizing } from './use-column-sizing';
 
 // Version with column resizing and dragging
 interface DataTableProps<TData, TValue> {

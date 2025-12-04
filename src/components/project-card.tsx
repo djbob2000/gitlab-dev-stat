@@ -1,9 +1,9 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Check, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // Тип для проекта GitLab
 // Type for GitLab project
@@ -87,14 +87,14 @@ export function ProjectCard({
             {project.selected && (
               <div className="flex items-center text-green-600">
                 <Check className="h-4 w-4 mr-1" />
-                <span>Selected for tracking</span>
+                <span>Tracked project</span>
               </div>
             )}
           </div>
 
           {project.selected && selectedDevelopers.length > 0 && (
             <div className="mt-3 border-t pt-2">
-              <p className="text-sm font-medium mb-1">Selected Developers:</p>
+              <p className="text-sm font-medium mb-1">Tracked Developers:</p>
               <ol className="pl-5 text-xs space-y-1">
                 {selectedDevelopers.map((dev, index) => (
                   <li key={dev.id}>

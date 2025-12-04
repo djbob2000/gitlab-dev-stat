@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useEffectEvent } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 
 const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000;
 
@@ -68,7 +68,7 @@ export function useAutoRefresh(onRefresh: () => Promise<void>, isLoading: boolea
         timerRef.current = null;
       }
     };
-  }, [autoRefresh, nextAutoRefresh, handleRefresh]);
+  }, [autoRefresh, nextAutoRefresh]);
 
   return { autoRefresh, nextAutoRefresh, handleAutoRefreshChange };
 }

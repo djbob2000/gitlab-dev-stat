@@ -1,7 +1,7 @@
-import type { IssueEvent, IssueWithEvents } from '../gitlab-api.task';
-import { parseDate, mergeIntervals, calculateTotalDuration } from './interval-utils';
-import type { TimeInterval, IssueTimeTrackingStats } from '../../types/gitlab/base';
 import { LABELS } from '@/constants/labels';
+import type { IssueTimeTrackingStats, TimeInterval } from '../../types/gitlab/base';
+import type { IssueEvent, IssueWithEvents } from '../gitlab-api.task';
+import { calculateTotalDuration, mergeIntervals, parseDate } from './interval-utils';
 
 /**
  * Extracts intervals when an issue was in progress

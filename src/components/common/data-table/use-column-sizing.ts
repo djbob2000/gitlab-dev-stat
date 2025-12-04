@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
 import type { ColumnSizingState, Updater } from '@tanstack/react-table';
+import { useCallback, useEffect, useState } from 'react';
 import { TABLE_COLUMN_WIDTHS_PREFIX } from '@/constants/storage-keys';
 
 /**

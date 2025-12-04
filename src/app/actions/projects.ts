@@ -19,7 +19,7 @@ export async function getUserProjects(): Promise<GitLabProject[]> {
       console.warn('cookies() error during prerendering in getUserProjects:', error);
       return [];
     }
-    
+
     // Якщо токен відсутній, повертаємо порожній масив
     if (!encryptedToken) {
       return [];
@@ -27,7 +27,7 @@ export async function getUserProjects(): Promise<GitLabProject[]> {
 
     // Розшифровуємо токен (асинхронно)
     const decryptedToken = await decrypt(encryptedToken);
-    
+
     // Якщо розшифровка не вдалася, повертаємо порожній масив
     if (!decryptedToken) {
       return [];

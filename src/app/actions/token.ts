@@ -2,7 +2,7 @@
 
 import { unstable_noStore as noStore } from 'next/cache';
 import { cookies } from 'next/headers';
-import { encrypt, decrypt } from '@/lib/crypto';
+import { decrypt, encrypt } from '@/lib/crypto';
 
 // GitLab API Error constants
 const GITLAB_API_ERROR = {

@@ -1,22 +1,21 @@
 'use client';
 
-import React, { use } from 'react';
-import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import type { GitLabProject } from '@/types/gitlab/projects';
-
+import { use } from 'react';
 // Import extracted components and hooks
 import { Header } from '@/components/home/Header';
 import { ProjectsList } from '@/components/home/ProjectsList';
-import { useProjects } from '@/hooks/use-projects';
+import { Button } from '@/components/ui/button';
 import { useAutoRefresh } from '@/hooks/use-auto-refresh';
+import { useProjects } from '@/hooks/use-projects';
+import type { GitLabProject } from '@/types/gitlab/projects';
 
 /**
  * Клієнтський компонент головної сторінки з підтримкою хука use()
  */
 export default function HomePageClient({
   tokenPromise,
-  projectsPromise
+  projectsPromise,
 }: {
   tokenPromise: Promise<{ hasToken: boolean }>;
   projectsPromise: Promise<GitLabProject[]>;
@@ -29,7 +28,11 @@ export default function HomePageClient({
   const projects = projectsData;
 
   // Хук для логіки завантаження проектів з серверними даними
-  const { projects: enrichedProjects, loadAllData, isLoading } = useProjects(projects);
+  const {
+    projects: enrichedProjects,
+    loadAllData,
+    isLoading,
+  } = useProjects(projects);
 
   // Хук для логіки автооновлення
   const { autoRefresh, nextAutoRefresh, handleAutoRefreshChange } = useAutoRefresh(

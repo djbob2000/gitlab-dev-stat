@@ -1,11 +1,11 @@
-import { Suspense } from 'react';
 import { unstable_noStore as noStore } from 'next/cache';
-import type { GitLabProject } from '@/types/gitlab/projects';
-import HomePageClient from './home-page-client';
-import { hasValidToken } from './actions/token';
-import { getUserProjects } from './actions/projects';
+import { Suspense } from 'react';
 import { PageSkeleton } from '@/components/home/page-skeleton';
+import { getUserProjects } from './actions/projects';
+import { hasValidToken } from './actions/token';
+import HomePageClient from './home-page-client';
 
+// Force dynamic rendering since this page uses cookies()
 export const dynamic = 'force-dynamic';
 
 /**
@@ -21,10 +21,7 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-background">
       <Suspense fallback={<PageSkeleton />}>
-        <HomePageClient
-          tokenPromise={tokenPromise}
-          projectsPromise={projectsPromise}
-        />
+        <HomePageClient tokenPromise={tokenPromise} projectsPromise={projectsPromise} />
       </Suspense>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import { useId } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Конфігурація скелетону - легко налаштовувана
@@ -12,7 +12,7 @@ const SKELETON_CONFIG = {
 };
 
 // Компонент заголовка
-function HeaderSkeleton({ baseId }: { baseId: string }) {
+function HeaderSkeleton() {
   return (
     <div className="flex justify-end items-center p-4 gap-2">
       <div className="flex items-center gap-2">
@@ -26,7 +26,7 @@ function HeaderSkeleton({ baseId }: { baseId: string }) {
 }
 
 // Компонент скелетону заголовка таблиці
-function TableHeaderSkeleton({ baseId, projectIndex }: { baseId: string; projectIndex: number }) {
+function TableHeaderSkeleton({ projectIndex }: { projectIndex: number }) {
   const headerWidth = SKELETON_CONFIG.headerWidths[projectIndex] || 'w-32';
   const footerWidth = SKELETON_CONFIG.footerWidths[projectIndex] || 'w-24';
 
@@ -97,7 +97,7 @@ function ProjectSkeleton({ baseId, projectIndex }: { baseId: string; projectInde
 
       {/* Скелетон таблиці */}
       <div className="border rounded-lg">
-        <TableHeaderSkeleton baseId={baseId} projectIndex={projectIndex} />
+        <TableHeaderSkeleton projectIndex={projectIndex} />
         <div className="p-0">
           <TableHeadersSkeleton baseId={baseId} projectIndex={projectIndex} />
           {Array.from({ length: rowCount }).map((_, rowIndex) => (
@@ -121,14 +121,14 @@ export function PageSkeleton() {
   return (
     <div className="min-h-screen bg-background">
       {/* Скелетон заголовка */}
-      <HeaderSkeleton baseId={baseId} />
+      <HeaderSkeleton />
 
       {/* Скелетон проектів */}
       <div className="container py-10 pt-0">
         <div className="space-y-10">
           {Array.from({ length: SKELETON_CONFIG.projectCount }).map((_, projectIndex) => (
             <ProjectSkeleton
-              // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+              // biome-ignore lint/suspicious/noArrayIndexKey: using index as key for skeleton items is acceptable
               key={`${baseId}-project-${projectIndex}`}
               baseId={baseId}
               projectIndex={projectIndex}

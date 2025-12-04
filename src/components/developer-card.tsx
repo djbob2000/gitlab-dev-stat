@@ -1,12 +1,12 @@
 'use client';
 
-import React from 'react';
+import { AlertCircle } from 'lucide-react';
+import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import Image from 'next/image';
 
-// Type for GitLab developer
+// Type for GitLab developer with exclusion support
 interface GitLabDeveloper {
   id: number;
   username: string;
@@ -16,7 +16,9 @@ interface GitLabDeveloper {
   web_url: string;
   access_level?: number;
   expires_at?: string | null;
+  // Support both legacy 'selected' and new 'excluded' properties
   selected?: boolean;
+  excluded?: boolean;
 }
 
 interface DeveloperCardProps {
@@ -29,10 +31,21 @@ export function DeveloperCard({ developer, onToggleSelect }: DeveloperCardProps)
     onToggleSelect(developer.id);
   };
 
+  // Determine exclusion status based on both legacy and new properties
+  const isExcluded = developer.excluded !== undefined ? developer.excluded : !developer.selected;
+
+  // Enhanced visual feedback for excluded developers
+  const cardClass = isExcluded
+    ? 'border-2 border-destructive/30 bg-muted/20 opacity-60 hover:opacity-80 transition-opacity'
+    : 'border-2 border-primary bg-background hover:shadow-md transition-all';
+
+  const checkboxChecked = !isExcluded;
+
   return (
     <Card
-      className={developer.selected ? 'border-2 border-primary' : 'border-2'}
+      className={cardClass}
       onClick={handleToggle}
+      title={isExcluded ? 'Click to include in tracking' : 'Click to exclude from tracking'}
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
@@ -41,21 +54,36 @@ export function DeveloperCard({ developer, onToggleSelect }: DeveloperCardProps)
               <Image
                 src={developer.avatar_url || '/placeholder-avatar.jpg'}
                 alt={developer.name}
-                fill
-                className="object-cover select-none drag-none"
-                sizes="40px"
+                width={40}
+                height={40}
+                className="w-full h-full object-cover select-none drag-none"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src =
+                    'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNGM0Y0RjYiLz4KPHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4PSI0IiB5PSI0Ij4KPHBhdGggZD0iTTEyIDEyQzEyLjU1MjMgMTIgMTMgMTEuNTUyMyAxMyAxMFMxMy41NTIzIDEzIDEzIDEyVjE4QzEzIDE4LjQ0NzcgMTIuNTUyMyAxOSAxMiAxOUwxMCAyMUg0QzMuNDQ3NjkgMjEgMyAyMC41NTIzIDMgMjBWMjFDMyAyMS4yMzQ0IDMuMTAzNTggMjEuNDQ3NiAzLjIzNDE3IDIxLjU2MTNMMTEgMjNDMTEuNDQ3MyAyMyAxMiAyMi41NTIzIDEyIDIyQzEyIDIxLjQ0NzcgMTEuNTUyMyAyMSAxMiAyMVoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cjwvc3ZnPgo=';
+                }}
               />
             </div>
             <div>
-              <CardTitle className="text-base">{developer.name}</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                {developer.name}
+                {isExcluded && <AlertCircle className="h-4 w-4 text-destructive" />}
+              </CardTitle>
               <CardDescription className="text-xs">@{developer.username}</CardDescription>
             </div>
           </div>
-          <Checkbox
-            id={`developer-${developer.id}`}
-            checked={developer.selected}
-            onCheckedChange={handleToggle}
-          />
+          <div className="flex flex-col items-end gap-1">
+            <Checkbox
+              id={`developer-${developer.id}`}
+              checked={checkboxChecked}
+              onCheckedChange={handleToggle}
+            />
+            {isExcluded && (
+              <Badge variant="destructive" className="text-xs">
+                Excluded
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -73,6 +101,11 @@ export function DeveloperCard({ developer, onToggleSelect }: DeveloperCardProps)
           <Badge variant={developer.state === 'active' ? 'default' : 'secondary'}>
             {developer.state}
           </Badge>
+          {isExcluded && (
+            <Badge variant="outline" className="text-xs">
+              Not tracked
+            </Badge>
+          )}
         </div>
       </CardContent>
     </Card>

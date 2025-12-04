@@ -1,17 +1,17 @@
 'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
+import { LABELS, type LabelType, PRIORITY_LABEL_PATTERN } from '@/constants/labels';
 import { formatDuration, formatHoursAndMinutes } from '@/tasks/time-calculation.task';
 import type { IssueStatistics } from '@/types';
+import { mrLabelColors, priorityColors, statusColors } from './color-config';
 import { LabelPill } from './label-pill';
-import { priorityColors, statusColors, mrLabelColors } from './color-config';
 import {
+  getActionRequiredPriority,
   getPriority,
   getStatusPriority,
-  getActionRequiredPriority,
   getStatusUpdateCommitInfo,
 } from './label-utils';
-import { LABELS, type LabelType, PRIORITY_LABEL_PATTERN } from '@/constants/labels';
 
 /**
  * Column definitions for the data table
@@ -118,7 +118,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
       const issueNumber = row.original.iid;
 
       // Filter out MRs that don't match the issue number
-      const filteredMRs = mrLabels.filter(mr => {
+      const filteredMRs = mrLabels.filter((mr) => {
         const mrTitlePrefix = mr.title ? mr.title.match(/^(\d+)/)?.[1] : null;
         return !mrTitlePrefix || mrTitlePrefix === issueNumber.toString();
       });
@@ -127,7 +127,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
 
       return (
         <div className="leading-none space-y-1">
-          {filteredMRs.map(mr => {
+          {filteredMRs.map((mr) => {
             const excludeLabels: LabelType[] = [
               LABELS.REVIEW,
               LABELS.IN_PROGRESS,
@@ -138,7 +138,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
             ];
 
             const filteredLabels = mr.labels.filter(
-              label =>
+              (label) =>
                 !PRIORITY_LABEL_PATTERN.test(label) && // exclude priority labels
                 !excludeLabels.includes(label as LabelType) // exclude specific labels
             );
@@ -148,9 +148,9 @@ export const columns: ColumnDef<IssueStatistics>[] = [
             const hasApprovedLabel = mr.labels.includes(LABELS.APPROVED);
 
             // Check if any MR in this issue has action-required labels
-            const hasActionRequiredLabels = filteredMRs.some(mr =>
+            const hasActionRequiredLabels = filteredMRs.some((mr) =>
               mr.labels.some(
-                label =>
+                (label) =>
                   label === LABELS.ACTION_REQUIRED ||
                   label === LABELS.ACTION_REQUIRED2 ||
                   label === LABELS.ACTION_REQUIRED3
@@ -183,7 +183,7 @@ export const columns: ColumnDef<IssueStatistics>[] = [
                 </a>
                 <span className="text-xs text-gray-500">:</span>
                 <div className="flex gap-1 flex-wrap">
-                  {filteredLabels.map(label => {
+                  {filteredLabels.map((label) => {
                     // Check if this is a status-update-commit label
                     if (label === LABELS.STATUS_UPDATE_COMMIT) {
                       const statusInfo = getStatusUpdateCommitInfo(mr);

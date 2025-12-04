@@ -1,17 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import React from 'react';
-import { useActionState } from 'react';
-import { useGitLabToken } from '@/hooks/use-gitlab-token';
-import { Button } from '@/components/ui/button';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import React, { useActionState, useState } from 'react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
-import { validateAndSetToken } from '../actions/token';
-import { removeToken } from '../actions/token';
+import { useGitLabToken } from '@/hooks/use-gitlab-token';
+import { removeToken, validateAndSetToken } from '../actions/token';
 
 export default function DevelopersPage() {
   const { hasToken, updateToken, isInitialized: isTokenInitialized } = useGitLabToken();
@@ -21,7 +18,7 @@ export default function DevelopersPage() {
 
   // Token saving action using useActionState (React 19.3+)
   const [tokenError, saveTokenAction, isSavingToken] = useActionState(
-    async (prev: string | null, formData: FormData) => {
+    async (_prev: string | null, formData: FormData) => {
       const token = formData.get('token') as string;
 
       if (!token || token.trim().length === 0) {
@@ -37,7 +34,7 @@ export default function DevelopersPage() {
           return null;
         }
         return result.error || 'Failed to validate token. Please check if the token is valid.';
-      } catch (error) {
+      } catch (_error) {
         return 'Failed to validate token. Please check if the token is valid.';
       }
     },

@@ -1,20 +1,18 @@
 'use client';
-import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { useGitLabToken } from '@/hooks/use-gitlab-token';
-import { Button } from '@/components/ui/button';
-import { ProjectCard } from '@/components/project-card';
 import { useTopLoader } from 'nextjs-toploader';
-import React from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { ProjectCard } from '@/components/project-card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   PROJECT_NAME_PREFIX,
   PROJECT_PATH_PREFIX,
-  SELECTED_DEVELOPERS_PREFIX,
   SELECTED_PROJECTS_KEY,
 } from '@/constants/storage-keys';
+import { useGitLabToken } from '@/hooks/use-gitlab-token';
 
 interface GitLabProject {
   id: number;
@@ -55,10 +53,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<GitLabProject[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [selectedProjects, setSelectedProjects] = useState<Record<number, boolean>>({});
-  const [selectedDevelopers, setSelectedDevelopers] = useState<Record<number, GitLabDeveloper[]>>(
-    {}
-  );
+  const [selectedProjects, setSelectedProjects] = useState<Record<string, boolean>>({});
   const [isInitialized, setIsInitialized] = useState(false);
   const [hasLoadedProjects, setHasLoadedProjects] = useState(false);
 
@@ -68,35 +63,12 @@ export default function ProjectsPage() {
   const loader = useTopLoader();
 
   /**
-   * Load developers from localStorage
+   * Get selected developers for a project - simplified without useTrackedDevelopers hook
+   * This is now handled in the project-specific developer pages
    */
-  const loadSelectedDevelopersFromStorage = useCallback(() => {
-    const devsByProject: Record<number, GitLabDeveloper[]> = {};
-
-    // Find all project keys
-    const projectKeys = Object.keys(localStorage).filter((key) =>
-      key.startsWith(PROJECT_NAME_PREFIX)
-    );
-
-    // Load developers for each project
-    for (const key of projectKeys) {
-      const projectId = Number(key.replace(PROJECT_NAME_PREFIX, ''));
-      if (Number.isNaN(projectId)) continue;
-
-      const savedDevsJSON = localStorage.getItem(`${SELECTED_DEVELOPERS_PREFIX}${projectId}`);
-      if (savedDevsJSON) {
-        try {
-          const savedDevs = JSON.parse(savedDevsJSON);
-          if (Array.isArray(savedDevs) && savedDevs.length > 0) {
-            devsByProject[projectId] = savedDevs;
-          }
-        } catch (error) {
-          console.error(`Error loading developers for project ${projectId}:`, error);
-        }
-      }
-    }
-
-    return devsByProject;
+  const getSelectedDevelopersForProject = useCallback((_projectId: number): GitLabDeveloper[] => {
+    // Return empty array - selection is now handled per-project
+    return [];
   }, []);
 
   /**
@@ -112,10 +84,6 @@ export default function ProjectsPage() {
         setSelectedProjects(JSON.parse(savedProjects));
       }
 
-      // Load selected developers
-      const devsByProject = loadSelectedDevelopersFromStorage();
-      setSelectedDevelopers(devsByProject);
-
       setIsInitialized(true);
 
       // Redirect if no token after initialization
@@ -126,7 +94,7 @@ export default function ProjectsPage() {
       console.error('Error initializing from localStorage:', error);
       setIsInitialized(true);
     }
-  }, [isTokenInitialized, hasToken, router, isInitialized, loadSelectedDevelopersFromStorage]);
+  }, [isTokenInitialized, hasToken, router, isInitialized]);
 
   /**
    * Fetch projects from API
@@ -151,7 +119,7 @@ export default function ProjectsPage() {
       if (data && Array.isArray(data.projects)) {
         const projectsWithSelection = data.projects.map((project: GitLabProject) => ({
           ...project,
-          selected: selectedProjects[project.id] === true,
+          selected: selectedProjects[project.id.toString()] === true,
         }));
         setProjects(projectsWithSelection);
         setHasLoadedProjects(true);
@@ -183,10 +151,11 @@ export default function ProjectsPage() {
    * Toggle project selection
    */
   const toggleProjectSelection = useCallback((projectId: number) => {
+    const projectIdStr = projectId.toString();
     setSelectedProjects((prev) => {
       const newSelectedProjects = {
         ...prev,
-        [projectId]: !prev[projectId],
+        [projectIdStr]: !prev[projectIdStr],
       };
 
       // Save to localStorage
@@ -196,7 +165,7 @@ export default function ProjectsPage() {
       setProjects((currentProjects) =>
         currentProjects.map((project) => ({
           ...project,
-          selected: project.id === projectId ? !prev[projectId] : !!prev[project.id],
+          selected: project.id === projectId ? !prev[projectIdStr] : !!prev[project.id.toString()],
         }))
       );
 
@@ -307,7 +276,7 @@ export default function ProjectsPage() {
                 project={project}
                 onToggleSelect={toggleProjectSelection}
                 onViewDevelopers={goToProjectDevelopers}
-                selectedDevelopers={selectedDevelopers[project.id] || []}
+                selectedDevelopers={getSelectedDevelopersForProject(project.id)}
               />
             ))}
           </div>
@@ -321,11 +290,11 @@ export default function ProjectsPage() {
     projects,
     isLoading,
     errorMsg,
-    selectedDevelopers,
     router,
     handleRefresh,
     toggleProjectSelection,
     goToProjectDevelopers,
+    getSelectedDevelopersForProject,
   ]);
 
   return content;

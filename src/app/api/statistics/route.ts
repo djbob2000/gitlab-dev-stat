@@ -1,24 +1,25 @@
+import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createGitLabClient } from '@/tasks/gitlab-api.task';
-import { headers } from 'next/headers';
 import { LABELS } from '@/constants/labels';
+import { createGitLabClient } from '@/tasks/gitlab-api.task';
 import type {
+  BatchProcessor,
   GitLabApiEvent,
   GitLabApiMergeRequest,
-  BatchProcessor,
   MergeRequestWithStats,
 } from '@/types/gitlab';
+
 
 // Validation schema for GET request
 const getStatisticsSchema = z.object({
   usernames: z
     .string()
-    .transform(str => str.split(','))
+    .transform((str) => str.split(','))
     .nullish(),
   userIds: z
     .string()
-    .transform(str => str.split(',').map(Number))
+    .transform((str) => str.split(',').map(Number))
     .nullish(),
   projectId: z.string(),
   projectPath: z.string().optional(),
@@ -41,7 +42,7 @@ const processBatch = async <T, R>(
 
     // Add a small delay between batches to prevent rate limiting
     if (i + batchSize < items.length) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
   return results;
@@ -56,9 +57,9 @@ const processMergeRequestLabels = async (
   if (mergeRequests.length === 0) return [];
 
   // Filter MRs that need label events processing
-  const mrsNeedingEvents = mergeRequests.filter(mr => {
+  const mrsNeedingEvents = mergeRequests.filter((mr) => {
     const actionRequiredLabels = mr.labels.filter(
-      label =>
+      (label) =>
         label === LABELS.ACTION_REQUIRED ||
         label === LABELS.ACTION_REQUIRED2 ||
         label === LABELS.ACTION_REQUIRED3
@@ -67,7 +68,7 @@ const processMergeRequestLabels = async (
   });
 
   // Batch fetch label events for all MRs that need them
-  const labelEventsPromises = mrsNeedingEvents.map(async mr => {
+  const labelEventsPromises = mrsNeedingEvents.map(async (mr) => {
     try {
       const events = await gitlabClient.getMergeRequestLabelEvents(projectId, mr.iid);
       return { mrIid: mr.iid, events };
@@ -88,28 +89,25 @@ const processMergeRequestLabels = async (
 
   // Process all MRs in parallel with the fetched events
   return Promise.all(
-    mergeRequests.map(async mr => {
+    mergeRequests.map(async (mr) => {
       const actionRequiredLabels = mr.labels.filter(
-        label =>
+        (label) =>
           label === LABELS.ACTION_REQUIRED ||
           label === LABELS.ACTION_REQUIRED2 ||
           label === LABELS.ACTION_REQUIRED3
       );
 
-      let actionRequiredLabelTime: number | undefined = undefined;
-      let statusUpdateCommitCount: number | undefined = undefined;
-
       // Get events only for MRs that need them
       const labelEvents = eventsByMrIid.get(mr.iid) || [];
 
       // Process label events in parallel within each MR
-      const [actionRequiredTime, updateCommitCount] = await Promise.all([
+      const [actionRequiredLabelTime, statusUpdateCommitCount] = await Promise.all([
         // Calculate action required label time
         (async () => {
           if (actionRequiredLabels.length === 0) return undefined;
 
           const addEvents = labelEvents.filter(
-            event =>
+            (event) =>
               event.action === 'add' &&
               event.label?.name &&
               actionRequiredLabels.includes(
@@ -122,20 +120,17 @@ const processMergeRequestLabels = async (
 
           if (addEvents.length === 0) return undefined;
 
-          return Math.max(...addEvents.map(event => new Date(event.created_at).getTime()));
+          return Math.max(...addEvents.map((event) => new Date(event.created_at).getTime()));
         })(),
         // Calculate status update commit count
         (async () => {
           if (!mr.labels.includes(LABELS.STATUS_UPDATE_COMMIT)) return undefined;
 
           return labelEvents.filter(
-            event => event.action === 'add' && event.label?.name === LABELS.STATUS_UPDATE_COMMIT
+            (event) => event.action === 'add' && event.label?.name === LABELS.STATUS_UPDATE_COMMIT
           ).length;
         })(),
       ]);
-
-      actionRequiredLabelTime = actionRequiredTime;
-      statusUpdateCommitCount = updateCommitCount;
 
       return {
         mrIid: mr.iid,
@@ -153,7 +148,7 @@ export async function GET(request: Request) {
   try {
     // Environment variables validation
     const requiredEnvVars = ['GITLAB_BASE_URL'];
-    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    const missingEnvVars = requiredEnvVars.filter((varName) => !process.env[varName]);
 
     if (missingEnvVars.length > 0) {
       return NextResponse.json(
@@ -204,7 +199,7 @@ export async function GET(request: Request) {
       );
 
       // Fetch merge requests for all issues in parallel
-      const mergeRequestsPromises = issues.map(issue =>
+      const mergeRequestsPromises = issues.map((issue) =>
         gitlabClient.getIssueRelatedMergeRequests(projectId, issue.iid)
       );
 
@@ -214,7 +209,7 @@ export async function GET(request: Request) {
       mergeRequestsResults.forEach((result, index) => {
         if (result.status === 'fulfilled' && issues[index]) {
           const filteredMrs = result.value.filter(
-            mr => mr.source_project_id === projectId && mr.state === 'opened'
+            (mr) => mr.source_project_id === projectId && mr.state === 'opened'
           );
           mergeRequestsByIid.set(issues[index].iid, filteredMrs);
         } else {
@@ -225,7 +220,7 @@ export async function GET(request: Request) {
       // Collect all unique merge requests for batch processing
       const allMergeRequests = Array.from(mergeRequestsByIid.values()).flat();
       const uniqueMergeRequests = allMergeRequests.filter(
-        (mr, index, self) => index === self.findIndex(other => other.iid === mr.iid)
+        (mr, index, self) => index === self.findIndex((other) => other.iid === mr.iid)
       );
 
       // Process merge request labels for all unique MRs
@@ -242,12 +237,12 @@ export async function GET(request: Request) {
       }
 
       // Process issues in batches with parallelized operations
-      const issueStats = await processBatch(issues, async issue => {
+      const issueStats = await processBatch(issues, async (issue) => {
         const issueMergeRequests = mergeRequestsByIid.get(issue.iid) || [];
 
         // Map merge request labels to this issue's MRs
         const issueMergeRequestLabels = issueMergeRequests
-          .map(mr => labelsByMrIid.get(mr.iid))
+          .map((mr) => labelsByMrIid.get(mr.iid))
           .filter(Boolean) as MergeRequestWithStats[];
 
         // Calculate the latest action required time across all MRs for this issue

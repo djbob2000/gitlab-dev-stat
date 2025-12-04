@@ -2,7 +2,6 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  // cacheComponents: true, // Re-enabled with dynamic export in page.tsx
   images: {
     remotePatterns: [
       {
@@ -17,7 +16,6 @@ const nextConfig: NextConfig = {
   },
   typedRoutes: true,
   experimental: {
-    clientSegmentCache: true,
     // esmExternals: true,
     // browserDebugInfoInTerminal: true,
     // devtoolSegmentExplorer: true,

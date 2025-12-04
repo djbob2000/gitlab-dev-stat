@@ -1,22 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { ArrowLeft, Save, Search, UserCheck, Users, UserX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { useGitLabToken } from '@/hooks/use-gitlab-token';
-import { ArrowLeft, Search, Save } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { DeveloperCard } from '@/components/developer-card';
 import { useTopLoader } from 'nextjs-toploader';
-import React from 'react';
-import {
-  PROJECT_NAME_PREFIX,
-  PROJECT_PATH_PREFIX,
-  SELECTED_DEVELOPERS_PREFIX,
-} from '@/constants/storage-keys';
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { DeveloperCard } from '@/components/developer-card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PROJECT_NAME_PREFIX, PROJECT_PATH_PREFIX } from '@/constants/storage-keys';
+import { useGitLabToken } from '@/hooks/use-gitlab-token';
+import { useTrackedDevelopers } from '@/hooks/use-tracked-developers';
 
 interface GitLabDeveloper {
   id: number;
@@ -28,6 +23,7 @@ interface GitLabDeveloper {
   access_level?: number;
   expires_at?: string | null;
   selected?: boolean;
+  excluded?: boolean;
 }
 
 interface ApiResponse {
@@ -38,11 +34,7 @@ interface ApiResponse {
   projectPath?: string;
 }
 
-function ProjectDevelopersPageContent({
-  params,
-}: {
-  params: Promise<{ projectId: string }>;
-}) {
+function ProjectDevelopersPageContent({ params }: { params: Promise<{ projectId: string }> }) {
   // Get parameters using React.use()
   const resolvedParams = React.use(params);
   const projectIdStr = resolvedParams.projectId;
@@ -53,8 +45,9 @@ function ProjectDevelopersPageContent({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [projectName, setProjectName] = useState<string>('');
   const { hasToken, isInitialized: isTokenInitialized } = useGitLabToken();
+  const { updateDevelopers, toggleDeveloper, getIncludedDevelopers } =
+    useTrackedDevelopers(projectId);
   const router = useRouter();
-  const [selectedDevelopers, setSelectedDevelopers] = useState<Record<number, boolean>>({});
   const [origin, setOrigin] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const loader = useTopLoader();
@@ -106,6 +99,16 @@ function ProjectDevelopersPageContent({
         // We're setting developers directly without marking as selected
         // Will compute selected status during render for better performance
         setDevelopers(data.developers);
+
+        // Update tracked developers with new data (preserves exclusions)
+        const trackedDevs = data.developers.map((dev) => ({
+          userId: dev.id,
+          username: dev.username,
+          projectId: projectId,
+          excluded: false, // Default to included
+        }));
+        updateDevelopers(trackedDevs);
+
         hasFetchedData.current = true;
       } else {
         throw new Error('Invalid response format: developers not found in response');
@@ -127,7 +130,7 @@ function ProjectDevelopersPageContent({
       isLoadingRef.current = false;
       loader.done();
     }
-  }, [origin, projectId, loader]);
+  }, [origin, projectId, loader, updateDevelopers]);
 
   // Initialize component once
   useEffect(() => {
@@ -142,21 +145,8 @@ function ProjectDevelopersPageContent({
       setProjectName(`Project ${projectId}`);
     }
 
-    try {
-      const savedDevelopersJSON = localStorage.getItem(`${SELECTED_DEVELOPERS_PREFIX}${projectId}`);
-      if (savedDevelopersJSON) {
-        const savedDevelopers = JSON.parse(savedDevelopersJSON);
-
-        const savedSelections: Record<number, boolean> = {};
-        for (const dev of savedDevelopers) {
-          savedSelections[dev.id] = true;
-        }
-
-        setSelectedDevelopers(savedSelections);
-      }
-    } catch (error) {
-      console.error('Error loading saved developers:', error);
-    }
+    // Note: Exclusion state is now managed by useTrackedDevelopers hook
+    // No need to load legacy selected developers from localStorage
   }, [projectId]);
 
   // Handle authentication and initial data fetch - with better dependency control
@@ -167,6 +157,7 @@ function ProjectDevelopersPageContent({
     }
 
     if (
+      (hasToken || projectId === 1) && // TEMPORARY: Allow project 1 for testing
       isTokenInitialized &&
       hasToken &&
       !Number.isNaN(projectId) &&
@@ -178,31 +169,13 @@ function ProjectDevelopersPageContent({
     }
   }, [isTokenInitialized, hasToken, projectId, router, fetchDevelopers, origin]);
 
-  // Memoize toggle function
-  const toggleDeveloperSelection = useCallback(
+  // Memoize toggle function for exclusion logic
+  const toggleDeveloperExclusion = useCallback(
     (developerId: number) => {
-      setSelectedDevelopers((prev) => {
-        const newSelections = {
-          ...prev,
-          [developerId]: !prev[developerId],
-        };
-
-        // Save to localStorage after toggling
-        const selectedDevs = developers.filter((dev) => newSelections[dev.id]);
-        try {
-          localStorage.setItem(
-            `${SELECTED_DEVELOPERS_PREFIX}${projectId}`,
-            JSON.stringify(selectedDevs)
-          );
-        } catch (error) {
-          console.error('Error saving to localStorage:', error);
-          toast.error('Failed to save selection');
-        }
-
-        return newSelections;
-      });
+      // Use the tracked developers hook to toggle exclusion
+      toggleDeveloper(developerId);
     },
-    [developers, projectId]
+    [toggleDeveloper]
   );
 
   // Memoize filtered developers calculation to avoid recalculating on every render
@@ -216,12 +189,30 @@ function ProjectDevelopersPageContent({
         )
       : developers;
 
-    // Then annotate with selected status
+    // Get included developers using the hook function
+    const includedDevelopers = getIncludedDevelopers();
+    const includedDeveloperIds = new Set(includedDevelopers.map((dev) => dev.userId));
+
+    // Then annotate with exclusion status
     return filtered.map((dev) => ({
       ...dev,
-      selected: !!selectedDevelopers[dev.id],
+      excluded: !includedDeveloperIds.has(dev.id),
     }));
-  }, [developers, searchQuery, selectedDevelopers]);
+  }, [developers, searchQuery, getIncludedDevelopers]);
+
+  // Calculate statistics for display
+  const stats = React.useMemo(() => {
+    const includedCount = getIncludedDevelopers().length;
+    const excludedCount = developers.length - includedCount;
+    const totalCount = developers.length;
+
+    return {
+      included: includedCount,
+      excluded: excludedCount,
+      total: totalCount,
+      allExcluded: includedCount === 0 && totalCount > 0,
+    };
+  }, [developers, getIncludedDevelopers]);
 
   const goBackToProjects = useCallback(() => {
     router.push('/projects');
@@ -310,6 +301,31 @@ function ProjectDevelopersPageContent({
         </div>
       </div>
 
+      {/* Statistics and summary */}
+      <div className="mb-6 p-4 bg-muted/30 rounded-lg">
+        <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">Total: {stats.total}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <UserCheck className="h-4 w-4 text-green-600" />
+            <span className="font-medium">Included: {stats.included}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <UserX className="h-4 w-4 text-destructive" />
+            <span className="font-medium">Excluded: {stats.excluded}</span>
+          </div>
+        </div>
+        {stats.allExcluded && (
+          <div className="mt-3 p-3 bg-destructive/10 border border-destructive/30 rounded-md">
+            <p className="text-sm text-destructive font-medium">
+              All developers are excluded. Enable some developers for tracking.
+            </p>
+          </div>
+        )}
+      </div>
+
       {errorMsg && (
         <div className="bg-destructive/10 border border-destructive/30 text-destructive px-4 py-3 rounded mb-4">
           {errorMsg}
@@ -350,7 +366,7 @@ function ProjectDevelopersPageContent({
             <DeveloperCard
               key={developer.id}
               developer={developer}
-              onToggleSelect={toggleDeveloperSelection}
+              onToggleSelect={toggleDeveloperExclusion}
             />
           ))}
         </div>

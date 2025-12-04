@@ -182,7 +182,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
         fetchFromGitLab<GitLabNote[]>(`/projects/${projectId}/issues/${issueIid}/notes`, {
           per_page: perPage,
           page: 1,
-        }).then(events => {
+        }).then((events) => {
           const assignmentEvents = events
             .filter((note: GitLabNote) => note.system && note.body.includes('assigned to'))
             .map((note: GitLabNote) => {
@@ -231,7 +231,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
     if (issueIids.length === 0) return [];
 
     try {
-      const perPage = 100;
+      const _perPage = 100;
       const allEvents: IssueEvent[] = [];
 
       // Process issues in batches to avoid overwhelming the API
@@ -239,7 +239,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
       const chunks = chunkArray(issueIids, batchSize);
 
       for (const chunk of chunks) {
-        const batchPromises = chunk.map(async iid => {
+        const batchPromises = chunk.map(async (iid) => {
           try {
             return await getIssueEvents(projectId, iid);
           } catch (error) {
@@ -258,7 +258,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
 
         // Small delay between batches to be respectful to the API
         if (chunks.indexOf(chunk) < chunks.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
 
@@ -584,7 +584,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
       const usernameToIdMap = new Map<string, number>();
 
       for (const username of usernames) {
-        const member = members.find(m => m.username === username);
+        const member = members.find((m) => m.username === username);
         if (member) {
           usernameToIdMap.set(username, member.id);
         }
@@ -615,7 +615,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
     try {
       if (assigneeIds && assigneeIds.length > 0) {
         // Optimize: Use batch request with assignee_id for multiple users (GitLab supports comma-separated values)
-        const issuePromises = assigneeIds.map(assigneeId =>
+        const issuePromises = assigneeIds.map((assigneeId) =>
           fetchFromGitLab<Issue[]>(`/projects/${projectId}/issues`, {
             assignee_id: assigneeId.toString(),
             state: 'opened',
@@ -628,14 +628,14 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
           .filter(
             (result): result is PromiseFulfilledResult<Issue[]> => result.status === 'fulfilled'
           )
-          .flatMap(result => result.value);
+          .flatMap((result) => result.value);
       } else if (assigneeUsernames && assigneeUsernames.length > 0) {
         const usernameToIdMap = await getUserIdsByUsernames(projectId, assigneeUsernames);
         const userIds = Array.from(usernameToIdMap.values()).slice(0, 20); // GitLab limit
 
         if (userIds.length > 0) {
           // Fetch issues for each user ID individually to avoid complex query building
-          const issuePromises = userIds.map(userId =>
+          const issuePromises = userIds.map((userId) =>
             fetchFromGitLab<Issue[]>(`/projects/${projectId}/issues`, {
               assignee_id: userId.toString(),
               state: 'opened',
@@ -648,12 +648,12 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
             .filter(
               (result): result is PromiseFulfilledResult<Issue[]> => result.status === 'fulfilled'
             )
-            .flatMap(result => result.value);
+            .flatMap((result) => result.value);
         }
       }
 
       // Get issues with events in optimized batches
-      const issueIids = allIssues.map(issue => issue.iid);
+      const issueIids = allIssues.map((issue) => issue.iid);
       const result = await getIssuesWithEventsBatch(projectId, issueIids);
       return result;
     } catch (error) {
@@ -673,15 +673,15 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
 
     // First fetch all issues in batch
     const issues = await Promise.allSettled(
-      issueIids.map(iid => fetchFromGitLab<Issue>(`/projects/${projectId}/issues/${iid}`))
-    ).then(results =>
+      issueIids.map((iid) => fetchFromGitLab<Issue>(`/projects/${projectId}/issues/${iid}`))
+    ).then((results) =>
       results
         .filter((result): result is PromiseFulfilledResult<Issue> => result.status === 'fulfilled')
-        .map(result => result.value)
+        .map((result) => result.value)
     );
 
     // Fetch events for all issues in parallel (but limit concurrency)
-    const eventsPromises = issues.map(issue => getIssueEventsBatch(projectId, [issue.iid]));
+    const eventsPromises = issues.map((issue) => getIssueEventsBatch(projectId, [issue.iid]));
 
     const eventsResults = await Promise.allSettled(eventsPromises);
     const eventsByIid = new Map<number, IssueEvent[]>();
@@ -693,7 +693,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
     });
 
     // Calculate durations for all issues
-    return issues.map(issue => {
+    return issues.map((issue) => {
       const events = eventsByIid.get(issue.iid) || [];
       const currentAssignee = issue.assignee?.username || '';
       const isClosed = issue.state === 'closed';
@@ -751,7 +751,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
         const remainingPages = Array.from({ length: estimatedTotalPages - 1 }, (_, i) => i + 2);
 
         try {
-          const remainingPagePromises = remainingPages.map(p => fetchPage(p));
+          const remainingPagePromises = remainingPages.map((p) => fetchPage(p));
           const remainingPagesResults = await Promise.allSettled(remainingPagePromises);
 
           for (const result of remainingPagesResults) {
@@ -772,7 +772,7 @@ export const createGitLabClient = ({ baseUrl, token }: GitLabConfig) => {
         }
       }
 
-      return Array.from(uniqueMembers.values()).map(member => ({
+      return Array.from(uniqueMembers.values()).map((member) => ({
         id: member.id,
         username: member.username,
       }));

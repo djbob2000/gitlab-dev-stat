@@ -1,9 +1,8 @@
-import React from 'react';
-import { ThemeToggle } from '@/components/common/theme-toggle';
-import { RefreshControls } from '@/components/common/refresh-controls';
-import { Settings, Server } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Server, Settings } from 'lucide-react';
 import Link from 'next/link';
+import { RefreshControls } from '@/components/common/refresh-controls';
+import { ThemeToggle } from '@/components/common/theme-toggle';
+import { Button } from '@/components/ui/button';
 
 interface HeaderProps {
   isLoading: boolean;

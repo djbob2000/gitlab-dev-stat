@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
+import { NextResponse } from 'next/server';
 
 // GitLab API Error constants
 const GITLAB_API_ERROR = {

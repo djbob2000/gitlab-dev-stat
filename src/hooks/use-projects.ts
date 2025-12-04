@@ -1,14 +1,30 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useGitLabToken } from '@/hooks/use-gitlab-token';
 import { useTopLoader } from 'nextjs-toploader';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { getTrackedDevelopersKey, SELECTED_PROJECTS_KEY } from '@/constants/storage-keys';
+import { useGitLabToken } from '@/hooks/use-gitlab-token';
+import type { TrackedDeveloper } from '@/hooks/use-tracked-developers';
 import { fetchAnalytics } from '@/lib/api-utils';
 import type { ProjectData } from '@/types';
 import type { GitLabProject } from '@/types/gitlab/projects';
-import {
-  SELECTED_DEVELOPERS_PREFIX,
-  SELECTED_PROJECTS_KEY,
-} from '@/constants/storage-keys';
+
+/**
+ * Utility function to get included developers for a specific project from localStorage
+ */
+const getIncludedDevelopersForProject = (projectId: number) => {
+  const storageKey = getTrackedDevelopersKey(projectId);
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      const developers = JSON.parse(stored) as TrackedDeveloper[];
+      return developers.filter((dev) => !dev.excluded && dev.projectId === projectId);
+    }
+    return [];
+  } catch (error) {
+    console.error('Error reading developers from localStorage:', error);
+    return [];
+  }
+};
 
 /**
  * Custom hook for managing projects and their data
@@ -22,44 +38,42 @@ export function useProjects(initialProjects?: GitLabProject[]) {
   const hasInitializedFromServer = useRef(false);
 
   /**
-   * Enrich server projects with localStorage data
+   * Enrich server projects with tracked developers data
    */
-  const enrichProjectsWithLocalStorage = useCallback((serverProjects: GitLabProject[]): ProjectData[] => {
-    // Get selected projects from localStorage
-    const savedSelectedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
-    const selectedProjects: Record<number, boolean> = savedSelectedProjects
-      ? JSON.parse(savedSelectedProjects)
-      : {};
+  const enrichProjectsWithLocalStorage = useCallback(
+    (serverProjects: GitLabProject[]): ProjectData[] => {
+      // Get selected projects from localStorage
+      const savedSelectedProjects = localStorage.getItem(SELECTED_PROJECTS_KEY);
+      const selectedProjects: Record<string, boolean> = savedSelectedProjects
+        ? JSON.parse(savedSelectedProjects)
+        : {};
 
-    return serverProjects.map((project) => {
-      const developersJSON = localStorage.getItem(`${SELECTED_DEVELOPERS_PREFIX}${project.id}`);
-      const developers = developersJSON
-        ? JSON.parse(developersJSON).map((dev: { id: number; username: string }) => ({
-            userId: dev.id,
-            username: dev.username,
-          }))
-        : [];
+      return serverProjects.map((project) => {
+        // Get included developers for this project from tracked developers
+        const includedDevelopers = getIncludedDevelopersForProject(project.id);
 
-      return {
-        id: project.id,
-        name: project.name,
-        path: project.path,
-        developers,
-        data: [],
-        statistics: {
-          totalIssues: 0,
-          openIssues: 0,
-          closedIssues: 0,
-          averageTimeToClose: 0,
-          issues: [],
-        },
-        isLoading: false,
-        error: null,
-        lastUpdated: new Date(),
-        selected: selectedProjects[project.id] === true,
-      };
-    });
-  }, []);
+        return {
+          id: project.id,
+          name: project.name,
+          path: project.path,
+          developers: includedDevelopers,
+          data: [],
+          statistics: {
+            totalIssues: 0,
+            openIssues: 0,
+            closedIssues: 0,
+            averageTimeToClose: 0,
+            issues: [],
+          },
+          isLoading: false,
+          error: null,
+          lastUpdated: new Date(),
+          selected: selectedProjects[project.id.toString()] === true,
+        };
+      });
+    },
+    []
+  );
 
   // Initialize projects from server data and enrich with localStorage
   useEffect(() => {
@@ -72,7 +86,9 @@ export function useProjects(initialProjects?: GitLabProject[]) {
       const enrichedProjects = enrichProjectsWithLocalStorage(initialProjects);
 
       // Only include projects that have developers to track AND are selected
-      const filteredProjects = enrichedProjects.filter((p) => p.developers.length > 0 && p.selected);
+      const filteredProjects = enrichedProjects.filter(
+        (p) => p.developers.length > 0 && p.selected
+      );
 
       setProjects(filteredProjects);
     } catch (error) {
@@ -102,10 +118,11 @@ export function useProjects(initialProjects?: GitLabProject[]) {
       );
 
       // Load data for each project in parallel
-      const updatedProjects = await Promise.all(
+      const projectResults = await Promise.all(
         projects.map(async (project) => {
           try {
             const data = await fetchAnalytics(project.developers, project.id, project.path);
+
             return {
               ...project,
               data,
@@ -123,7 +140,7 @@ export function useProjects(initialProjects?: GitLabProject[]) {
         })
       );
 
-      setProjects(updatedProjects);
+      setProjects(projectResults);
     } catch (_err) {
       toast.error('Failed to load data. Please check your GitLab token.');
     } finally {
@@ -158,35 +175,31 @@ export function useProjects(initialProjects?: GitLabProject[]) {
         const data = await fetchAnalytics(project.developers, project.id, project.path);
 
         // Update project data
-        setProjects((prev) =>
-          prev
-            ? prev.map((p) =>
-                p.id === projectId
-                  ? {
-                      ...p,
-                      data,
-                      isLoading: false,
-                      lastUpdated: new Date(),
-                      error: null,
-                    }
-                  : p
-              )
-            : null
+        const updatedProjects = projects.map((p) =>
+          p.id === projectId
+            ? {
+                ...p,
+                data,
+                isLoading: false,
+                lastUpdated: new Date(),
+                error: null,
+              }
+            : p
         );
+
+        setProjects(updatedProjects);
       } catch (err) {
-        setProjects((prev) =>
-          prev
-            ? prev.map((p) =>
-                p.id === projectId
-                  ? {
-                      ...p,
-                      isLoading: false,
-                      error: err instanceof Error ? err.message : 'Failed to fetch data',
-                    }
-                  : p
-              )
-            : null
+        const updatedProjects = projects.map((p) =>
+          p.id === projectId
+            ? {
+                ...p,
+                isLoading: false,
+                error: err instanceof Error ? err.message : 'Failed to fetch data',
+              }
+            : p
         );
+
+        setProjects(updatedProjects);
         toast.error(`Failed to load data for project ${project.name}.`);
       } finally {
         setIsLoading(false);
