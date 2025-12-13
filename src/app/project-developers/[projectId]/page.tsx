@@ -169,61 +169,37 @@ function ProjectDevelopersPageContent({ params }: { params: Promise<{ projectId:
     }
   }, [isTokenInitialized, hasToken, projectId, router, fetchDevelopers, origin]);
 
-  // Memoize toggle function for exclusion logic
-  const toggleDeveloperExclusion = useCallback(
-    (developerId: number) => {
-      // Use the tracked developers hook to toggle exclusion
-      toggleDeveloper(developerId);
-    },
-    [toggleDeveloper]
-  );
+  const includedDevelopers = getIncludedDevelopers();
+  const includedDeveloperIds = new Set(includedDevelopers.map((dev) => dev.userId));
 
-  // Memoize filtered developers calculation to avoid recalculating on every render
-  const filteredDevelopers = React.useMemo(() => {
-    // First apply search filter
-    const filtered = searchQuery
-      ? developers.filter(
-          (dev) =>
-            dev.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            dev.username.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : developers;
+  const filteredDevelopers = (searchQuery ? developers.filter((dev) => {
+    const normalizedSearch = searchQuery.toLowerCase();
+    return (
+      dev.name.toLowerCase().includes(normalizedSearch) ||
+      dev.username.toLowerCase().includes(normalizedSearch)
+    );
+  }) : developers).map((dev) => ({
+    ...dev,
+    excluded: !includedDeveloperIds.has(dev.id),
+  }));
 
-    // Get included developers using the hook function
-    const includedDevelopers = getIncludedDevelopers();
-    const includedDeveloperIds = new Set(includedDevelopers.map((dev) => dev.userId));
+  const includedCount = includedDevelopers.length;
+  const totalCount = developers.length;
+  const excludedCount = totalCount - includedCount;
 
-    // Then annotate with exclusion status
-    return filtered.map((dev) => ({
-      ...dev,
-      excluded: !includedDeveloperIds.has(dev.id),
-    }));
-  }, [developers, searchQuery, getIncludedDevelopers]);
-
-  // Calculate statistics for display
-  const stats = React.useMemo(() => {
-    const includedCount = getIncludedDevelopers().length;
-    const excludedCount = developers.length - includedCount;
-    const totalCount = developers.length;
-
-    return {
-      included: includedCount,
-      excluded: excludedCount,
-      total: totalCount,
-      allExcluded: includedCount === 0 && totalCount > 0,
-    };
-  }, [developers, getIncludedDevelopers]);
-
-  const goBackToProjects = useCallback(() => {
-    router.push('/projects');
-  }, [router]);
+  const stats = {
+    included: includedCount,
+    excluded: excludedCount,
+    total: totalCount,
+    allExcluded: includedCount === 0 && totalCount > 0,
+  };
 
   if (isLoading || !isTokenInitialized) {
     return (
       <div className="container mx-auto py-6">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
-            <Button variant="ghost" onClick={goBackToProjects} className="mr-2">
+            <Button variant="ghost" onClick={() => router.push('/projects')} className="mr-2">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Projects
             </Button>
@@ -266,7 +242,7 @@ function ProjectDevelopersPageContent({ params }: { params: Promise<{ projectId:
     <div className="container py-8">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center">
-          <Button variant="ghost" onClick={goBackToProjects} className="mr-2">
+          <Button variant="ghost" onClick={() => router.push('/projects')} className="mr-2">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Projects
           </Button>
@@ -366,7 +342,7 @@ function ProjectDevelopersPageContent({ params }: { params: Promise<{ projectId:
             <DeveloperCard
               key={developer.id}
               developer={developer}
-              onToggleSelect={toggleDeveloperExclusion}
+              onToggleSelect={toggleDeveloper}
             />
           ))}
         </div>

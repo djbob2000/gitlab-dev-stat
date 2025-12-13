@@ -17,6 +17,7 @@ export const SELECTED_DEVELOPERS_PREFIX = 'selected-developers-';
 export const EXCLUDED_DEVELOPERS_PREFIX = 'excluded-developers-';
 export const SELECTED_PROJECTS_KEY = 'selectedProjects';
 export const TRACKED_DEVELOPERS_KEY = 'tracked-developers';
+export const PROJECT_ORDER_KEY = 'project-order';
 
 // Per-project tracking keys
 export const TRACKED_DEVELOPERS_PREFIX = 'tracked-developers-';

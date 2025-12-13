@@ -29,14 +29,14 @@
     "babel-plugin-react-compiler": "19.1.0-rc.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.555.0",
-    "next": "16.0.7",
-    "next-devtools-mcp": "^0.3.5",
+    "lucide-react": "^0.561.0",
+    "next": "16.0.10",
+    "next-devtools-mcp": "^0.3.7",
     "next-themes": "^0.4.6",
     "nextjs-toploader": "^3.9.17",
-    "react": "19.2.1",
-    "react-dom": "19.2.1",
-    "react-hook-form": "^7.67.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-hook-form": "^7.68.0",
     "shadcn-ui": "^0.9.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
@@ -46,17 +46,13 @@
   "devDependencies": {
     "@biomejs/biome": "^2.3.8",
     "@shadcn/ui": "^0.0.4",
-    "@tailwindcss/postcss": "^4.1.17",
-    "@types/node": "^24.10.1",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^25.0.1",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.17",
+    "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3"
   },
-  "packageManager": "pnpm@10.15.1+sha512.34e538c329b5553014ca8e8f4535997f96180a1d0f614339357449935350d924e22f8614682191264ec33d1462ac21561aff97f6bb18065351c162c7e8f6de67",
-  "overrides": {
-    "@types/react": "19.2.2",
-    "@types/react-dom": "19.2.2"
-  }
+  "packageManager": "pnpm@10.15.1+sha512.34e538c329b5553014ca8e8f4535997f96180a1d0f614339357449935350d924e22f8614682191264ec33d1462ac21561aff97f6bb18065351c162c7e8f6de67"
 }

@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTopLoader } from 'nextjs-toploader';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ProjectCard } from '@/components/project-card';
 import { Button } from '@/components/ui/button';
@@ -66,10 +66,9 @@ export default function ProjectsPage() {
    * Get selected developers for a project - simplified without useTrackedDevelopers hook
    * This is now handled in the project-specific developer pages
    */
-  const getSelectedDevelopersForProject = useCallback((_projectId: number): GitLabDeveloper[] => {
-    // Return empty array - selection is now handled per-project
+  const getSelectedDevelopersForProject = (_projectId: number): GitLabDeveloper[] => {
     return [];
-  }, []);
+  };
 
   /**
    * Initialize data from localStorage - only runs once
@@ -150,7 +149,7 @@ export default function ProjectsPage() {
   /**
    * Toggle project selection
    */
-  const toggleProjectSelection = useCallback((projectId: number) => {
+  const toggleProjectSelection = (projectId: number) => {
     const projectIdStr = projectId.toString();
     setSelectedProjects((prev) => {
       const newSelectedProjects = {
@@ -171,37 +170,34 @@ export default function ProjectsPage() {
 
       return newSelectedProjects;
     });
-  }, []);
+  };
 
   /**
    * Navigate to project developers page
    */
-  const goToProjectDevelopers = useCallback(
-    (projectId: number) => {
-      const project = projects.find((p) => p.id === projectId);
-      if (project) {
-        localStorage.setItem(`${PROJECT_NAME_PREFIX}${projectId}`, project.name);
-        localStorage.setItem(`${PROJECT_PATH_PREFIX}${projectId}`, project.path_with_namespace);
-      }
+  const goToProjectDevelopers = (projectId: number) => {
+    const project = projects.find((p) => p.id === projectId);
+    if (project) {
+      localStorage.setItem(`${PROJECT_NAME_PREFIX}${projectId}`, project.name);
+      localStorage.setItem(`${PROJECT_PATH_PREFIX}${projectId}`, project.path_with_namespace);
+    }
 
-      router.push(`/project-developers/${projectId}`);
-    },
-    [projects, router]
-  );
+    router.push(`/project-developers/${projectId}`);
+  };
 
   /**
    * Manual refresh handler
    */
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = () => {
     if (!isLoading) {
       fetchProjects();
     }
-  }, [fetchProjects, isLoading]);
+  };
 
   /**
    * Render content based on app state
    */
-  const content = useMemo(() => {
+  const content = (() => {
     // Render loading state
     if (!isInitialized || !isTokenInitialized) {
       return (
@@ -283,19 +279,7 @@ export default function ProjectsPage() {
         )}
       </div>
     );
-  }, [
-    isInitialized,
-    isTokenInitialized,
-    hasToken,
-    projects,
-    isLoading,
-    errorMsg,
-    router,
-    handleRefresh,
-    toggleProjectSelection,
-    goToProjectDevelopers,
-    getSelectedDevelopersForProject,
-  ]);
+  })();
 
   return content;
 }

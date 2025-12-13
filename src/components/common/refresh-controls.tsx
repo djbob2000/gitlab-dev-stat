@@ -1,7 +1,7 @@
 'use client';
 
 import { Clock, RefreshCw } from 'lucide-react';
-import React, { startTransition, useEffect, useOptimistic, useRef, useState } from 'react';
+import { startTransition, useEffect, useOptimistic, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -118,5 +118,4 @@ function RefreshControlsBase({
   );
 }
 
-// Экспортируем мемоизированную версию компонента (React 19.3+ с useOptimistic)
-export const RefreshControls = React.memo(RefreshControlsBase);
+export const RefreshControls = RefreshControlsBase;

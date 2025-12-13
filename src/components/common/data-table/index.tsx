@@ -40,6 +40,7 @@ interface DataTableProps<TData, TValue> {
   isLoading?: boolean;
   tableId?: string;
   projectName?: string;
+  dragHandle?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -50,32 +51,27 @@ export function DataTable<TData, TValue>({
   isLoading = false,
   tableId = 'developer-stats',
   projectName,
+  dragHandle,
 }: DataTableProps<TData, TValue>) {
   // States for sorting and resizing
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'username', desc: false }]);
   const [columnResizeMode] = React.useState<ColumnResizeMode>('onChange');
   const [activeId, setActiveId] = React.useState<string | null>(null);
 
-  // Normalize columns (only for ID)
-  const normalizedColumns = React.useMemo(() => {
-    return columns.map((column, index) => {
-      if (!column.id) {
-        if ('accessorKey' in column && typeof column.accessorKey === 'string') {
-          column.id = column.accessorKey;
-        } else if (column.header && typeof column.header === 'string') {
-          column.id = column.header.toLowerCase().replace(/\s+/g, '_');
-        } else {
-          column.id = `column_${index}`;
-        }
+  const normalizedColumns = columns.map((column, index) => {
+    if (!column.id) {
+      if ('accessorKey' in column && typeof column.accessorKey === 'string') {
+        column.id = column.accessorKey;
+      } else if (column.header && typeof column.header === 'string') {
+        column.id = column.header.toLowerCase().replace(/\s+/g, '_');
+      } else {
+        column.id = `column_${index}`;
       }
-      return column;
-    });
-  }, [columns]);
+    }
+    return column;
+  });
 
-  // Get column IDs for order
-  const columnIds = React.useMemo(() => {
-    return normalizedColumns.map((column) => String(column.id));
-  }, [normalizedColumns]);
+  const columnIds = normalizedColumns.map((column) => String(column.id));
 
   // Use hooks for state management
   const { columnSizing, handleColumnSizingChange } = useColumnSizing(tableId);
@@ -109,10 +105,9 @@ export function DataTable<TData, TValue>({
     columnResizeDirection: 'ltr',
   });
 
-  // Handler for drag start
-  const handleDragStart = React.useCallback((event: DragStartEvent) => {
+  const handleDragStart = (event: DragStartEvent) => {
     setActiveId(String(event.active.id));
-  }, []);
+  };
 
   // Handler for drag end
   const handleDragEnd = (event: DragEndEvent) => {
@@ -137,23 +132,23 @@ export function DataTable<TData, TValue>({
     setActiveId(null);
   };
 
-  // Function to get column header for overlay
-  const getColumnHeaderLabel = React.useCallback(
-    (id: string) => {
-      const column = table.getAllColumns().find((col) => String(col.id) === id);
-      if (column?.columnDef.header) {
-        return typeof column.columnDef.header === 'string' ? column.columnDef.header : id;
-      }
-      return id;
-    },
-    [table]
-  );
+  const getColumnHeaderLabel = (id: string) => {
+    const column = table.getAllColumns().find((col) => String(col.id) === id);
+    if (column?.columnDef.header) {
+      return typeof column.columnDef.header === 'string' ? column.columnDef.header : id;
+    }
+    return id;
+  };
 
   const skeletonRowCount = 6;
 
   return (
     <div className="rounded-lg shadow-md bg-white dark:bg-gray-800">
-      <TableHeader title={projectName || 'Developer Statistics'} lastUpdated={lastUpdated} />
+      <TableHeader
+        title={projectName || 'Developer Statistics'}
+        lastUpdated={lastUpdated}
+        action={dragHandle}
+      />
 
       {error && (
         <div className="bg-red-50 dark:bg-red-900 p-3 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-200 rounded m-2">

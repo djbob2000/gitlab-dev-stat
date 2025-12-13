@@ -6,9 +6,10 @@ import React from 'react';
 interface TableHeaderProps {
   title: string;
   lastUpdated?: Date;
+  action?: React.ReactNode;
 }
 
-export function TableHeader({ title, lastUpdated }: TableHeaderProps) {
+export function TableHeader({ title, lastUpdated, action }: TableHeaderProps) {
   // State to track current time for updating "time ago" display
   const [currentTime, setCurrentTime] = React.useState(new Date());
 
@@ -21,30 +22,28 @@ export function TableHeader({ title, lastUpdated }: TableHeaderProps) {
     return () => clearInterval(intervalId);
   }, []);
 
-  // Memoize formatted date and time ago
-  const { formattedTime, timeAgo } = React.useMemo(() => {
-    if (!lastUpdated) return { formattedTime: '', timeAgo: '' };
+  let formattedTime = '';
+  let timeAgo = '';
 
-    // Format time as hh:mm
+  if (lastUpdated) {
     const hours = lastUpdated.getHours().toString().padStart(2, '0');
     const minutes = lastUpdated.getMinutes().toString().padStart(2, '0');
-    const formattedTime = `${hours}:${minutes}`;
+    formattedTime = `${hours}:${minutes}`;
 
-    // Calculate time difference in a way that works across day boundaries
     const diffMs = Math.max(0, currentTime.getTime() - lastUpdated.getTime());
     const diffMinutes = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMinutes / 60);
     const remainingMinutes = diffMinutes % 60;
 
-    // Format with padded zeros
-    const timeAgo = `${String(diffHours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')} ago`;
-
-    return { formattedTime, timeAgo };
-  }, [lastUpdated, currentTime]);
+    timeAgo = `${String(diffHours).padStart(2, '0')}:${String(remainingMinutes).padStart(2, '0')} ago`;
+  }
 
   return (
     <div className="flex justify-between items-center p-2 border-b border-gray-200 dark:border-gray-700">
-      <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+      <div className="flex items-center gap-2">
+        {action}
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+      </div>
       <div className="flex items-center gap-4">
         {lastUpdated && (
           <span className="text-sm text-gray-500 dark:text-gray-400">

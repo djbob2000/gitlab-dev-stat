@@ -32,6 +32,7 @@ export default function HomePageClient({
     projects: enrichedProjects,
     loadAllData,
     isLoading,
+    reorderProjects,
   } = useProjects(projects);
 
   // Хук для логіки автооновлення
@@ -84,7 +85,7 @@ export default function HomePageClient({
         onAutoRefreshChange={handleAutoRefreshChange}
       />
       <div className="container py-10 pt-0">
-        <ProjectsList projects={enrichedProjects} />
+        <ProjectsList projects={enrichedProjects} onReorder={reorderProjects} />
       </div>
     </>
   );
