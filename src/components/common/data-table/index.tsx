@@ -71,7 +71,7 @@ export function DataTable<TData, TValue>({
     return column;
   });
 
-  const columnIds = normalizedColumns.map((column) => String(column.id));
+  const columnIds = normalizedColumns.map(column => String(column.id));
 
   // Use hooks for state management
   const { columnSizing, handleColumnSizingChange } = useColumnSizing(tableId);
@@ -133,7 +133,7 @@ export function DataTable<TData, TValue>({
   };
 
   const getColumnHeaderLabel = (id: string) => {
-    const column = table.getAllColumns().find((col) => String(col.id) === id);
+    const column = table.getAllColumns().find(col => String(col.id) === id);
     if (column?.columnDef.header) {
       return typeof column.columnDef.header === 'string' ? column.columnDef.header : id;
     }
@@ -168,13 +168,13 @@ export function DataTable<TData, TValue>({
             style={{ minWidth: table.getTotalSize() }}
           >
             <thead className="bg-gray-50 dark:bg-gray-900">
-              {table.getHeaderGroups().map((headerGroup) => (
+              {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id}>
                   <SortableContext
-                    items={headerGroup.headers.map((header) => String(header.column.id))}
+                    items={headerGroup.headers.map(header => String(header.column.id))}
                     strategy={horizontalListSortingStrategy}
                   >
-                    {headerGroup.headers.map((header) => (
+                    {headerGroup.headers.map(header => (
                       <SortableHeader<TData> key={header.id} header={header} _table={table} />
                     ))}
                   </SortableContext>
@@ -185,7 +185,7 @@ export function DataTable<TData, TValue>({
               {isLoading ? (
                 <SkeletonTableRows<TData> table={table} rows={skeletonRowCount} />
               ) : table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => {
+                table.getRowModel().rows.map(row => {
                   const isEvenRow = Number.parseInt(row.id, 10) % 2 === 0;
                   return (
                     <tr
@@ -195,10 +195,10 @@ export function DataTable<TData, TValue>({
                         isEvenRow ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'
                       )}
                     >
-                      {row.getVisibleCells().map((cell) => (
+                      {row.getVisibleCells().map(cell => (
                         <td
                           key={cell.id}
-                          className="px-2 text-sm text-gray-500 dark:text-gray-400 overflow-hidden"
+                          className="px-2 py-0.5 text-sm text-gray-500 dark:text-gray-400 overflow-hidden"
                           style={{
                             width: cell.column.getSize(),
                             maxWidth: cell.column.getSize(),
