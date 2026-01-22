@@ -20,6 +20,7 @@ export const LABELS = {
   QA_PRE_CHECK: 'qa-pre-check',
   STATUS_UPDATE_COMMIT: 'status-commit',
   TEST: 'test',
+  MERGE_BLOCKER: 'merge-blocker',
 } as const;
 
 export const PRIORITY_LABEL_PATTERN = /^p[1-9]$/;

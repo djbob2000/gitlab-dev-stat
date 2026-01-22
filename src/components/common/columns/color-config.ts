@@ -44,4 +44,5 @@ export const mrLabelColors: Record<string, string> = {
   [LABELS.TEAM1]: 'bg-[#cccccc] text-black', // light gray
   [LABELS.TEAM2]: 'bg-[#8e5bb5] text-white', // purple
   [LABELS.TEST]: 'bg-[#9784f5] text-black', // light purple
+  [LABELS.MERGE_BLOCKER]: 'bg-[#c21e56] text-white', // pink-red
 };
