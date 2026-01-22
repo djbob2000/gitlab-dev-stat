@@ -209,7 +209,7 @@ export async function GET(request: Request) {
       mergeRequestsResults.forEach((result, index) => {
         if (result.status === 'fulfilled' && issues[index]) {
           const filteredMrs = result.value.filter(
-            (mr) => mr.source_project_id === projectId && mr.state === 'opened'
+            (mr) => mr.state === 'opened'
           );
           mergeRequestsByIid.set(issues[index].iid, filteredMrs);
         } else {
