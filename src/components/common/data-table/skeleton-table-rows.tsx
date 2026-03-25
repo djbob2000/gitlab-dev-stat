@@ -10,15 +10,19 @@ export function SkeletonTableRows<TData>({
   table: ReturnType<typeof useReactTable<TData>>;
   rows?: number;
 }) {
+  const rowIds = Array.from({ length: rows }, (_, index) => `skeleton-row-${index + 1}`);
+
   return (
     <>
-      {Array.from({ length: rows }).map((_, i) => (
+      {rowIds.map((rowId, rowIndex) => (
         <tr
-          key={`skeleton-${crypto.randomUUID()}`}
-          className={cn(i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900')}
+          key={rowId}
+          className={cn(
+            rowIndex % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'
+          )}
         >
           {table.getVisibleLeafColumns().map((col) => (
-            <td key={`sk-${String(col.id)}-${i}`} className="px-2 py-2">
+            <td key={`sk-${String(col.id)}-${rowId}`} className="px-2 py-2">
               <Skeleton className="h-4 w-full" />
             </td>
           ))}

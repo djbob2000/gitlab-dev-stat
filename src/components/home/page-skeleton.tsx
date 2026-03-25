@@ -11,6 +11,10 @@ const SKELETON_CONFIG = {
   titleWidths: ['w-48', 'w-56', 'w-40'], // Ширини заголовків проектів
 };
 
+function createSkeletonIds(count: number, prefix: string) {
+  return Array.from({ length: count }, (_, index) => `${prefix}-${index + 1}`);
+}
+
 // Компонент заголовка
 function HeaderSkeleton() {
   return (
@@ -50,16 +54,15 @@ function TableRowSkeleton({
   projectIndex: number;
   rowIndex: number;
 }) {
+  const cellIds = createSkeletonIds(
+    SKELETON_CONFIG.headerItems,
+    `${baseId}-skeleton-cell-${projectIndex + 1}-${rowIndex + 1}`
+  );
+
   return (
-    <div
-      key={`${baseId}-skeleton-row-${projectIndex + 1}-${rowIndex}`}
-      className="grid grid-cols-6 gap-4 p-4 border-b"
-    >
-      {Array.from({ length: SKELETON_CONFIG.headerItems }).map((_, colIndex) => (
-        <Skeleton
-          key={`${baseId}-skeleton-cell-${projectIndex + 1}-${rowIndex}-${colIndex}`}
-          className="h-4 w-full"
-        />
+    <div className="grid grid-cols-6 gap-4 p-4 border-b">
+      {cellIds.map((cellId) => (
+        <Skeleton key={cellId} className="h-4 w-full" />
       ))}
     </div>
   );
@@ -67,13 +70,15 @@ function TableRowSkeleton({
 
 // Компонент скелетону заголовків таблиці
 function TableHeadersSkeleton({ baseId, projectIndex }: { baseId: string; projectIndex: number }) {
+  const headerIds = createSkeletonIds(
+    SKELETON_CONFIG.headerItems,
+    `${baseId}-skeleton-header-${projectIndex + 1}`
+  );
+
   return (
     <div className="grid grid-cols-6 gap-4 p-4 border-b">
-      {Array.from({ length: SKELETON_CONFIG.headerItems }).map((_, i) => (
-        <Skeleton
-          key={`${baseId}-skeleton-header-${projectIndex + 1}-${i}`}
-          className="h-4 w-full"
-        />
+      {headerIds.map((headerId) => (
+        <Skeleton key={headerId} className="h-4 w-full" />
       ))}
     </div>
   );
@@ -83,6 +88,7 @@ function TableHeadersSkeleton({ baseId, projectIndex }: { baseId: string; projec
 function ProjectSkeleton({ baseId, projectIndex }: { baseId: string; projectIndex: number }) {
   const rowCount = SKELETON_CONFIG.rowItems[projectIndex] || 1;
   const titleWidth = SKELETON_CONFIG.titleWidths[projectIndex] || 'w-48';
+  const rowIds = createSkeletonIds(rowCount, `${baseId}-project-${projectIndex + 1}-row`);
 
   return (
     <div className="space-y-4">
@@ -100,9 +106,9 @@ function ProjectSkeleton({ baseId, projectIndex }: { baseId: string; projectInde
         <TableHeaderSkeleton projectIndex={projectIndex} />
         <div className="p-0">
           <TableHeadersSkeleton baseId={baseId} projectIndex={projectIndex} />
-          {Array.from({ length: rowCount }).map((_, rowIndex) => (
+          {rowIds.map((rowId, rowIndex) => (
             <TableRowSkeleton
-              key={`${baseId}-project-${projectIndex + 1}-row-${rowIndex}`}
+              key={rowId}
               baseId={baseId}
               projectIndex={projectIndex}
               rowIndex={rowIndex}
@@ -117,6 +123,7 @@ function ProjectSkeleton({ baseId, projectIndex }: { baseId: string; projectInde
 export function PageSkeleton() {
   // Використовуємо useId для стабільних унікальних ключів
   const baseId = useId();
+  const projectIds = createSkeletonIds(SKELETON_CONFIG.projectCount, `${baseId}-project`);
 
   return (
     <div className="min-h-screen bg-background">
@@ -126,10 +133,9 @@ export function PageSkeleton() {
       {/* Скелетон проектів */}
       <div className="container py-10 pt-0">
         <div className="space-y-10">
-          {Array.from({ length: SKELETON_CONFIG.projectCount }).map((_, projectIndex) => (
+          {projectIds.map((projectId, projectIndex) => (
             <ProjectSkeleton
-              // biome-ignore lint/suspicious/noArrayIndexKey: using index as key for skeleton items is acceptable
-              key={`${baseId}-project-${projectIndex}`}
+              key={projectId}
               baseId={baseId}
               projectIndex={projectIndex}
             />
